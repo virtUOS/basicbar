@@ -1,5 +1,6 @@
 stages:
   - check
+  - test
 
 # Jede Quelldatei trägt einen SPDX-Header (siehe README, Konventionen).
 # Paket-Tests und npm-Publish kommen mit den Paketen dazu (Phasen 2/3).
@@ -17,3 +18,10 @@ spdx-header:
         exit 1
       fi
       echo "SPDX-Header vollständig."
+
+integrations-tests:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - pip install --quiet ./packages/django/basicbar-integrations
+    - cd packages/django/basicbar-integrations && python runtests.py
