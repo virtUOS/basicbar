@@ -1,0 +1,19 @@
+stages:
+  - check
+
+# Jede Quelldatei trägt einen SPDX-Header (siehe README, Konventionen).
+# Paket-Tests und npm-Publish kommen mit den Paketen dazu (Phasen 2/3).
+spdx-header:
+  stage: check
+  image: alpine:3.20
+  script:
+    - |
+      fehlend=$(find packages template -type f \( -name '*.py' -o -name '*.ts' -o -name '*.tsx' -o -name '*.css' \) \
+        ! -path '*/node_modules/*' ! -path '*/migrations/*' \
+        -exec grep -L 'SPDX-License-Identifier: Apache-2.0' {} +) || true
+      if [ -n "$fehlend" ]; then
+        echo "Dateien ohne SPDX-Header:"
+        echo "$fehlend"
+        exit 1
+      fi
+      echo "SPDX-Header vollständig."
