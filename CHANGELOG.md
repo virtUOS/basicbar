@@ -7,6 +7,28 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+## ui/v0.2.0 — 2026-07-19
+
+### @basicbar/ui
+- Neu: `TranslatableField` + `TranslationFormProvider`/`useTranslationForm` —
+  die vereinheitlichte Übersetzungs-Editor-Komponente beider Tools.
+  Vertrag: per Sprache (`values` + `onChange(lang, text)`), n Sprachen aus
+  `SUPPORTED_LANGUAGES` (UI-Sprache-zuerst), `renderInput` für
+  Custom-Editoren, `singleLanguage` (Easy Mode) als Prop, `format="html"`
+  (Statuspunkte ignorieren Markup, Übersetzung erhält es),
+  `MAX_TRANSLATE_LENGTH`-Kappe. Der HTTP-Aufruf wird vom Tool injiziert:
+  `<TranslationFormProvider translate={…}>`.
+- Neue Peer-Dependency: `lucide-react`.
+- Migration beide Tools: lokale `TranslatableField`/`TranslationForm`
+  ersetzen; `tailwind.config` `content` um
+  `./node_modules/@basicbar/ui/dist/**/*.js` erweitern (Komponenten-Klassen
+  müssen gescannt werden); Provider bekommt die `translate`-Funktion.
+- Migration ausleihbar: `api.translate` um `format`-Parameter erweitern;
+  Aufrufstellen bleiben unverändert (gleicher Feld-Vertrag).
+- Migration abstimmbar: lokaler Wrapper behält `value`/`onChange(next)`,
+  `variant="rich"` (RichTextEditor) und Easy Mode; Tab-Reihenfolge folgt
+  jetzt der UI-Sprache statt fix kanonisch-zuerst.
+
 ## ui/v0.1.0 — 2026-07-19
 
 ### @basicbar/ui

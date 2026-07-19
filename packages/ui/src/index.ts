@@ -8,6 +8,20 @@ export { default as i18n, initI18n, SUPPORTED_LANGUAGES } from "./i18n";
 export type { Language } from "./i18n";
 
 export {
+  MAX_TRANSLATE_LENGTH,
+  TranslationFormProvider,
+  useTranslationForm,
+} from "./TranslationForm";
+export type {
+  TranslatableEntry,
+  TranslateFn,
+  TranslateFormat,
+} from "./TranslationForm";
+
+export { TranslatableField } from "./TranslatableField";
+export type { RenderInputArgs, TranslatableFieldProps } from "./TranslatableField";
+
+export {
   defaultContentLangLabel,
   getDefaultContentLang,
   isTranslationEnabled,
