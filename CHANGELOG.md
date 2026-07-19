@@ -7,7 +7,7 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
-## lti/v0.1.0 — 2026-07-19
+## lti/v0.1.1 — 2026-07-19
 
 ### basicbar-lti
 - LTI-1.3-Fundament (Phase 5), aus abstimmbar extrahiert: `LtiPlatform`/
@@ -18,9 +18,10 @@ Changelog ist die Upgrade-Anleitung für die Tools.
   LMS-Handshake.
 - Bewusst Tool-seitig: Message-Launch, Deep Linking, Kontext-Link-Model
   (FK auf Fachmodelle) und Icon — komponiert aus den Paket-Primitiven.
-- Migration abstimmbar: `db_table`-Namen bleiben (`lti_*`); alte
-  Migrationshistorie auf `LtiContextLink` reduziert; **einmalig
-  `manage.py migrate --fake-initial`** pro Bestands-Deployment.
+- Migration abstimmbar: Daten-Umzugsmigration (`lti/0003`) kopiert
+  Plattformen/Keys/User-Links PK-erhaltend in die Paket-Tabellen und hängt
+  den Kontext-Link-FK um — läuft als normales `manage.py migrate`, kein
+  manueller Schritt.
 - ausleihbar: keine Änderung — die Fähigkeit kommt bei Bedarf über
   Paket + eigene Launch-App.
 

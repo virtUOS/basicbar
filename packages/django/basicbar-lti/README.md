@@ -39,12 +39,13 @@ path("lti/login/", lti_login), path("lti/jwks/", lti_jwks),
 
 ## Bestands-Deployment adoptieren (abstimmbar-Muster)
 
-Die Tabellen behalten den historischen `lti_*`-Präfix. Ein Tool, das die
-Models bisher selbst trug: alte Migrationshistorie auf das eigene
-Kontext-Link-Model reduzieren (Abhängigkeit auf `basicbar_lti.0001`) und
-einmalig **`python manage.py migrate --fake-initial`** ausführen — die
-vorhandenen Tabellen werden übernommen, nichts wird angefasst. Frische
-Installationen migrieren normal.
+Ein Tool, das die Models bisher selbst trug, behält seine
+Migrationshistorie und ergänzt **eine Daten-Umzugsmigration** (Vorlage:
+abstimmbars `lti/0003_move_to_basicbar_lti`): Zeilen PK-erhaltend in die
+Paket-Tabellen kopieren, Sequenzen nachziehen, den Kontext-Link-FK per
+`AlterField` auf `basicbar_lti.LtiPlatform` umhängen, alte Models löschen.
+Läuft als ganz normales `manage.py migrate` — kein manueller Schritt;
+frische Installationen migrieren ohnehin sauber.
 
 Tests: `python runtests.py` (simuliert den kompletten LMS-Handshake:
 OIDC-Initiation, signierte id_tokens, JWKS, Account-Verknüpfung).

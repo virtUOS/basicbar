@@ -7,10 +7,8 @@ One tool keypair for all platforms; platforms are registered by admins
 (Django admin or the staff API). What an LMS course context maps onto is
 tool logic — a tool defines its own context-link model with a FK onto
 ``basicbar_lti.LtiPlatform`` (e.g. abstimmbar's ``LtiContextLink`` → Room).
-
-The ``db_table`` names keep the historical ``lti_*`` prefix so existing
-deployments adopt the package with a state-only migration plus
-``migrate --fake-initial`` — no table rename needed.
+A tool that carried these models itself adopts the package with a
+data-move migration (abstimmbar's ``lti/0003`` is the template).
 """
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -34,9 +32,6 @@ class LtiToolKey(models.Model):
     private_key = models.TextField()
     public_key = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = "lti_ltitoolkey"
 
     @classmethod
     def load(cls):
@@ -91,7 +86,6 @@ class LtiPlatform(TimeStampedModel):
     )
 
     class Meta:
-        db_table = "lti_ltiplatform"
         constraints = [
             models.UniqueConstraint(
                 fields=["issuer", "client_id"], name="unique_platform_registration"
@@ -121,7 +115,6 @@ class LtiUserLink(TimeStampedModel):
     )
 
     class Meta:
-        db_table = "lti_ltiuserlink"
         constraints = [
             models.UniqueConstraint(
                 fields=["platform", "sub"], name="one_user_per_lti_subject"

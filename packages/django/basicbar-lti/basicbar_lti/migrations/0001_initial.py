@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 Universität Osnabrück (virtUOS)
 
-# Schema-identisch zu abstimmbars historischen lti/0001+0002 (inkl. der
-# db_table-Namen mit lti_-Präfix), damit Bestands-Deployments das Paket per
-# `migrate --fake-initial` adoptieren können — siehe README.
+# Schema-identisch zu abstimmbars historischen lti/0001+0002 (mit den
+# Standard-Tabellennamen des Pakets); Bestands-Deployments ziehen ihre Daten
+# per Umzugsmigration um — siehe README bzw. abstimmbars lti/0003.
 
 import django.db.models.deletion
 from django.conf import settings
@@ -27,9 +27,6 @@ class Migration(migrations.Migration):
                 ("public_key", models.TextField()),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
-            options={
-                "db_table": "lti_ltitoolkey",
-            },
         ),
         migrations.CreateModel(
             name="LtiPlatform",
@@ -49,7 +46,6 @@ class Migration(migrations.Migration):
                 ("link_by_email", models.BooleanField(default=False, help_text="Beim ersten Launch unbekannte LTI-Nutzer über die E-Mail-Adresse mit bestehenden Konten verknüpfen (nur für vertrauenswürdige Plattformen aktivieren).")),
             ],
             options={
-                "db_table": "lti_ltiplatform",
                 "constraints": [
                     models.UniqueConstraint(fields=("issuer", "client_id"), name="unique_platform_registration")
                 ],
@@ -66,7 +62,6 @@ class Migration(migrations.Migration):
                 ("user", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="lti_links", to=settings.AUTH_USER_MODEL)),
             ],
             options={
-                "db_table": "lti_ltiuserlink",
                 "constraints": [
                     models.UniqueConstraint(fields=("platform", "sub"), name="one_user_per_lti_subject")
                 ],
