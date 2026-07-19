@@ -27,6 +27,13 @@ integrations-tests:
     - pip install --quiet ./packages/django/basicbar-integrations
     - cd packages/django/basicbar-integrations && python runtests.py
 
+auth-tests:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - pip install --quiet ./packages/django/basicbar-auth
+    - cd packages/django/basicbar-auth && python runtests.py
+
 ui-build:
   stage: test
   image: node:22-slim

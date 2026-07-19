@@ -7,6 +7,28 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+## auth/v0.1.0 — 2026-07-19
+
+### basicbar-auth
+- Erstes Auth-Paket (Phase 4): `OIDCBackend` (Claim-Mapping, JIT-
+  Provisionierung, IdP-Gruppen → Django-Admin), `SilentLoginView`,
+  Back-Channel-Logout, `provider_logout_url`, `is_oidc_admin`,
+  `discovery.discover_endpoints`, `AbstractBasicUser` (ADR-0003).
+- Die bewussten Tool-Unterschiede aus Phase 0 sind jetzt Konfiguration:
+  `MAX_USERS` (Obergrenze; `anonymized_at`-Konvention zählt anonymisierte
+  Konten nicht) und `OIDC_MATCH_BY_USERNAME_FALLBACK` (Subject-Drift-
+  Heilung per Username-Match, Default aus). Betreiber-Doku zu Fristen und
+  Kennungs-Wiedervergabe im Paket-README.
+- 25 Tests (aus beiden Tools portiert und vereinigt, inkl. der neuen
+  Flag-Pfade), eigener CI-Job.
+- Migration beide Tools: `accounts/oidc.py` + `config/oidc_discovery.py`
+  löschen; `AUTHENTICATION_BACKENDS`/`OIDC_OP_LOGOUT_URL_METHOD` auf
+  `basicbar_auth.oidc.*`; Importe in urls/views/serializers umstellen;
+  `INSTALLED_APPS` + `basicbar_auth`. User-Model bleibt unangetastet.
+- Migration abstimmbar zusätzlich: `OIDC_MATCH_BY_USERNAME_FALLBACK=True`
+  setzen (bisheriges Verhalten, an der UOS unkritisch — Kennungen werden
+  nicht neu vergeben).
+
 ## ui/v0.2.1 — 2026-07-19
 
 ### @basicbar/ui
