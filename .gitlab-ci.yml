@@ -10,8 +10,8 @@ spdx-header:
   image: alpine:3.20
   script:
     - |
-      fehlend=$(find packages template -type f \( -name '*.py' -o -name '*.ts' -o -name '*.tsx' -o -name '*.css' \) \
-        ! -path '*/node_modules/*' ! -path '*/migrations/*' \
+      fehlend=$(find packages template -type f ! -empty \( -name '*.py' -o -name '*.ts' -o -name '*.tsx' -o -name '*.css' \) \
+        ! -path '*/node_modules/*' ! -path '*/migrations/*' ! -path '*/dist/*' \
         -exec grep -L 'SPDX-License-Identifier: Apache-2.0' {} +) || true
       if [ -n "$fehlend" ]; then
         echo "Dateien ohne SPDX-Header:"
