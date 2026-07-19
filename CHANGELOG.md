@@ -7,13 +7,14 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
-## lti/v0.1.1 — 2026-07-19
+## lti/v0.1.2 — 2026-07-19
 
 ### basicbar-lti
 - LTI-1.3-Fundament (Phase 5), aus abstimmbar extrahiert: `LtiPlatform`/
   `LtiToolKey`/`LtiUserLink`, `build_tool_conf`, `lti_login`/`lti_jwks`,
   Staff-Platform-API, JIT-Provisionierung mit E-Mail-Unifizierung
-  (Opt-in pro Plattform), Frame-Ancestors-Middleware
+  (Opt-in pro Plattform), Constraint-Namen mit Paket-Präfix (koexistenz-
+  sicher während der Umzugsmigration), Frame-Ancestors-Middleware
   (`LTI_FRAME_PATH_PREFIXES` konfigurierbar). 28 Tests inkl. simuliertem
   LMS-Handshake.
 - Bewusst Tool-seitig: Message-Launch, Deep Linking, Kontext-Link-Model

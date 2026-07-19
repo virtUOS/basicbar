@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 "constraints": [
-                    models.UniqueConstraint(fields=("issuer", "client_id"), name="unique_platform_registration")
+                    models.UniqueConstraint(fields=("issuer", "client_id"), name="basicbar_lti_unique_platform")
                 ],
             },
         ),
@@ -63,7 +63,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 "constraints": [
-                    models.UniqueConstraint(fields=("platform", "sub"), name="one_user_per_lti_subject")
+                    models.UniqueConstraint(fields=("platform", "sub"), name="basicbar_lti_one_user_per_sub")
                 ],
             },
         ),
