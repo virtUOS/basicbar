@@ -209,6 +209,15 @@ aus ausleihbars A11y-Basis + abstimmbars color-scheme-Regeln, ThemeProvider
 contentLang), CI-Build + Tag-Publish in die Generic Package Registry.
 
 1. ~~Design-Stand wählen~~ → erledigt durch obiges Modell.
+
+Status Grundausbau: ✅ `ui/v0.1.0` released (2026-07-19, Tarball anonym
+abrufbar), beide Tools umgestellt (ausleihbar !167, abstimmbar !91; tsc,
+vite build und visueller Check grün; jedes Tool gewann Basis-Features des
+jeweils anderen: ausleihbar color-scheme, abstimmbar Skip-Link/focus-ring/
+reduced-motion/Live-Theme-Folge). Offen in Phase 3: die gemeinsamen
+Komponenten — zuerst das vereinheitlichte `TranslatableField` +
+`TranslationForm` (Design-Vorgaben unten), danach weitere Kandidaten
+einzeln nach Rule of Two.
 2. Extrahieren: Design-Tokens als CSS-Variablen, Theme + Dark Mode,
    i18n-Bootstrap, `contentLang`, Font-Setup, Lucide-Konventionen,
    5–10 wirklich gemeinsame Basis-Komponenten. Nicht mehr — Komponenten

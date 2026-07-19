@@ -7,7 +7,9 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
-### @basicbar/ui (→ wird `ui/v0.1.0`)
+## ui/v0.1.0 — 2026-07-19
+
+### @basicbar/ui
 - Erstes UI-Paket (Phase 3), Modell „ein Designsystem, pro Tool ein eigener
   Akzent“: `createPreset({ colors })` (Font, Dark Mode per `.dark`-Klasse,
   Motion-Tokens; die `slate`/`brand`-Ramps bleiben als Identität im Tool),
