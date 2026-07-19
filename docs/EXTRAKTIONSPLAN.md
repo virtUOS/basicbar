@@ -214,10 +214,18 @@ Status Grundausbau: ✅ `ui/v0.1.0` released (2026-07-19, Tarball anonym
 abrufbar), beide Tools umgestellt (ausleihbar !167, abstimmbar !91; tsc,
 vite build und visueller Check grün; jedes Tool gewann Basis-Features des
 jeweils anderen: ausleihbar color-scheme, abstimmbar Skip-Link/focus-ring/
-reduced-motion/Live-Theme-Folge). Offen in Phase 3: die gemeinsamen
-Komponenten — zuerst das vereinheitlichte `TranslatableField` +
-`TranslationForm` (Design-Vorgaben unten), danach weitere Kandidaten
-einzeln nach Rule of Two.
+reduced-motion/Live-Theme-Folge). Komponenten: ✅ `TranslatableField` + `TranslationForm` vereinheitlicht
+(`ui/v0.2.1`, 2026-07-19; ausleihbar !168, abstimmbar !92). Abweichung von
+der ursprünglichen Vorgabe, bewusst: Der Paket-Vertrag ist per Sprache
+(`values` + `onChange(lang, text)`) — der primitivere Vertrag bedient
+beide Speichermodelle (ausleihbar `*_de`/`*_en`-Spalten, abstimmbar
+`{lang}`-Maps) direkt; abstimmbar behält einen ~70-Zeilen-Wrapper
+(Map-Vertrag, `variant="rich"`/TipTap, Easy Mode) — Erweiterungspunkt
+statt Fork, alle Aufrufstellen beider Tools blieben unverändert. Der
+Translate-HTTP-Aufruf wird dem Provider injiziert (Paket bleibt
+API-Client-frei). Wichtig für alle Komponenten-Adoptionen:
+`tailwind.config` muss `./node_modules/@basicbar/ui/dist/**/*.js`
+scannen. Weitere Komponenten folgen einzeln nach Rule of Two.
 2. Extrahieren: Design-Tokens als CSS-Variablen, Theme + Dark Mode,
    i18n-Bootstrap, `contentLang`, Font-Setup, Lucide-Konventionen,
    5–10 wirklich gemeinsame Basis-Komponenten. Nicht mehr — Komponenten
