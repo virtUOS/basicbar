@@ -70,6 +70,9 @@ export interface TranslatableFieldProps {
   inputClass?: string;
   /** Extra classes on the outer wrapper (e.g. to size/flex it inside a row). */
   className?: string;
+  /** Classes for the label element (default: inherits the wrapper's meta
+   *  style; pass e.g. `text-sm font-medium …` for a prominent form label). */
+  labelClassName?: string;
   /** Rendered right after the visible label; ignored without `label`. */
   labelAddon?: ReactNode;
   required?: boolean;
@@ -102,6 +105,7 @@ export function TranslatableField({
   onChange,
   inputClass = DEFAULT_INPUT_CLASS,
   className = "",
+  labelClassName = "",
   labelAddon,
   required = false,
   multiline = false,
@@ -208,7 +212,7 @@ export function TranslatableField({
         <div className="flex items-center justify-between gap-2">
           {label ? (
             <span className="flex items-center gap-1">
-              <label htmlFor={inputId}>
+              <label htmlFor={inputId} className={labelClassName}>
                 {label}
                 {required && <span className="text-rose-500"> *</span>}
               </label>

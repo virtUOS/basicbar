@@ -7,7 +7,7 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
-## ui/v0.2.0 — 2026-07-19
+## ui/v0.2.1 — 2026-07-19
 
 ### @basicbar/ui
 - Neu: `TranslatableField` + `TranslationFormProvider`/`useTranslationForm` —
