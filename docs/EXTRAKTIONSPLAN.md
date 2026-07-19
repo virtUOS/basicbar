@@ -273,10 +273,25 @@ erbeten. Nicht extrahiert (bewusst): Retention/Anonymisierung —
 Hook-Design, wenn ein zweites Tool Retention baut. User-Model-Rebase auf
 `AbstractBasicUser` folgt pro Tool beim nächsten natürlichen Anlass.
 
-### Phase 5 — `basicbar-lti`
+### Phase 5 — `basicbar-lti` ✅ (2026-07-19)
 `abstimmbar/backend/lti/` weitgehend 1:1 extrahieren (inkl. Migrationen im
 Paket), per `INSTALLED_APPS` + Env aktivierbar. abstimmbar stellt um;
 ausleihbar bekommt die Fähigkeit gratis, aktiviert sie aber erst bei Bedarf.
+
+Umgesetzt (`lti/v0.1.2`): Statt 1:1 ein bewusster Library-Schnitt — das
+Paket trägt das generische Fundament (Plattform-Registrierung, Tool-Key,
+OIDC-Initiation, JWKS, JIT-Provisionierung mit link_by_email, Staff-API,
+Frame-Ancestors-Middleware mit konfigurierbaren Pfad-Präfixen); der
+Message-Launch und Deep Linking bleiben Tool-Code, denn worauf ein
+Kurskontext abbildet (Raum, Pool, …) ist Fachlogik. Das Kontext-Link-
+Model bleibt beim Tool (FK auf Fachmodelle). 28 Paket-Tests mit
+simuliertem LMS-Handshake. Migrationsweg: Daten-Umzugsmigration
+(abstimmbar lti/0003, PK-erhaltend per SQL, normales migrate) — zwei
+Anläufe waren nötig: geerbte Tabellennamen + fake-initial scheitern an
+Djangos History-Konsistenz-Check (v0.1.0/0.1.1 zurückgezogen), und
+UniqueConstraint-Namen brauchen Paket-Präfixe, weil Constraint-Namen in
+Postgres schemaweit kollidieren (v0.1.2). Umstellung: abstimmbar !94;
+ausleihbar unverändert.
 
 ### Phase 6 — Copier-Template + Nagelprobe erkennbar
 Projektgerüst aus dem Zieldstand von ausleihbar/abstimmbar destillieren;
