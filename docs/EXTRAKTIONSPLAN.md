@@ -253,11 +253,25 @@ beide Tools haben eine, mit divergiertem Vertrag). Superset-API aus beiden:
   vereinheitlichen (existiert ebenfalls in beiden Tools, divergiert) und
   ``api.translate`` auf den Phase-2-Endpunktvertrag umstellen.
 
-### Phase 4 — `basicbar-auth`
+### Phase 4 — `basicbar-auth` ✅ (2026-07-19)
 OIDC-Backend, `oidc_discovery.py` (schon identisch), Login/Logout/Session-
 Views, `AbstractBasicUser`, Permissions-Basis. Tool-Spezifika (strikes,
 eligibility, retention, easy_mode) bleiben in den Tools. Umstellung pro Tool
 mit besonderer Sorgfalt (Auth = sensibel, Keycloak-Testdurchlauf).
+
+Umgesetzt (`auth/v0.1.0`): OIDCBackend, SilentLoginView, Back-Channel-
+Logout, Discovery, `is_oidc_admin`, `AbstractBasicUser`. Die Phase-0-
+Unterschiede sind Konfiguration geworden: `MAX_USERS` (mit
+`anonymized_at`-Konvention) und `OIDC_MATCH_BY_USERNAME_FALLBACK`
+(Default aus; abstimmbar aktiviert es explizit). Betreiber-Doku zu
+Löschfristen vs. Kennungs-Vakanz im Paket-README (Faustregel:
+Anonymisierungsfrist « IdP-Mindest-Vakanzzeit). 25 Paket-Tests.
+Umstellungs-MRs: ausleihbar !169, abstimmbar !93 — Suiten grün (447/402),
+Image-Builds verifiziert; manueller Keycloak-Durchlauf beim Review
+erbeten. Nicht extrahiert (bewusst): Retention/Anonymisierung — 
+`anonymize_user` fasst Tool-Modelle an; Kandidat für später mit
+Hook-Design, wenn ein zweites Tool Retention baut. User-Model-Rebase auf
+`AbstractBasicUser` folgt pro Tool beim nächsten natürlichen Anlass.
 
 ### Phase 5 — `basicbar-lti`
 `abstimmbar/backend/lti/` weitgehend 1:1 extrahieren (inkl. Migrationen im
