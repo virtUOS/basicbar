@@ -117,7 +117,7 @@ export function Home() {
         {{ "{" }}{{ project_title | tojson }}{{ "}" }}
       </h1>
       <p className="mt-3 text-slate-500 dark:text-slate-400">
-        {{ project_description | tojson }}
+        {{ "{" }}{{ project_description | tojson }}{{ "}" }}
       </p>
       {whoami?.authenticated ? (
         <p className="mt-6 text-sm text-slate-600 dark:text-slate-300">
