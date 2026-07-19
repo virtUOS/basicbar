@@ -1,0 +1,86 @@
+{
+  "realm": "{{ project_slug }}",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "clients": [
+    {
+      "clientId": "{{ project_slug }}-backend",
+      "name": "{{ project_title }} Backend",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "{{ project_slug }}-dev-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": [
+        "http://localhost:{{ backend_port }}/*"
+      ],
+      "webOrigins": [
+        "http://localhost:{{ backend_port }}",
+        "http://localhost:{{ frontend_port }}"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:{{ frontend_port }}/*##http://localhost:{{ backend_port }}/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "false",
+            "claim.name": "groups",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "name": "{{ project_slug }}-admins"
+    }
+  ],
+  "users": [
+    {
+      "id": "67ee5332-a5cb-4d6a-8d09-c72ebfb70903",
+      "username": "demo",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "demo@uni-osnabrueck.de",
+      "firstName": "Frank",
+      "lastName": "Lehrender",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "demo",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "e5b3fc48-3b03-470e-b840-30784abecb0e",
+      "username": "admin-demo",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "admin-demo@uni-osnabrueck.de",
+      "firstName": "Admin",
+      "lastName": "Demo",
+      "groups": [
+        "/{{ project_slug }}-admins"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "demo",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

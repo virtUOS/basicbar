@@ -1,0 +1,192 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 Universität Osnabrück (virtUOS)
+
+/** App shell: header (login/logout, theme, language), landing page.
+ *  Deliberately small — the tool grows from here. */
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Outlet, useOutletContext } from "react-router-dom";
+import { Check, Globe, LogIn, LogOut, Monitor, Moon, Sun } from "lucide-react";
+import {
+  SUPPORTED_LANGUAGES,
+  setDefaultContentLang,
+  setTranslationEnabled,
+  useTheme,
+  type Appearance,
+} from "@basicbar/ui";
+import i18n from "./i18n";
+import { api, loginUrl, logoutUrl, type Whoami } from "./api";
+
+function MenuButton({
+  active,
+  onClick,
+  children,
+}: {
+  active?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitemradio"
+      aria-checked={active}
+      onClick={onClick}
+      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+    >
+      <span className="flex-1">{children}</span>
+      {active && <Check aria-hidden className="h-4 w-4 text-brand-600" />}
+    </button>
+  );
+}
+
+/** Appearance (Auto/Light/Dark) + UI language, in one small menu. */
+function SettingsMenu({ whoami }: { whoami: Whoami | null }) {
+  const { t } = useTranslation();
+  const { appearance, setAppearance } = useTheme();
+  const [open, setOpen] = useState(false);
+
+  const appearances: { value: Appearance; label: string; icon: typeof Sun }[] = [
+    { value: "auto", label: t("Auto"), icon: Monitor },
+    { value: "light", label: t("Light"), icon: Sun },
+    { value: "dark", label: t("Dark"), icon: Moon },
+  ];
+
+  function chooseLanguage(code: string) {
+    void i18n.changeLanguage(code);
+    if (whoami?.authenticated) void api.setLanguage(code).catch(() => {});
+  }
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={t("Settings")}
+        className="flex items-center rounded-full p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+      >
+        <Globe aria-hidden className="h-5 w-5 text-slate-500 dark:text-slate-400" />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 z-30 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg shadow-slate-900/5 dark:border-slate-700 dark:bg-slate-900"
+        >
+          <p className="px-3 pb-0.5 pt-1 text-xs text-slate-400 dark:text-slate-500">
+            {t("Appearance")}
+          </p>
+          {appearances.map((option) => (
+            <MenuButton
+              key={option.value}
+              active={appearance === option.value}
+              onClick={() => setAppearance(option.value)}
+            >
+              <span className="flex items-center gap-2">
+                <option.icon aria-hidden className="h-4 w-4 text-slate-400" />
+                {option.label}
+              </span>
+            </MenuButton>
+          ))}
+          <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+          <p className="px-3 pb-0.5 pt-1 text-xs text-slate-400 dark:text-slate-500">
+            {t("Language")}
+          </p>
+          {SUPPORTED_LANGUAGES.map((lang) => (
+            <MenuButton
+              key={lang.code}
+              active={(i18n.resolvedLanguage ?? "en").startsWith(lang.code)}
+              onClick={() => chooseLanguage(lang.code)}
+            >
+              {lang.label}
+            </MenuButton>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function Home() {
+  const { t } = useTranslation();
+  const whoami = useOutletContext<Whoami | null>();
+  return (
+    <div className="mx-auto max-w-xl rounded-2xl border border-slate-200 p-8 text-center dark:border-slate-800">
+      <h1 className="text-3xl font-bold">
+        {{ "{" }}{{ project_title | tojson }}{{ "}" }}
+      </h1>
+      <p className="mt-3 text-slate-500 dark:text-slate-400">
+        {{ project_description | tojson }}
+      </p>
+      {whoami?.authenticated ? (
+        <p className="mt-6 text-sm text-slate-600 dark:text-slate-300">
+          {t("Signed in as")} <span className="font-medium">{whoami.username}</span>
+        </p>
+      ) : (
+        <a
+          href={loginUrl}
+          className="mt-6 inline-block rounded-full bg-brand-400 px-5 py-2 text-sm font-bold text-slate-900 transition-colors hover:bg-brand-500"
+        >
+          {t("Sign in")}
+        </a>
+      )}
+    </div>
+  );
+}
+
+export default function App() {
+  const { t } = useTranslation();
+  const [whoami, setWhoami] = useState<Whoami | null>(null);
+
+  useEffect(() => {
+    api
+      .whoami()
+      .then((data) => {
+        setWhoami(data);
+        // Content-i18n config for @basicbar/ui's contentLang helpers.
+        setDefaultContentLang(data.content_default_language);
+        setTranslationEnabled(data.content_translation_enabled);
+        if (data.language) void i18n.changeLanguage(data.language);
+      })
+      .catch(() => setWhoami(null));
+  }, []);
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <a href="#main" className="skip-link">
+        {t("Skip to content")}
+      </a>
+      <header className="border-b border-slate-100 dark:border-slate-900">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+          <span className="text-lg font-bold">
+            {{ "{" }}{{ project_title | tojson }}{{ "}" }}
+          </span>
+          <div className="flex items-center gap-1">
+            <SettingsMenu whoami={whoami} />
+            {whoami?.authenticated ? (
+              <a
+                href={logoutUrl}
+                aria-label={t("Sign out")}
+                className="flex items-center rounded-full p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <LogOut aria-hidden className="h-5 w-5 text-slate-500 dark:text-slate-400" />
+              </a>
+            ) : (
+              <a
+                href={loginUrl}
+                aria-label={t("Sign in")}
+                className="flex items-center rounded-full p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <LogIn aria-hidden className="h-5 w-5 text-slate-500 dark:text-slate-400" />
+              </a>
+            )}
+          </div>
+        </div>
+      </header>
+      <main id="main" className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
+        <Outlet context={whoami} />
+      </main>
+    </div>
+  );
+}

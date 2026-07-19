@@ -1,0 +1,58 @@
+# Copier-Template der virtUOS "-bar"-Tools (Basicbar Phase 6).
+# Neues Tool erzeugen:
+#   pipx run copier copy https://gitlab.uni-osnabrueck.de/virtuos/digitale-dienste/basicbar.git mein-tool
+# Später Template-Updates einspielen: `pipx run copier update` im Projekt.
+
+_subdirectory: template/project
+_min_copier_version: "9.0.0"
+
+project_slug:
+  type: str
+  help: "Technischer Name (klein, ohne Sonderzeichen) — Container, DB, Realm, Client-IDs"
+  default: neuesbar
+  validator: "{% if not project_slug | regex_search('^[a-z][a-z0-9]+$') %}nur Kleinbuchstaben/Ziffern, mit Buchstabe beginnend{% endif %}"
+
+project_title:
+  type: str
+  help: "Anzeigename (Browser-Titel, Header), z. B. erkennBAR"
+  default: "{{ project_slug[:-3] + project_slug[-3:] | upper if project_slug.endswith('bar') else project_slug }}"
+
+project_description:
+  type: str
+  help: "Ein Satz: Was tut das Tool?"
+  default: "Ein neues Werkzeug des virtUOS"
+
+frontend_port:
+  type: int
+  help: "Host-Port des Vite-Dev-Servers (ausleihbar 5173, abstimmbar 5174, modulierbar 5175, …)"
+  default: 5176
+
+backend_port:
+  type: int
+  help: "Host-Port des Django-Backends (ausleihbar 8001, abstimmbar 8002, modulierbar 8003, …)"
+  default: 8004
+
+keycloak_port:
+  type: int
+  help: "Host-Port des Dev-Keycloak (ausleihbar 8080, abstimmbar 8081, modulierbar 8082, …)"
+  default: 8083
+
+postgres_port:
+  type: int
+  help: "Host-Port von PostgreSQL (ausleihbar 5432, abstimmbar 5433, modulierbar 5434, …)"
+  default: 5435
+
+brand_hue:
+  type: int
+  help: "OKLCH-Farbton des Marken-Akzents (ausleihbar Honig ≈ 91, abstimmbar Grün ≈ 150; Startwert, Feintuning in tailwind.config.js)"
+  default: 260
+
+neutral_hue:
+  type: int
+  help: "OKLCH-Farbton der Neutrals (warm ≈ 91, kühl ≈ 220)"
+  default: 220
+
+use_lti:
+  type: bool
+  help: "LTI 1.3 vorbereiten (basicbar-lti: Plattform-Registrierung, Middleware — Launch-App folgt nach abstimmbar-Vorbild)?"
+  default: false

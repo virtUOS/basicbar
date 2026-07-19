@@ -1,0 +1,37 @@
+# {{ project_title }}
+
+{{ project_description }}
+
+Erzeugt aus dem [basicbar-Template](https://gitlab.uni-osnabrueck.de/virtuos/digitale-dienste/basicbar)
+(Django + DRF, React + Vite, OIDC via Keycloak, @basicbar/ui-Designsystem,
+optionale KI-/Übersetzungs-Integrationen{% if use_lti %}, LTI 1.3{% endif %}).
+
+## Entwicklung
+
+```bash
+docker compose up -d        # Postgres {{ postgres_port }}, Keycloak {{ keycloak_port }}, Backend {{ backend_port }}, Frontend {{ frontend_port }}
+docker compose exec backend python manage.py migrate
+docker compose exec backend python manage.py test
+```
+
+- SPA: http://localhost:{{ frontend_port }} — Login mit `demo`/`demo`
+  (Admin: `admin-demo`/`demo`, via Keycloak-Gruppe `{{ project_slug }}-admins`).
+- Keycloak-Admin: http://localhost:{{ keycloak_port }} (`admin`/`admin`).
+- Django-Admin: http://localhost:{{ backend_port }}/admin/ (Break-glass-Konto
+  per `docker compose exec backend python manage.py createsuperuser`).
+
+## Basis aktualisieren
+
+Die gemeinsamen Bausteine kommen aus dem basicbar-Repo (Changelog dort ist
+die Upgrade-Anleitung):
+
+- **Backend-Pakete** (`backend/requirements.txt`): Tag in der URL heben.
+- **@basicbar/ui** (`frontend/package.json`): Tarball-Version heben.
+- **Projektgerüst**: `pipx run copier update` spielt Template-Änderungen ein.
+
+## Konventionen
+
+Apache-2.0 mit SPDX-Headern; jede App hält Tests neben dem Code
+(`docker compose exec backend python manage.py test`); Frontend-Typecheck
+mit `docker compose exec frontend npx tsc -b`. CI: Lint (ruff), Backend-Tests
+gegen PostgreSQL, Frontend-Build.
