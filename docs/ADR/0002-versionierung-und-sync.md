@@ -12,8 +12,10 @@ passieren.
 
 - **SemVer pro Paket**, Git-Tags im Schema `<paket>/vX.Y.Z`
   (z. B. `integrations/v1.2.0`, `ui/v0.3.1`).
-- **pip-Pakete: direkt aus Git**, kein Registry-Betrieb nötig:
-  `basicbar-integrations @ git+ssh://git@gitlab.uni-osnabrueck.de/virtuos/digitale-dienste/basicbar.git@integrations/v1.2.0#subdirectory=packages/django/basicbar-integrations`
+- **pip-Pakete: als GitLab-Archiv-Tarball vom Tag**, kein Registry-Betrieb und
+  kein ``git`` im Docker-Image nötig (Entscheidung 2026-07-19: Repo ist dafür
+  öffentlich, damit Docker-Builds ohne Credentials installieren):
+  `basicbar-integrations @ https://gitlab.uni-osnabrueck.de/virtuos/digitale-dienste/basicbar/-/archive/integrations/v0.1.0/basicbar-integrations-v0.1.0.tar.gz#subdirectory=packages/django/basicbar-integrations`
 - **npm-Paket: GitLab Package Registry** des basicbar-Projekts (npm kann —
   anders als pip — nicht aus einem Unterverzeichnis eines Git-Repos
   installieren). Publish per CI-Job beim Taggen von `ui/vX.Y.Z`.

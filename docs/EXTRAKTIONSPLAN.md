@@ -184,11 +184,14 @@ IsLenderOrAdmin, abstimmbar: IsAuthenticated). Nebenbefund: abstimmbar gibt
 deutsche, ausleihbar englische API-Fehlertexte zurück — im Paket
 vereinheitlichen (englisch bzw. Django-i18n).
 
-Status: Paket gebaut und getestet (2026-07-18, 29 Tests, verifiziert im
-ausleihbar-Container). Offen: Distributionsweg für den Docker-Build der
-Tools (basicbar ist privat; Optionen: Sichtbarkeit „internal“ + Deploy-Token,
-GitLab-PyPI-Registry, oder öffentlich) — danach die beiden Umstellungs-MRs.
-Tag `integrations/v0.1.0` wird nach erfolgreicher Tool-Umstellung gesetzt.
+Status: ✅ abgeschlossen (2026-07-19). Paket mit 38 Tests (inkl. der aus
+abstimmbar übernommenen HTML-Allowlist-Tests), Tag `integrations/v0.1.0`.
+Distribution: Repo öffentlich, Installation als GitLab-Archiv-Tarball vom
+Tag (kein git im Image, Dockerfiles unverändert). Umstellungs-MRs:
+ausleihbar !166, abstimmbar !90 — beide Suiten grün, Docker-Builds
+end-to-end verifiziert. Der Sync-Workflow (taggen → pinnen → bumpen) ist
+damit einmal komplett bewiesen. Capabilities-Endpoint ist im Paket, die
+Frontend-Adoption in den Tools folgt bei Gelegenheit (z. B. mit Phase 3).
 
 ### Phase 3 — `@basicbar/ui` (der Design-Sync, Hauptmotivation)
 1. Design-Stand wählen: die divergierten `index.css`/`theme`-Versionen

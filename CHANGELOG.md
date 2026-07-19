@@ -7,7 +7,9 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
-### basicbar-integrations (→ wird `integrations/v0.1.0`)
+## integrations/v0.1.0 — 2026-07-19
+
+### basicbar-integrations
 - Erstes Paket (Phase 2): `ai` (LiteLLM-Client) und `translation_service`
   (LibreTranslate-Client) aus den konsolidierten Tool-Fassungen übernommen;
   Settings-Zugriff jetzt mit Paket-Defaults (`conf.py`) — unkonfiguriert ist
