@@ -34,6 +34,13 @@ auth-tests:
     - pip install --quiet ./packages/django/basicbar-auth
     - cd packages/django/basicbar-auth && python runtests.py
 
+lti-tests:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - pip install --quiet ./packages/django/basicbar-lti
+    - cd packages/django/basicbar-lti && python runtests.py
+
 ui-build:
   stage: test
   image: node:22-slim

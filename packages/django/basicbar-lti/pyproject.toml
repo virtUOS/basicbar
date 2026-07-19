@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "basicbar-lti"
+version = "0.1.0"
+description = "LTI-1.3-Fundament der virtUOS -bar-Tools: Plattform-Registrierung, Tool-Key, OIDC-Initiation, JWKS, Nutzer-Provisionierung, Frame-Ancestors-Middleware"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Universität Osnabrück (virtUOS)" }]
+dependencies = [
+    "Django>=5.1",
+    "djangorestframework>=3.15",
+    "PyLTI1p3>=2.0",
+    "cryptography>=42",
+]
+
+[tool.setuptools.packages.find]
+include = ["basicbar_lti*"]
