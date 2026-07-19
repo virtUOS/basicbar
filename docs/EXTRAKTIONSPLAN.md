@@ -293,7 +293,19 @@ UniqueConstraint-Namen brauchen Paket-Präfixe, weil Constraint-Namen in
 Postgres schemaweit kollidieren (v0.1.2). Umstellung: abstimmbar !94;
 ausleihbar unverändert.
 
-### Phase 6 — Copier-Template + Nagelprobe erkennbar
+### Phase 6 — Copier-Template + Nagelprobe erkennbar ✅ (2026-07-19)
+
+Umgesetzt: `copier.yml` + `template/project/` (destilliert aus abstimmbars
+konsolidiertem Stand): Backend (config/accounts/common auf basicbar-auth/
+-integrations, LTI optional), Frontend auf @basicbar/ui (App-Shell mit
+Login/Theme/Sprache, Hue-Fragen für die Start-Ramps), Keycloak-Realm,
+Compose, Caddyfile, CI, README/CLAUDE.md. Nagelprobe bestanden: erkennbar
+generiert (Blau Hue 260, Ports 5176/8004/8083/5435), Stack bootet, Migrate
++ Tests + tsc + vite build grün, OIDC-Flow bis zur Keycloak-Maske
+verifiziert, Repo per Push-to-create angelegt. Der Sync-Rückkanal ist
+real bewiesen: ein Template-Fix (JSX-Rendering der Beschreibung) wurde
+per `copier update` nach erkennbar eingespielt; die in der Nagelprobe
+erzeugte accounts-Startmigration floss ins Template zurück.
 Projektgerüst aus dem Zieldstand von ausleihbar/abstimmbar destillieren;
 Template-Fragen: Projektname, LTI ja/nein, Ports, Sprachen. Dann **erkennbar
 aus dem Template generieren** — das Greenfield-Projekt ist der ideale erste
