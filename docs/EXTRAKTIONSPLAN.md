@@ -194,8 +194,21 @@ damit einmal komplett bewiesen. Capabilities-Endpoint ist im Paket, die
 Frontend-Adoption in den Tools folgt bei Gelegenheit (z. B. mit Phase 3).
 
 ### Phase 3 — `@basicbar/ui` (der Design-Sync, Hauptmotivation)
-1. Design-Stand wählen: die divergierten `index.css`/`theme`-Versionen
-   vergleichen, den gewünschten Stand festlegen (vermutlich der jüngere).
+
+**Befund der Design-Analyse (2026-07-19):** Die Divergenz war beabsichtigtes
+Branding, kein Wildwuchs — beide Tools teilen dieselbe Token-Architektur
+(OKLCH-Ramps `slate`+`brand`, identische Helligkeitsstufen, gleiche
+Shade-Semantik, Font, Dark-Mode-Strategie) und unterscheiden sich bewusst im
+Farbton (ausleihbar Honig ~91, abstimmbar Grün ~150, „decided July 2026“).
+Modell daher: **ein Designsystem, pro Tool ein eigener Akzent** — das Paket
+teilt Struktur/Verhalten via `createPreset({ colors })`, die Ramps bleiben
+als Identität im Tool. Identische Optik wäre trivial möglich (gleiche Ramp
+übergeben). Umsetzung: Paket gebaut (Preset-Factory, base.css als Superset
+aus ausleihbars A11y-Basis + abstimmbars color-scheme-Regeln, ThemeProvider
+= ausleihbars Fassung mit konfigurierbarem storageKey, initI18n-Factory,
+contentLang), CI-Build + Tag-Publish in die Generic Package Registry.
+
+1. ~~Design-Stand wählen~~ → erledigt durch obiges Modell.
 2. Extrahieren: Design-Tokens als CSS-Variablen, Theme + Dark Mode,
    i18n-Bootstrap, `contentLang`, Font-Setup, Lucide-Konventionen,
    5–10 wirklich gemeinsame Basis-Komponenten. Nicht mehr — Komponenten

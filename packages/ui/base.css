@@ -1,0 +1,74 @@
+/* SPDX-License-Identifier: Apache-2.0
+   Copyright 2026 Universität Osnabrück (virtUOS)
+
+   Shared base layer of the -bar tools. Import FIRST in the tool's index.css,
+   before the @tailwind directives are processed:
+
+     @import "@basicbar/ui/base.css";
+     @tailwind base; ...
+
+   Uses @apply with `slate`/`brand`, so it requires the tool's Tailwind ramps
+   (see tailwind-preset.js). */
+
+@layer base {
+  /* Native form controls (checkboxes, file inputs, scrollbars, the date
+     picker) follow the active theme. The theme provider also sets an inline
+     `color-scheme` on <html>; these rules cover the pre-React first paint. */
+  :root {
+    color-scheme: light;
+  }
+  :root.dark {
+    color-scheme: dark;
+  }
+
+  /* Ink on white in light mode; a near-black canvas in dark mode. The accent
+     lives in components and stays the same in both. */
+  body {
+    @apply bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+    /* Tint native form controls (checkboxes, radios, the date picker's
+       selected day) with the accent instead of the browser blue.
+       `accent-color` inherits, so this reaches every control. */
+    @apply accent-brand-600;
+  }
+
+  ::selection {
+    /* Accents are light, so selected text keeps dark ink in both modes. */
+    @apply bg-brand-200 text-slate-900;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  /* One visible, consistent keyboard-focus style everywhere (WCAG 2.4.7).
+     Pointer interactions keep their quieter component styles. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-600 ring-offset-2 ring-offset-white dark:ring-offset-slate-950;
+  }
+
+  /* Numbers, counts and times align when digits are tabular. */
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Skip link: first tab stop, visible only when focused (BITV/WCAG 2.4.1). */
+  .skip-link {
+    @apply absolute left-3 top-3 z-50 -translate-y-20 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-transform focus-visible:translate-y-0 dark:bg-slate-100 dark:text-slate-900;
+  }
+}
+
+/* Every animation must have a reduced-motion alternative. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

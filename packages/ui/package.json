@@ -1,0 +1,52 @@
+{
+  "name": "@basicbar/ui",
+  "version": "0.1.0",
+  "description": "Design-System-Basis der virtUOS -bar-Tools: Tailwind-Preset, Basis-Styles, Theme (Dark Mode), i18n-Bootstrap, contentLang",
+  "license": "Apache-2.0",
+  "author": "Universität Osnabrück (virtUOS)",
+  "type": "module",
+  "files": [
+    "dist",
+    "base.css",
+    "tailwind-preset.js",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./tailwind-preset": "./tailwind-preset.js",
+    "./base.css": "./base.css"
+  },
+  "scripts": {
+    "build": "tsup",
+    "prepack": "npm run build"
+  },
+  "tsup": {
+    "entry": [
+      "src/index.ts"
+    ],
+    "format": [
+      "esm"
+    ],
+    "dts": true,
+    "sourcemap": true,
+    "clean": true
+  },
+  "peerDependencies": {
+    "i18next": ">=23",
+    "i18next-browser-languagedetector": ">=7",
+    "react": ">=18",
+    "react-i18next": ">=14"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "i18next": "^23.16.0",
+    "i18next-browser-languagedetector": "^8.0.0",
+    "react": "^18.3.0",
+    "react-i18next": "^15.1.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0"
+  }
+}

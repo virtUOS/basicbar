@@ -7,6 +7,22 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### @basicbar/ui (→ wird `ui/v0.1.0`)
+- Erstes UI-Paket (Phase 3), Modell „ein Designsystem, pro Tool ein eigener
+  Akzent“: `createPreset({ colors })` (Font, Dark Mode per `.dark`-Klasse,
+  Motion-Tokens; die `slate`/`brand`-Ramps bleiben als Identität im Tool),
+  `base.css` (A11y-Basis: focus-visible-Ring, Skip-Link, reduced-motion,
+  color-scheme, accent-color), `ThemeProvider`/`useTheme`/`prePaintScript`
+  (Auto/Light/Dark, `storageKey` konfigurierbar), `initI18n({ resources })`
+  und `contentLang`.
+- Distribution: npm-Tarball via GitLab Generic Package Registry,
+  CI-Publish beim Tag `ui/vX.Y.Z`.
+- Migration ausleihbar: tailwind.config auf Preset, index.css auf
+  `@import "@basicbar/ui/base.css"`, theme.tsx/i18n.ts/contentLang.ts
+  löschen und Importe auf `@basicbar/ui` umstellen.
+- Migration abstimmbar: dito; zusätzlich ThemeProvider statt des lokalen
+  Theme-Moduls (mit `storageKey="abstimmbar_theme"` für Bestandsnutzer).
+
 ## integrations/v0.1.0 — 2026-07-19
 
 ### basicbar-integrations
