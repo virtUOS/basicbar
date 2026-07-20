@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "basicbar-lti"
-version = "0.1.2"
+version = "0.1.3"
 description = "LTI-1.3-Fundament der virtUOS -bar-Tools: Plattform-Registrierung, Tool-Key, OIDC-Initiation, JWKS, Nutzer-Provisionierung, Frame-Ancestors-Middleware"
 readme = "README.md"
 requires-python = ">=3.12"
