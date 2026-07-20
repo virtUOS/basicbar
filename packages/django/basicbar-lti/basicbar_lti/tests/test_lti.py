@@ -116,6 +116,52 @@ class LoginTests(LtiTestCase):
         response = self.client.post("/lti/login/", {"iss": ISSUER})
         self.assertEqual(response.status_code, 400)
 
+    def test_missing_login_hint_is_400_not_500(self):
+        response = self.client.post(
+            "/lti/login/",
+            {"iss": ISSUER, "client_id": CLIENT_ID, "target_link_uri": TOOL_LAUNCH},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b"login_hint", response.content)
+
+    def test_unknown_issuer_is_400_and_echoes_issuer(self):
+        response = self.client.post(
+            "/lti/login/",
+            {
+                "iss": "https://not-registered.example",
+                "client_id": CLIENT_ID,
+                "login_hint": "user-1",
+                "target_link_uri": TOOL_LAUNCH,
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+        # The operator sees exactly what the platform sent.
+        self.assertIn(b"not-registered.example", response.content)
+
+    def test_trailing_slash_issuer_mismatch_is_400(self):
+        response = self.client.post(
+            "/lti/login/",
+            {
+                "iss": ISSUER + "/",  # registered without the trailing slash
+                "client_id": CLIENT_ID,
+                "login_hint": "user-1",
+                "target_link_uri": TOOL_LAUNCH,
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_wrong_client_id_is_400(self):
+        response = self.client.post(
+            "/lti/login/",
+            {
+                "iss": ISSUER,
+                "client_id": "some-other-client",
+                "login_hint": "user-1",
+                "target_link_uri": TOOL_LAUNCH,
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+
 
 class HandshakeTests(LtiTestCase):
     def test_instructor_launch_provisions_user(self):
