@@ -32,7 +32,7 @@ Details und Begründungen: [docs/ADR/](docs/ADR/) · Historie und Vorgehen:
 ## Neues Tool erzeugen
 
 ```bash
-pipx run copier copy https://gitlab.uni-osnabrueck.de/virtuos/digitale-dienste/basicbar.git mein-tool
+pipx run copier copy --vcs-ref HEAD https://gitlab.uni-osnabrueck.de/virtuos/digitale-dienste/basicbar.git mein-tool
 cd mein-tool
 git init -b main && git add -A && git commit -m "Gerüst aus basicbar-Template"
 docker compose up -d
@@ -64,8 +64,13 @@ Release-Eintrag nennt die Migrationsschritte.
   ```
 
 - **Projektgerüst** (compose, Caddy, CI, config, App-Shell) —
-  `pipx run copier update` im Tool spielt Template-Änderungen als Diff ein
-  (Basis: die generierte `.copier-answers.yml`).
+  `pipx run copier update --vcs-ref HEAD` im Tool spielt Template-Änderungen
+  als Diff ein (Basis: die generierte `.copier-answers.yml`).
+
+**Wichtig:** Copier immer mit `--vcs-ref HEAD` aufrufen. Ohne den Schalter
+hält Copier den neuesten *Paket*-Tag (`lti/v…`, `ui/v…`) für die
+Template-Version und generiert von einem alten Stand — die Paket-Tags
+versionieren die Pakete, nicht das Template.
 
 Grundregel: **Paketcode wird im Tool nie lokal gepatcht.** Änderungen
 gehören hierher; Erweiterungspunkte (Settings, Subclassing, Render-Props)

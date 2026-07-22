@@ -4,10 +4,17 @@ Das Projektgerüst der „-bar“-Tools (`template/project/`, Fragen in
 [copier.yml](../copier.yml) im Repo-Root). Neues Tool erzeugen:
 
 ```bash
-pipx run copier copy https://gitlab.uni-osnabrueck.de/virtuos/digitale-dienste/basicbar.git mein-tool
+# --vcs-ref HEAD ist Pflicht: ohne den Schalter nimmt Copier den neuesten
+# PAKET-Tag (lti/v…, ui/v…) als Template-Version und generiert veraltet.
+pipx run copier copy --vcs-ref HEAD https://gitlab.uni-osnabrueck.de/virtuos/digitale-dienste/basicbar.git mein-tool
 cd mein-tool && git init -b main && git add -A && git commit -m "Gerüst aus basicbar-Template"
 docker compose up -d && docker compose exec backend python manage.py migrate
 ```
+
+Danach empfohlen: Frontend-Lockfile erzeugen und committen (der CI-Cache
+hängt daran: `docker compose exec frontend npm install --package-lock-only`),
+nach dem ersten Push den main-Branch schützen (Push „no one“, Merge via MR)
+und Gerüst-Updates später mit `pipx run copier update --vcs-ref HEAD` holen.
 
 Enthalten: Django + DRF auf `basicbar-auth`/`basicbar-integrations`
 (LTI 1.3 optional per Frage), React/Vite auf `@basicbar/ui` (App-Shell mit

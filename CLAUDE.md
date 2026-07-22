@@ -34,8 +34,9 @@ docker cp packages/django/<paket> <tool>_backend:/tmp/pkg \
 # UI-Paket:
 cd packages/ui && npm install && npm run build && npx tsc --noEmit
 
-# Template rendern (Nagelprobe):
-pipx run copier copy . /tmp/probe --trust --defaults --data project_slug=probe
+# Template rendern (Nagelprobe). --vcs-ref HEAD ist bei copier PFLICHT:
+# ohne den Schalter gilt der neueste Paket-Tag als Template-Version.
+pipx run copier copy . /tmp/probe --trust --defaults --vcs-ref HEAD --data project_slug=probe
 ```
 
 ## Workflow & Releases
