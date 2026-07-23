@@ -93,6 +93,19 @@ export interface TranslatableFieldProps {
   /** "html" marks values as rich HTML: status dots ignore markup and the
    *  translate call preserves it (`format=html`). */
   format?: TranslateFormat;
+  /** Languages whose translation is potentially outdated (another language
+   *  changed since the last recorded sync — computed by the backend via
+   *  ``basicbar_integrations.translation_sync``). Marks the tab dot amber
+   *  and offers re-translate / mark-up-to-date on the affected tab. */
+  stale?: readonly string[];
+  /** "Als aktuell markieren": the author confirms the languages are in sync
+   *  (e.g. after an intentional single-language correction). Tools persist
+   *  the new sync state. Rendered only when the active language is stale. */
+  onMarkSynced?: () => void;
+  /** Called after a machine translation was written via ``onChange`` — the
+   *  moment the languages are known-synchronous. Tools persist their
+   *  translation-sync state here. */
+  onTranslated?: (lang: string, text: string) => void;
   /** Custom editor per language (e.g. rich text or Markdown); replaces the
    *  default input. The editor stays in the tool. */
   renderInput?: (args: RenderInputArgs) => ReactNode;
@@ -116,6 +129,9 @@ export function TranslatableField({
   onActiveLangChange,
   singleLanguage = false,
   format = "text",
+  stale = [],
+  onMarkSynced,
+  onTranslated,
   renderInput,
 }: TranslatableFieldProps) {
   const { t } = useTranslation();
@@ -144,8 +160,8 @@ export function TranslatableField({
   // Register with the form-wide "translate all" controller (if present) and
   // keep a live snapshot it can read/write. Follow the language it switches to.
   const form = useTranslationForm();
-  const holder = useRef<TranslatableEntry>({ values, onChange, format });
-  holder.current = { values, onChange, format };
+  const holder = useRef<TranslatableEntry>({ values, onChange, format, onTranslated });
+  holder.current = { values, onChange, format, onTranslated };
   const register = form?.register;
   const unregister = form?.unregister;
   useEffect(() => {
@@ -162,13 +178,17 @@ export function TranslatableField({
 
   const canonicalEmpty = required && !plainOf(defaultLang);
 
+  const activeStale = !singleLanguage && stale.includes(active);
+
   // Offer machine-translation pre-fill for the language currently shown when
-  // it is empty. Prefer the default/canonical language as the source;
-  // otherwise translate from whichever other language already has text — so
-  // the missing language is filled regardless of which one was entered first.
-  const sourceLang = plainOf(defaultLang)
-    ? defaultLang
-    : langs.find((l) => l.code !== active && plainOf(l.code))?.code;
+  // it is empty — or when it is stale (then it explicitly re-translates).
+  // Prefer the default/canonical language as the source; otherwise translate
+  // from whichever other language already has text — so the missing language
+  // is filled regardless of which one was entered first.
+  const sourceLang =
+    defaultLang !== active && plainOf(defaultLang)
+      ? defaultLang
+      : langs.find((l) => l.code !== active && plainOf(l.code))?.code;
   const source = sourceLang ? (values[sourceLang] ?? "").trim() : "";
   const sourceLabel =
     langs.find((l) => l.code === sourceLang)?.label ?? sourceLang ?? "";
@@ -178,7 +198,7 @@ export function TranslatableField({
     !singleLanguage &&
     !!form &&
     isTranslationEnabled() &&
-    !plainOf(active) &&
+    (!plainOf(active) || activeStale) &&
     !!source &&
     sourceLang !== active;
 
@@ -194,6 +214,7 @@ export function TranslatableField({
         format,
       );
       onChange(active, translated);
+      onTranslated?.(active, translated);
     } catch (err) {
       setTranslateError(
         err instanceof Error ? err.message : t("Translation failed."),
@@ -226,17 +247,21 @@ export function TranslatableField({
               {langs.map((lang) => {
                 const filled = !!plainOf(lang.code);
                 const isActive = lang.code === active;
+                const isStale = stale.includes(lang.code);
                 // A filled language gets a solid dot; an empty one a hollow dot,
                 // so you can tell at a glance whether the language you're *not*
-                // viewing has text. A missing required default language turns
-                // amber.
+                // viewing has text. A missing required default language and a
+                // potentially outdated translation turn amber.
                 const missingRequired =
                   !filled && required && lang.code === defaultLang;
-                const dotClass = filled
-                  ? "bg-emerald-500 border-emerald-500"
-                  : missingRequired
-                    ? "border-amber-500"
-                    : "border-current opacity-40";
+                const dotClass =
+                  filled && isStale
+                    ? "bg-amber-500 border-amber-500"
+                    : filled
+                      ? "bg-emerald-500 border-emerald-500"
+                      : missingRequired
+                        ? "border-amber-500"
+                        : "border-current opacity-40";
                 return (
                   <button
                     key={lang.code}
@@ -250,7 +275,11 @@ export function TranslatableField({
                         : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
                     }`}
                     title={`${lang.label} — ${
-                      filled ? t("translated") : t("not translated")
+                      filled && isStale
+                        ? t("translation may be outdated")
+                        : filled
+                          ? t("translated")
+                          : t("not translated")
                     }`}
                   >
                     <span
@@ -289,18 +318,36 @@ export function TranslatableField({
           />
         )}
       </div>
-      {canTranslate && (
-        <button
-          type="button"
-          onClick={() => void prefillTranslation()}
-          disabled={translating}
-          className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-brand-300 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100 disabled:opacity-50 dark:border-brand-400/40 dark:bg-brand-400/10 dark:text-brand-200 dark:hover:bg-brand-400/20"
-        >
-          <Languages className="h-3.5 w-3.5" aria-hidden="true" />
-          {translating
-            ? t("Translating…")
-            : t("Translate from {{language}}", { language: sourceLabel })}
-        </button>
+      {activeStale && (
+        <p className="mt-1 text-amber-600 dark:text-amber-400">
+          {t("The other language was changed since this translation.")}
+        </p>
+      )}
+      {(canTranslate || (activeStale && onMarkSynced)) && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          {canTranslate && (
+            <button
+              type="button"
+              onClick={() => void prefillTranslation()}
+              disabled={translating}
+              className="inline-flex items-center gap-1.5 rounded-full border border-brand-300 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100 disabled:opacity-50 dark:border-brand-400/40 dark:bg-brand-400/10 dark:text-brand-200 dark:hover:bg-brand-400/20"
+            >
+              <Languages className="h-3.5 w-3.5" aria-hidden="true" />
+              {translating
+                ? t("Translating…")
+                : t("Translate from {{language}}", { language: sourceLabel })}
+            </button>
+          )}
+          {activeStale && onMarkSynced && (
+            <button
+              type="button"
+              onClick={onMarkSynced}
+              className="inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              {t("Mark as up to date")}
+            </button>
+          )}
+        </div>
       )}
       {translateError && <p className="mt-1 text-rose-500">{translateError}</p>}
       {hint && <p className="mt-1 text-slate-400 dark:text-slate-500">{hint}</p>}

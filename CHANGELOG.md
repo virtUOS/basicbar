@@ -7,6 +7,43 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### basicbar-integrations (→ wird `integrations/v0.2.0`) und @basicbar/ui (→ wird `ui/v0.3.0`)
+
+**Veraltete Übersetzungen markieren** (modulierbar#31, generisch für alle
+Tools): Wird eine Sprache nach der Übersetzung geändert, gilt die
+unveränderte Gegensprache als „möglicherweise veraltet“ — sichtbar im
+Editor, abfragbar im Release-Prozess, per „Als aktuell markieren“
+quittierbar. Ändern sich beide Sprachen, wird nichts markiert (bewusste
+Doppel-Korrektur). Felder ohne aufgezeichneten Sync-Stand (Bestandsdaten)
+werden nie markiert.
+
+- `basicbar_integrations.translation_sync` (neu): `content_hash`,
+  `record_synced`, `changed_languages`, `stale_languages`, `stale_map`,
+  `modeltranslation_values`. Zustand lebt pro Model in einem vom Tool
+  angelegten `JSONField` (eine Zeile + Migration).
+- `@basicbar/ui` `TranslatableField`: neue optionale Props `stale`
+  (Sprachcodes → amber Tab-Punkt + Hinweiszeile), `onMarkSynced`
+  („Als aktuell markieren“) und `onTranslated` (nach Maschinen-
+  übersetzung — hier den Sync-Stand persistieren). Der Übersetzen-Button
+  erscheint bei veralteten Sprachen auch auf gefülltem Feld (explizites
+  Neu-Übersetzen); `TranslationForm`-Einträge unterstützen `onTranslated`
+  ebenfalls („alle Felder übersetzen“ hält den Sync-Stand aktuell,
+  überschreibt aber weiterhin nie gefüllte Felder).
+
+Migration (Adoption ist opt-in — ohne neue Props/Aufrufe ändert sich nichts):
+1. Model: `translation_sync = models.JSONField(default=dict, blank=True)`
+   + Migration.
+2. Beim Speichern übersetzungsrelevanter Endpunkte bzw. in einem eigenen
+   „mark synced“-/`onTranslated`-Endpunkt: `record_synced()` aufrufen.
+3. Serializer: `translation_stale = stale_map(instance.translation_sync,
+   {feld: modeltranslation_values(instance, feld, ("de", "en")), …})`
+   ausliefern; Frontend reicht es als `stale`-Prop durch und ruft bei
+   `onMarkSynced`/`onTranslated` den Endpunkt aus Schritt 2.
+4. Release-Checks: `stale_map()` über die zu prüfenden Objekte.
+5. Neue Katalog-Schlüssel (de-Übersetzungen ergänzen):
+   `translation may be outdated`, `The other language was changed since
+   this translation.`, `Mark as up to date`.
+
 ## lti/v0.1.2 — 2026-07-19
 
 ### basicbar-lti
