@@ -39,6 +39,10 @@ export interface TranslatableEntry {
   values: Record<string, string | null | undefined>;
   onChange: (lang: string, value: string) => void;
   format: TranslateFormat;
+  /** Called after a machine translation was written via ``onChange`` — the
+   *  moment the languages are known-synchronous. Tools persist their
+   *  translation-sync state here (see basicbar_integrations.translation_sync). */
+  onTranslated?: (lang: string, value: string) => void;
 }
 
 interface TranslationFormState {
@@ -111,7 +115,7 @@ export function TranslationFormProvider({
       for (const lang of targets) {
         // Re-read the live snapshot per target so a value written by an earlier
         // target in this pass is visible (matters with 3+ languages).
-        const { values, onChange, format } = holder.current;
+        const { values, onChange, format, onTranslated } = holder.current;
         if ((values[lang] ?? "").trim()) continue; // never overwrite
         // Prefer the canonical language as source, else any filled language.
         const sourceLang = (values[defaultLang] ?? "").trim()
@@ -128,6 +132,7 @@ export function TranslationFormProvider({
             format,
           );
           onChange(lang, translated);
+          onTranslated?.(lang, translated);
           filled = filled ?? lang;
         } catch {
           failures += 1;
