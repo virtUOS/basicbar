@@ -12,6 +12,11 @@ on:
   push:
     tags:
       - "ui/v*"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Bestehender Tag, für den nachträglich ein Release-Asset erzeugt werden soll (z. B. ui/v0.2.1) — als 'Use workflow from' auswählen, dieses Feld ist nur zur Doku"
+        required: false
 
 permissions:
   contents: write
