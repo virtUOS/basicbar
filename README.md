@@ -1,7 +1,7 @@
 # Basicbar
 
 Die gemeinsame Basis der virtUOS „-bar“-Tools ([ausleihBAR](https://gitlab.uni-osnabrueck.de/virtuos/digitale-dienste/ausleihbar),
-[abstimmBAR](https://gitlab.uni-osnabrueck.de/virtuos/digitale-dienste/abstimmbar),
+[abstimmBAR](https://github.com/virtUOS/abstimmbar),
 [erkennBAR](https://gitlab.uni-osnabrueck.de/virtuos/digitale-dienste/erkennbar), …).
 
 Dieses Repo ist **kein lauffähiges Produkt**, sondern liefert zwei Dinge:
@@ -32,7 +32,7 @@ Details und Begründungen: [docs/ADR/](docs/ADR/) · Historie und Vorgehen:
 ## Neues Tool erzeugen
 
 ```bash
-pipx run copier copy --vcs-ref HEAD https://gitlab.uni-osnabrueck.de/virtuos/digitale-dienste/basicbar.git mein-tool
+pipx run copier copy --vcs-ref HEAD https://github.com/virtUOS/basicbar.git mein-tool
 cd mein-tool
 git init -b main && git add -A && git commit -m "Gerüst aus basicbar-Template"
 docker compose up -d
@@ -53,14 +53,14 @@ Release-Eintrag nennt die Migrationsschritte.
   Git-Tag, ohne Registry und ohne git im Docker-Image:
 
   ```
-  basicbar-auth @ https://…/basicbar/-/archive/auth/v0.1.0/basicbar-auth-v0.1.0.tar.gz#subdirectory=packages/django/basicbar-auth
+  basicbar-auth @ https://github.com/virtUOS/basicbar/archive/refs/tags/auth/v0.1.0.tar.gz#subdirectory=packages/django/basicbar-auth
   ```
 
-- **`@basicbar/ui`** (`frontend/package.json`) — npm-Tarball aus der GitLab
-  Generic Package Registry (die CI published beim Tag `ui/vX.Y.Z`):
+- **`@basicbar/ui`** (`frontend/package.json`) — Tarball-URL auf ein GitHub
+  Release (die CI hängt den Tarball beim Tag `ui/vX.Y.Z` als Release-Asset an):
 
   ```
-  "@basicbar/ui": "https://…/api/v4/projects/1511/packages/generic/ui/0.2.1/basicbar-ui-0.2.1.tgz"
+  "@basicbar/ui": "https://github.com/virtUOS/basicbar/releases/download/ui/v0.2.1/basicbar-ui-0.2.1.tgz"
   ```
 
 - **Projektgerüst** (compose, Caddy, CI, config, App-Shell) —
@@ -78,11 +78,11 @@ sind Paket-Features.
 
 ## An der Basis mitarbeiten
 
-- Branch + MR (main ist geschützt); CI: SPDX-Header-Check, Testsuiten aller
+- Branch + PR (main ist geschützt); CI: SPDX-Header-Check, Testsuiten aller
   drei Django-Pakete, UI-Build, Tag-Publish.
 - Paket-Tests lokal: `cd packages/django/<paket> && python runtests.py` ·
   UI: `cd packages/ui && npm install && npm run build && npx tsc --noEmit`.
-- Release: Version heben, CHANGELOG-Eintrag mit Migrationsschritten, MR;
+- Release: Version heben, CHANGELOG-Eintrag mit Migrationsschritten, PR;
   **nach dem Merge** Tag `<paket>/vX.Y.Z` auf `main` setzen.
 - **Rule of Two:** Extrahiert wird nur, was mindestens zwei Tools konkret
   brauchen und eines erprobt hat. Fachlogik und konkrete User-Models bleiben

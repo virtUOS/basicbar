@@ -47,5 +47,5 @@ initI18n({ resources: { en, de } });
 ```
 
 Build: `npm install && npm run build` (tsup → `dist/`). Distribution als
-npm-Tarball über die GitLab Generic Package Registry (siehe ADR-0002 und
+npm-Tarball über ein GitHub-Release-Asset (siehe ADR-0002, ADR-0004 und
 Repo-CI).
