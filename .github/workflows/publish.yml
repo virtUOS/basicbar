@@ -7,16 +7,13 @@ name: Publish ui package
 # @basicbar/ui is packed with `npm pack` and attached as a GitHub Release
 # asset — a plain public tarball URL, no npm registry/account/token needed
 # (same rationale as the GitLab Generic Package Registry before the move).
+# Only ui/v* tags trigger this — auth/integrations/lti packages are Django
+# packages installed straight from the archive-tarball URL, no publish job.
 
 on:
   push:
     tags:
       - "ui/v*"
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: "Bestehender Tag, für den nachträglich ein Release-Asset erzeugt werden soll (z. B. ui/v0.2.1) — als 'Use workflow from' auswählen, dieses Feld ist nur zur Doku"
-        required: false
 
 permissions:
   contents: write
@@ -38,17 +35,16 @@ jobs:
           if [ "$VERSION" != "$PKG_VERSION" ]; then
             echo "Tag $GITHUB_REF_NAME ≠ package.json-Version $PKG_VERSION"; exit 1
           fi
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - run: cd packages/ui && npm ci --no-fund --no-audit
       - run: cd packages/ui && npm run build
       - run: cd packages/ui && npm pack
 
-      - name: Attach tarball to GitHub Release
+      - name: Create release
+        uses: softprops/action-gh-release@v3
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" \
-            "packages/ui/basicbar-ui-$VERSION.tgz" \
-            --title "$GITHUB_REF_NAME" \
-            --notes "Siehe CHANGELOG.md für Migrationsschritte."
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: packages/ui/basicbar-ui-*.tgz
+          fail_on_unmatched_files: true
+          generate_release_notes: true
