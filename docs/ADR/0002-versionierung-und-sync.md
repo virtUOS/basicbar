@@ -12,15 +12,19 @@ passieren.
 
 - **SemVer pro Paket**, Git-Tags im Schema `<paket>/vX.Y.Z`
   (z. B. `integrations/v1.2.0`, `ui/v0.3.1`).
-- **pip-Pakete: als GitLab-Archiv-Tarball vom Tag**, kein Registry-Betrieb und
+- **pip-Pakete: als Git-Archiv-Tarball vom Tag**, kein Registry-Betrieb und
   kein ``git`` im Docker-Image nötig (Entscheidung 2026-07-19: Repo ist dafür
   öffentlich, damit Docker-Builds ohne Credentials installieren):
-  `basicbar-integrations @ https://gitlab.uni-osnabrueck.de/virtuos/digitale-dienste/basicbar/-/archive/integrations/v0.1.0/basicbar-integrations-v0.1.0.tar.gz#subdirectory=packages/django/basicbar-integrations`
-- **npm-Paket: GitLab Package Registry** des basicbar-Projekts (npm kann —
-  anders als pip — nicht aus einem Unterverzeichnis eines Git-Repos
-  installieren). Publish per CI-Job beim Taggen von `ui/vX.Y.Z`.
+  `basicbar-integrations @ https://github.com/virtUOS/basicbar/archive/refs/tags/integrations/v0.1.0.tar.gz#subdirectory=packages/django/basicbar-integrations`
+  (ursprünglich als GitLab-Archiv-Tarball, seit dem Umzug auf GitHub — siehe
+  [ADR-0004](0004-umzug-nach-github.md) — als GitHub-Archiv-Tarball, gleiches
+  Prinzip).
+- **npm-Paket: GitHub Release Asset** (npm kann — anders als pip — nicht aus
+  einem Unterverzeichnis eines Git-Repos installieren, und ein öffentliches
+  Release-Asset braucht wie die Django-Tarballs keine Registry/Credentials).
+  Publish per CI-Job beim Taggen von `ui/vX.Y.Z`.
 - **Template:** Copier arbeitet direkt gegen das Git-Repo
-  (`copier copy gl:virtuos/digitale-dienste/basicbar …`); `copier update`
+  (`copier copy https://github.com/virtUOS/basicbar.git …`); `copier update`
   nutzt die im Projekt hinterlegte Template-Version (`.copier-answers.yml`).
 - **Changelog als Upgrade-Vertrag:** Jeder Release-Eintrag im CHANGELOG.md
   nennt nötige Migrationsschritte der Tools. Breaking Change ⇒ Major-Bump.
@@ -37,6 +41,10 @@ passieren.
 
 - Kein Auto-Update: Tools können Versionen unterschiedlich lange fahren;
   divergierende Optik zwischen Releases ist akzeptiert und gewollt reversibel.
-- Die GitLab-npm-Registry braucht einmalig ein Deploy-Token/CI-Setup (Phase 3).
 - Sollte die Paketzahl oder Release-Frequenz stark wachsen, kann später auf
-  die GitLab-PyPI-Registry umgestellt werden, ohne die Tags zu ändern.
+  eine PyPI-/npm-Registry umgestellt werden, ohne die Tags zu ändern.
+
+**Update 2026-08-04:** Repo-Host von GitLab auf GitHub gewechselt (Details und
+Gründe: [ADR-0004](0004-umzug-nach-github.md)); die Distributionsmechanik
+(Archiv-Tarball für pip, Release-Asset für npm) bleibt unverändert, nur die
+URLs zeigen jetzt auf `github.com/virtUOS/basicbar`.
