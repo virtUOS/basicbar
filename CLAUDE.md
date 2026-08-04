@@ -2,8 +2,11 @@
 
 Gemeinsame Basis der virtUOS „-bar“-Tools (ausleihbar, abstimmbar,
 erkennbar, …): **vier versionierte Pakete + ein Copier-Template**, kein
-lauffähiges Produkt. Konsumenten sind die Tool-Repos daneben in
-`~/dev/<tool>` bzw. `virtuos/digitale-dienste/<tool>`.
+lauffähiges Produkt. Konsumenten sind die Tool-Repos daneben in `~/dev/<tool>`
+— teils noch auf der Uni-GitLab (`virtuos/digitale-dienste/<tool>`), teils
+öffentlich auf GitHub (z. B. `virtUOS/abstimmbar`). basicbar selbst liegt seit
+2026-08-04 auf `github.com/virtUOS/basicbar` (ADR-0004), u. a. damit
+GitHub-Actions-Runner öffentlicher „-bar“-Tools die Pakete erreichen können.
 
 ## Layout
 
@@ -41,15 +44,17 @@ pipx run copier copy . /tmp/probe --trust --defaults --vcs-ref HEAD --data proje
 
 ## Workflow & Releases
 
-- **Branch + MR, nie direkt auf main** (main ist geschützt); der Mensch merged.
+- **Branch + PR, nie direkt auf main** (main ist geschützt); der Mensch merged.
 - Release eines Pakets: Version in `pyproject.toml`/`package.json` heben,
-  `CHANGELOG.md`-Eintrag **mit Migrationsschritten für die Tools**, MR.
+  `CHANGELOG.md`-Eintrag **mit Migrationsschritten für die Tools**, PR.
   **Tag `<paket>/vX.Y.Z` erst nach dem Merge** auf den main-Commit setzen
-  (sonst zeigt er auf verwaiste Commits). Beim Tag `ui/v*` published die CI
-  den npm-Tarball in die Generic Package Registry; die Django-Pakete werden
-  von den Tools direkt als GitLab-Archiv-Tarball vom Tag installiert
-  (`/-/archive/<tag>/…#subdirectory=…` — Repo ist deshalb öffentlich).
-- Nach dem Paket-Release: Konsumenten-MRs in den Tools (Version bumpen,
+  (sonst zeigt er auf verwaiste Commits). Beim Tag `ui/v*` packt die CI
+  `@basicbar/ui` per `npm pack` und hängt den Tarball als GitHub-Release-Asset
+  an; die Django-Pakete werden von den Tools direkt als GitHub-Archiv-Tarball
+  vom Tag installiert (`/archive/refs/tags/<tag>.tar.gz#subdirectory=…` — Repo
+  ist deshalb öffentlich). Details/Gründe des Hosts:
+  [ADR-0004](docs/ADR/0004-umzug-nach-github.md).
+- Nach dem Paket-Release: Konsumenten-PRs in den Tools (Version bumpen,
   Migrationsschritte aus dem Changelog ausführen, Suite + Build grün).
 
 ## Konventionen

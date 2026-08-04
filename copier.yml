@@ -1,6 +1,6 @@
 # Copier-Template der virtUOS "-bar"-Tools (Basicbar Phase 6).
 # Neues Tool erzeugen:
-#   pipx run copier copy https://gitlab.uni-osnabrueck.de/virtuos/digitale-dienste/basicbar.git mein-tool
+#   pipx run copier copy https://github.com/virtUOS/basicbar.git mein-tool
 # Später Template-Updates einspielen: `pipx run copier update` im Projekt.
 
 _subdirectory: template/project
