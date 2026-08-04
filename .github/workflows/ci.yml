@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  spdx-header:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check SPDX headers
+        run: |
+          fehlend=$(find packages template -type f ! -empty \( -name '*.py' -o -name '*.ts' -o -name '*.tsx' -o -name '*.css' \) \
+            ! -path '*/node_modules/*' ! -path '*/migrations/*' ! -path '*/dist/*' \
+            -exec grep -L 'SPDX-License-Identifier: Apache-2.0' {} +) || true
+          if [ -n "$fehlend" ]; then
+            echo "Dateien ohne SPDX-Header:"
+            echo "$fehlend"
+            exit 1
+          fi
+          echo "SPDX-Header vollständig."
+
+  integrations-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet ./packages/django/basicbar-integrations
+      - run: cd packages/django/basicbar-integrations && python runtests.py
+
+  auth-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet ./packages/django/basicbar-auth
+      - run: cd packages/django/basicbar-auth && python runtests.py
+
+  lti-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet ./packages/django/basicbar-lti
+      - run: cd packages/django/basicbar-lti && python runtests.py
+
+  ui-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: cd packages/ui && npm ci --no-fund --no-audit
+      - run: cd packages/ui && npm run build
+      - run: cd packages/ui && npx tsc --noEmit

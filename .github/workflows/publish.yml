@@ -1,0 +1,49 @@
+name: Publish ui package
+
+# Django packages need no publish step: GitHub's tag-archive tarball URLs
+# (https://github.com/virtUOS/basicbar/archive/refs/tags/<pkg>/vX.Y.Z.tar.gz)
+# are public and reachable as soon as the tag is pushed.
+#
+# @basicbar/ui is packed with `npm pack` and attached as a GitHub Release
+# asset — a plain public tarball URL, no npm registry/account/token needed
+# (same rationale as the GitLab Generic Package Registry before the move).
+
+on:
+  push:
+    tags:
+      - "ui/v*"
+
+permissions:
+  contents: write
+
+jobs:
+  ui-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify tag matches package.json version
+        run: |
+          VERSION="${GITHUB_REF_NAME#ui/v}"
+          PKG_VERSION="$(node -p "require('./packages/ui/package.json').version")"
+          if [ "$VERSION" != "$PKG_VERSION" ]; then
+            echo "Tag $GITHUB_REF_NAME ≠ package.json-Version $PKG_VERSION"; exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - run: cd packages/ui && npm ci --no-fund --no-audit
+      - run: cd packages/ui && npm run build
+      - run: cd packages/ui && npm pack
+
+      - name: Attach tarball to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "packages/ui/basicbar-ui-$VERSION.tgz" \
+            --title "$GITHUB_REF_NAME" \
+            --notes "Siehe CHANGELOG.md für Migrationsschritte."
