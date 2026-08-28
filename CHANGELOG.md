@@ -7,6 +7,21 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### @basicbar/ui (→ wird `ui/v0.3.1`)
+
+**Globaler Sprach-Umschalter** (modulierbar#99): Der schwebende
+Übersetzungs-Block zeigt jetzt einen kompakten DE/EN-Umschalter, der mit
+einem Klick **alle** gemounteten `TranslatableField` auf eine Sprache stellt
+(über den bestehenden `forced`-Mechanismus, ohne zu übersetzen) — praktisch,
+um einen Datensatz Feld für Feld in einer Sprache zu befüllen. Sichtbar,
+sobald mehrsprachige Felder auf dem Bildschirm sind (unabhängig von der
+Maschinenübersetzung); der „Alle Felder übersetzen"-Button bleibt daran
+gekoppelt.
+
+Migration: keine — rein additiv. Neue UI-Strings `"Show all fields in one
+language"` und `"Show all fields in {{language}}"` (Tools ergänzen ihre
+Übersetzungen).
+
 ### basicbar-integrations (→ wird `integrations/v0.2.0`) und @basicbar/ui (→ wird `ui/v0.3.0`)
 
 **Veraltete Übersetzungen markieren** (modulierbar#31, generisch für alle

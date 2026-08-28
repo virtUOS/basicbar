@@ -147,7 +147,16 @@ export function TranslationFormProvider({
     setBusy(false);
   }
 
-  const showButton = isTranslationEnabled() && count > 0 && targets.length > 0;
+  /** Switch every mounted field to `lang` in one click (no translation), so a
+   *  whole record can be filled/reviewed in one language at a time. */
+  const forceLang = (lang: string) =>
+    setForced((f) => ({ lang, nonce: f.nonce + 1 }));
+
+  // The floating control is useful whenever there are multilingual fields on
+  // screen — the language switcher needs no translation backend; only the
+  // "translate all" button is gated on it.
+  const showControls = count > 0 && SUPPORTED_LANGUAGES.length > 1;
+  const showTranslate = isTranslationEnabled() && targets.length > 0;
 
   const contextValue = useMemo(
     () => ({ register, unregister, forced, translate }),
@@ -157,22 +166,54 @@ export function TranslationFormProvider({
   return (
     <TranslationFormContext.Provider value={contextValue}>
       {children}
-      {showButton && (
+      {showControls && (
         <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-1">
           {error && (
             <span className="rounded-md bg-white px-2 py-1 text-xs text-rose-600 shadow dark:bg-slate-800 dark:text-rose-400">
               {error}
             </span>
           )}
-          <button
-            type="button"
-            onClick={() => void translateAll()}
-            disabled={busy}
-            className="inline-flex items-center gap-2 rounded-full bg-brand-400 px-4 py-2 text-sm font-bold text-slate-900 shadow-lg transition-colors hover:bg-brand-500 disabled:opacity-50"
-          >
-            <Languages className="h-4 w-4" aria-hidden="true" />
-            {busy ? t("Translating…") : t("Translate all fields")}
-          </button>
+          {/* One combined control: the per-language switch and, if machine
+              translation is available, the "translate all" action share a
+              single pill so the corner stays uncluttered. */}
+          <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white/90 p-1 text-xs font-semibold shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-800/90">
+            <div role="group" aria-label={t("Show all fields in one language")} className="flex items-center gap-1">
+              <Languages aria-hidden="true" className="ml-1 h-4 w-4 text-slate-400" />
+              {SUPPORTED_LANGUAGES.map((l) => {
+                const active = forced.lang === l.code;
+                return (
+                  <button
+                    key={l.code}
+                    type="button"
+                    onClick={() => forceLang(l.code)}
+                    aria-pressed={active}
+                    title={t("Show all fields in {{language}}", { language: l.label })}
+                    className={`rounded-full px-2.5 py-1 uppercase transition-colors ${
+                      active
+                        ? "bg-brand-400 text-slate-900"
+                        : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    {l.code}
+                  </button>
+                );
+              })}
+            </div>
+            {showTranslate && (
+              <>
+                <span aria-hidden="true" className="mx-0.5 h-5 w-px bg-slate-200 dark:bg-slate-600" />
+                <button
+                  type="button"
+                  onClick={() => void translateAll()}
+                  disabled={busy}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-400 px-3 py-1.5 font-bold text-slate-900 transition-colors hover:bg-brand-500 disabled:opacity-50"
+                >
+                  <Languages className="h-4 w-4" aria-hidden="true" />
+                  {busy ? t("Translating…") : t("Translate all fields")}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
     </TranslationFormContext.Provider>
