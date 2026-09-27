@@ -21,7 +21,12 @@ Upload-Fehler zeigt der Editor `t("Image upload failed")` per
 `window.alert` und lässt den Inhalt unverändert. Passt zum
 Sanitizing-Vertrag von `basicbar_integrations.html_sanitize.clean_html`
 (oder einem gleichwertigen Allowlist-Sanitizer im Tool) — die gespeicherte
-HTML wird dort auf genau dieses Subset reduziert.
+HTML wird dort auf genau dieses Subset reduziert. Eingefügtes Rich-HTML
+(z. B. aus einer Webseite kopiert) wird per `transformPastedHTML` gefiltert:
+jedes `<img>`, dessen `src` nicht mit `/media/` beginnt, wird entfernt —
+ohne `onUploadImage` wird jedes eingefügte `<img>` entfernt. So kann kein
+externes Bild am Upload-Flow vorbei ins Dokument gelangen; vorhandene Bilder
+im initialen `value` bleiben unangetastet.
 
 Neue Dependencies: `@tiptap/react`, `@tiptap/pm`, `@tiptap/starter-kit`,
 `@tiptap/extension-link`, `@tiptap/extension-image`,

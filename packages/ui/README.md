@@ -98,6 +98,18 @@ URL; scheitert der Upload, zeigt der Editor `t("Image upload failed")` per
 />
 ```
 
+**Bilder aus eingefügtem HTML werden gefiltert, nicht nur Datei-Paste/-Drop:**
+Fügt man Rich-HTML aus einer Webseite ein (Browser-Copy&Paste, nicht als
+Datei), landet es über ProseMirrors HTML-Parser im Dokument — ein
+`<img src="https://…">` würde sonst am `onUploadImage`-Flow vorbei direkt
+eingefügt und wäre nach dem Speichern ein kaputtes `<img>` (der Backend-
+Sanitizer erlaubt nur `/media/…`-Quellen). Der Editor filtert deshalb per
+`transformPastedHTML` jedes eingefügte `<img>`, dessen `src` nicht mit
+`/media/` beginnt; ohne `onUploadImage` wird jedes eingefügte `<img>`
+entfernt (Bilder sind dann vollständig deaktiviert). Das betrifft nur
+eingefügtes HTML — vorhandene Bilder im initialen `value` bleiben
+unangetastet.
+
 **Rendern** des serverseitig sanitisierten HTML:
 
 ```tsx

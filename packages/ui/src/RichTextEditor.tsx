@@ -42,7 +42,14 @@ export interface RichTextEditorProps {
   value: string;
   onChange: (html: string) => void;
   /** Upload an image and resolve to its relative URL (e.g. "/media/rich/x.png").
-   *  Omit to disable images (no button; pasted/dropped files ignored). */
+   *  Omit to disable images (no button; dropped/pasted image files ignored).
+   *  Pasting rich HTML (e.g. copied from a web page) is gated too: any
+   *  `<img>` whose `src` does not start with "/media/" is stripped from the
+   *  pasted content — so an external image can never sneak in through paste,
+   *  bypassing the upload flow and the "/media/…"-only contract the backend
+   *  enforces. With this prop omitted, every pasted `<img>` is stripped.
+   *  Existing images already in `value` are unaffected — this only filters
+   *  newly pasted HTML, not the initial/external content load. */
   onUploadImage?: (file: File) => Promise<string>;
   ariaLabel?: string;
   id?: string;
@@ -165,6 +172,23 @@ export function RichTextEditor({
           return true;
         }
         return false;
+      },
+      // Rich HTML paste (e.g. copied from a web page) goes through ProseMirror's
+      // HTML parser, not handlePaste above — so an <img src="https://…"> would
+      // otherwise slip straight into the document without ever calling
+      // onUploadImage, and without the backend's "/media/…"-only contract
+      // catching it until save (leaving a broken bare <img> behind). Strip
+      // every pasted <img> that isn't already a "/media/…" reference; strip
+      // all of them when onUploadImage is omitted (images disabled entirely).
+      // Only pasted HTML passes through here — the initial `content: value`
+      // load below never calls this, so existing images are unaffected.
+      transformPastedHTML: (html) => {
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        doc.body.querySelectorAll("img").forEach((img) => {
+          const src = img.getAttribute("src") ?? "";
+          if (!onUploadImage || !src.startsWith("/media/")) img.remove();
+        });
+        return doc.body.innerHTML;
       },
     },
   });
