@@ -99,8 +99,9 @@ URL als String; scheitert der Upload, zeigt der Editor
   value={description}
   onChange={setDescription}
   onUploadImage={async (file) => {
-    const response = await api.uploadRichImage(file);
-    return response.url; // relative URL-String, z. B. "/media/rich/x.png"
+    // Eigener Upload-Endpunkt der App; liefert z. B. {"url": "/media/rich/x.png"}.
+    const { url } = await postImage(file);
+    return url; // relative URL als String
   }}
   id="description-editor"
   ariaLabel={t("Description")}
