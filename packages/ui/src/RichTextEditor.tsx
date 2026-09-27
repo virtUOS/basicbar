@@ -9,7 +9,8 @@
  * should not use this. Moved from AbstimmBAR (#49) so all -bar tools share
  * one implementation. */
 // Bold ships inside @tiptap/starter-kit (same pinned version); we import it
-// directly only to override its parse rules — no extra dependency added.
+// directly (a listed dependency, pinned to the same version) only to
+// override its parse rules.
 import Bold from "@tiptap/extension-bold";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
@@ -52,6 +53,10 @@ export interface RichTextEditorProps {
    *  newly pasted HTML, not the initial/external content load. */
   onUploadImage?: (file: File) => Promise<string>;
   ariaLabel?: string;
+  /** Id of an external `<label>` naming this editor (sets `aria-labelledby`
+   *  on the editable element); an alternative to `ariaLabel` when a visible
+   *  label already exists (e.g. `TranslatableField`'s `labelId`). */
+  labelledBy?: string;
   id?: string;
 }
 
@@ -88,6 +93,7 @@ export function RichTextEditor({
   onChange,
   onUploadImage,
   ariaLabel,
+  labelledBy,
   id,
 }: RichTextEditorProps) {
   const { t } = useTranslation();
@@ -97,8 +103,9 @@ export function RichTextEditor({
     let url: string;
     try {
       url = await onUploadImage(file);
-    } catch {
-      window.alert(t("Image upload failed"));
+    } catch (err) {
+      const detail = err instanceof Error && err.message ? `: ${err.message}` : "";
+      window.alert(`${t("Image upload failed")}${detail}`);
       return;
     }
     const chain = editor.chain().focus();
@@ -117,11 +124,22 @@ export function RichTextEditor({
         horizontalRule: false,
         link: false,
         bold: false,
+        // The toolbar never offers underline/strikethrough, and the backend
+        // sanitizer strips both — registering them would let a user format
+        // text (e.g. via a keyboard shortcut) that silently vanishes on save.
+        underline: false,
+        strike: false,
       }),
       PlainBold,
-      // Links may point anywhere; the backend forces rel="noopener". We do not
-      // open a new tab, and we do not auto-link typed URLs (toolbar only).
-      Link.configure({ openOnClick: false, autolink: false, HTMLAttributes: { rel: "noopener" } }),
+      // Links may point anywhere; the backend forces rel="noopener" itself,
+      // so we don't render one here (any value we chose would just be
+      // overwritten). We do not open a new tab (target), and we do not
+      // auto-link typed URLs (toolbar only).
+      Link.configure({
+        openOnClick: false,
+        autolink: false,
+        HTMLAttributes: { target: null, rel: null },
+      }),
       // Kept unconditionally so existing <img> content survives even when
       // this instance has no onUploadImage (view-only fields, other tools'
       // legacy content, …) — only insertion is gated on onUploadImage.
@@ -133,6 +151,7 @@ export function RichTextEditor({
       attributes: {
         ...(id ? { id } : {}),
         ...(ariaLabel ? { "aria-label": ariaLabel } : {}),
+        ...(labelledBy ? { "aria-labelledby": labelledBy } : {}),
         role: "textbox",
         "aria-multiline": "true",
         class:
@@ -198,9 +217,12 @@ export function RichTextEditor({
   // cursor during normal typing (there the stored value already equals the
   // editor's HTML). emitUpdate:false so this settles without a second round
   // that would reset the caret to the top while the user is typing (#50).
+  // addToHistory:false keeps this out of the undo stack — otherwise a single
+  // Ctrl+Z right after an external sync (e.g. switching language tabs) would
+  // undo INTO the previous tab's content instead of the user's own last edit.
   useEffect(() => {
     if (editor && value !== editor.getHTML()) {
-      editor.commands.setContent(value, { emitUpdate: false });
+      editor.chain().setMeta("addToHistory", false).setContent(value, { emitUpdate: false }).run();
     }
   }, [editor, value]);
 
@@ -272,13 +294,14 @@ export function RichTextEditor({
         </ToolbarButton>
         {onUploadImage && (
           <label
-            className="flex cursor-pointer items-center rounded px-2 py-1 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="flex cursor-pointer items-center rounded px-2 py-1 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 focus-within:ring-2 focus-within:ring-brand-600 focus-within:ring-offset-1"
             title={t("Insert image (or drag and drop)")}
           >
             <ImagePlus aria-hidden className="h-4 w-4" />
             <input
               type="file"
               accept="image/*"
+              aria-label={t("Insert image (or drag and drop)")}
               className="sr-only"
               onChange={(event) => {
                 const file = event.target.files?.[0];

@@ -65,7 +65,15 @@ Sicherheitsgrenze ist das Backend. Jedes Rich-Text-Feld muss beim Speichern
 reduziert, das der Editor erzeugt (`p`, `strong`, `em`, `h2`, `h3`, `ul`,
 `ol`, `li`, `a[href,rel]`, `img[src]`, …). Bild-URLs müssen relativ sein
 (`/media/…`) — der Editor fügt nur ein, was `onUploadImage` zurückgibt, ohne
-es zu validieren.
+es zu validieren. Der Editor selbst bietet bewusst **nur** dieses Subset an:
+Unterstreichen/Durchgestrichen sind nicht registriert (TipTap-`underline`/
+`strike` explizit aus) und Links tragen kein `target`/`rel` (das Backend
+erzwingt `rel="noopener"` ohnehin) — eine Formatierung, die der Sanitizer
+später wieder entfernt, soll der Nutzer erst gar nicht setzen können.
+
+**Zugänglicher Name:** der Editor braucht immer entweder `ariaLabel` (kein
+sichtbares Label) oder `labelledBy` (Id eines bereits vorhandenen sichtbaren
+`<label>`-Elements, z. B. `TranslatableField`s `labelId` — siehe unten).
 
 **Editor ohne Bilder** (kein Upload-Endpunkt verdrahtet — kein Bild-Button,
 Drag&Drop/Einfügen aus der Zwischenablage werden ignoriert; bestehende
@@ -82,7 +90,8 @@ import { RichTextEditor } from "@basicbar/ui";
 ```
 
 **Editor mit Bildern** — `onUploadImage` lädt hoch und liefert die relative
-URL; scheitert der Upload, zeigt der Editor `t("Image upload failed")` per
+URL als String; scheitert der Upload, zeigt der Editor
+`t("Image upload failed")` (plus die Fehlermeldung, falls vorhanden) per
 `window.alert` und lässt den Inhalt unverändert:
 
 ```tsx
@@ -90,8 +99,8 @@ URL; scheitert der Upload, zeigt der Editor `t("Image upload failed")` per
   value={description}
   onChange={setDescription}
   onUploadImage={async (file) => {
-    const { url } = await api.uploadRichImage(file);
-    return url; // z. B. "/media/rich/x.png"
+    const response = await api.uploadRichImage(file);
+    return response.url; // relative URL-String, z. B. "/media/rich/x.png"
   }}
   id="description-editor"
   ariaLabel={t("Description")}
@@ -122,7 +131,11 @@ import { RichText } from "@basicbar/ui";
 
 **Integration in `TranslatableField`** über `renderInput` (pro Sprache ein
 Editor, mit `format="html"` bleiben die Ausgefüllt-Punkte markup-blind und
-die Maschinenübersetzung erhält die Tags):
+die Maschinenübersetzung erhält die Tags). `renderInput` bekommt neben `id`
+auch `labelId` — die Id von `TranslatableField`s eigenem sichtbaren `<label>`
+(nur gesetzt, wenn die `label`-Prop übergeben wurde); durchgereicht als
+`labelledBy` bindet der Editor sich per `aria-labelledby` an dieses Label,
+statt ein zweites, redundantes `ariaLabel` zu brauchen:
 
 ```tsx
 <TranslatableField
@@ -130,12 +143,13 @@ die Maschinenübersetzung erhält die Tags):
   values={{ de: form.description_de, en: form.description_en }}
   onChange={(lang, html) => setField(`description_${lang}`, html)}
   format="html"
-  renderInput={({ value, onChange, id }) => (
+  renderInput={({ value, onChange, id, labelId }) => (
     <RichTextEditor
       value={value}
       onChange={onChange}
       onUploadImage={uploadRichImage}
       id={id}
+      labelledBy={labelId}
     />
   )}
 />
