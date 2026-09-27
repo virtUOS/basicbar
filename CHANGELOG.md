@@ -7,6 +7,54 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### @basicbar/ui (→ wird `ui/v0.4.0`)
+
+**`RichTextEditor` + `RichText`** (modulierbar#5), aus AbstimmBAR verschoben:
+der eine WYSIWYG-Editor (TipTap) für formatierte Langtext-Felder — Fett,
+Kursiv, Aufzählungen, nummerierte Listen, Link, Überschriften (H2/H3) und
+optional Bilder — plus `RichText` zum Rendern des gespeicherten HTML.
+Bilder (Toolbar-Button, Drag&Drop, Einfügen aus der Zwischenablage) gibt es
+nur, wenn die App `onUploadImage(file) => Promise<string>` übergibt (relative
+URL, z. B. `/media/rich/x.png`); ohne die Prop bleiben bestehende `<img>`-
+Inhalte sichtbar, es lassen sich nur keine neuen einfügen. Auf
+Upload-Fehler zeigt der Editor `t("Image upload failed")` per
+`window.alert` und lässt den Inhalt unverändert. Passt zum
+Sanitizing-Vertrag von `basicbar_integrations.html_sanitize.clean_html`
+(oder einem gleichwertigen Allowlist-Sanitizer im Tool) — die gespeicherte
+HTML wird dort auf genau dieses Subset reduziert. Eingefügtes Rich-HTML
+(z. B. aus einer Webseite kopiert) wird per `transformPastedHTML` gefiltert:
+jedes `<img>`, dessen `src` nicht mit `/media/` beginnt, wird entfernt —
+ohne `onUploadImage` wird jedes eingefügte `<img>` entfernt. So kann kein
+externes Bild am Upload-Flow vorbei ins Dokument gelangen; vorhandene Bilder
+im initialen `value` bleiben unangetastet.
+
+Neue Dependencies: `@tiptap/react`, `@tiptap/pm`, `@tiptap/starter-kit`,
+`@tiptap/extension-link`, `@tiptap/extension-image`,
+`@tiptap/extension-bold` (alle `^3.27.2`); `react-dom` (`>=18`) ist jetzt
+zusätzlich zu `react` als Peer-Dependency deklariert (`@tiptap/react`
+importiert es zur Laufzeit).
+
+Der Editor bietet bewusst nur das Subset an, das der Sanitizer behält:
+Unterstreichen/Durchgestrichen sind nicht registriert und Links tragen kein
+`target`/`rel` (das Backend erzwingt `rel="noopener"` ohnehin). Der externe
+`value`-Sync (Sprachwechsel u. ä.) läuft jetzt außerhalb der Undo-History
+(`setMeta("addToHistory", false)`), damit ein Undo direkt danach nicht in
+den vorherigen Inhalt hineinspringt. `RichTextEditor` hat eine neue optionale
+Prop `labelledBy` (Id eines externen `<label>`, Alternative zu `ariaLabel`);
+`RenderInputArgs` (für `renderInput`) hat entsprechend ein neues optionales
+Feld `labelId` — `TranslatableField`s eigene Label-Id, additiv und
+abwärtskompatibel. Der Bild-Upload-Button ist jetzt per `aria-label` benannt
+und zeigt einen sichtbaren Fokusring; ein fehlgeschlagener Bild-Upload zeigt
+zusätzlich zu `t("Image upload failed")` die Fehlermeldung, falls vorhanden.
+
+Migration: keine für Tools, die die Komponente noch nicht nutzen — additiv.
+Ein Tool, das den Editor einsetzt, übernimmt `RichTextEditor`/`RichText`
+aus `@basicbar/ui` statt einer lokalen Kopie (z. B. via
+`TranslatableField`s `renderInput`, `labelledBy={labelId}` durchreichen) und
+ergänzt die Übersetzungs-Keys `"Bold"`, `"Italic"`, `"Heading (large)"`,
+`"Heading (small)"`, `"Bulleted list"`, `"Numbered list"`, `"Link"`,
+`"Enter URL"`, `"Insert image (or drag and drop)"`, `"Image upload failed"`.
+
 ### @basicbar/ui (→ wird `ui/v0.3.1`)
 
 **Globaler Sprach-Umschalter** (modulierbar#99): Der schwebende

@@ -51,6 +51,11 @@ export interface RenderInputArgs {
   value: string;
   onChange: (value: string) => void;
   id: string;
+  /** Id of the visible `<label>` element, when there is one (omitted for a
+   *  labelless/compact field) — pass through as e.g. `aria-labelledby` on a
+   *  custom editor that has no native `<label htmlFor>` association of its
+   *  own (`RichTextEditor`'s `labelledBy`). */
+  labelId?: string;
 }
 
 const DEFAULT_INPUT_CLASS =
@@ -226,6 +231,7 @@ export function TranslatableField({
 
   const showTabs = !singleLanguage;
   const tabsLabel = ariaLabel ?? label;
+  const labelId = label ? `${inputId}-label` : undefined;
 
   return (
     <div className={`block text-xs text-slate-500 dark:text-slate-400 ${className}`}>
@@ -233,7 +239,7 @@ export function TranslatableField({
         <div className="flex items-center justify-between gap-2">
           {label ? (
             <span className="flex items-center gap-1">
-              <label htmlFor={inputId} className={labelClassName}>
+              <label id={labelId} htmlFor={inputId} className={labelClassName}>
                 {label}
                 {required && <span className="text-rose-500"> *</span>}
               </label>
@@ -296,7 +302,7 @@ export function TranslatableField({
       )}
       <div className="mt-1">
         {renderInput ? (
-          renderInput({ lang: active, value, onChange: set, id: inputId })
+          renderInput({ lang: active, value, onChange: set, id: inputId, labelId })
         ) : multiline ? (
           <textarea
             id={inputId}

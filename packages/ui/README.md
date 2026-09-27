@@ -49,3 +49,115 @@ initI18n({ resources: { en, de } });
 Build: `npm install && npm run build` (tsup → `dist/`). Distribution als
 npm-Tarball über ein GitHub-Release-Asset (siehe ADR-0002, ADR-0004 und
 Repo-CI).
+
+## Rich text
+
+`RichTextEditor` (TipTap) + `RichText` — der eine WYSIWYG-Editor für
+formatierte Langtext-Felder (Fett, Kursiv, Aufzählungen, nummerierte Listen,
+Link, Überschriften H2/H3, optional Bilder) und die passende Renderkomponente
+für das gespeicherte HTML. Aus AbstimmBAR in die Basis verschoben
+(modulierbar#5), damit alle -bar-Tools eine Implementierung teilen.
+
+**Sanitizing-Vertrag:** die Komponenten selbst sanitizen nichts — die
+Sicherheitsgrenze ist das Backend. Jedes Rich-Text-Feld muss beim Speichern
+(und beim Import) durch einen Allowlist-Sanitizer laufen, z. B.
+`basicbar_integrations.html_sanitize.clean_html`, der auf genau das Subset
+reduziert, das der Editor erzeugt (`p`, `strong`, `em`, `h2`, `h3`, `ul`,
+`ol`, `li`, `a[href,rel]`, `img[src]`, …). Bild-URLs müssen relativ sein
+(`/media/…`) — der Editor fügt nur ein, was `onUploadImage` zurückgibt, ohne
+es zu validieren. Der Editor selbst bietet bewusst **nur** dieses Subset an:
+Unterstreichen/Durchgestrichen sind nicht registriert (TipTap-`underline`/
+`strike` explizit aus) und Links tragen kein `target`/`rel` (das Backend
+erzwingt `rel="noopener"` ohnehin) — eine Formatierung, die der Sanitizer
+später wieder entfernt, soll der Nutzer erst gar nicht setzen können.
+
+**Zugänglicher Name:** der Editor braucht immer entweder `ariaLabel` (kein
+sichtbares Label) oder `labelledBy` (Id eines bereits vorhandenen sichtbaren
+`<label>`-Elements, z. B. `TranslatableField`s `labelId` — siehe unten).
+
+**Editor ohne Bilder** (kein Upload-Endpunkt verdrahtet — kein Bild-Button,
+Drag&Drop/Einfügen aus der Zwischenablage werden ignoriert; bestehende
+`<img>`-Inhalte bleiben trotzdem sichtbar):
+
+```tsx
+import { RichTextEditor } from "@basicbar/ui";
+
+<RichTextEditor
+  value={description}
+  onChange={setDescription}
+  ariaLabel={t("Description")}
+/>
+```
+
+**Editor mit Bildern** — `onUploadImage` lädt hoch und liefert die relative
+URL als String; scheitert der Upload, zeigt der Editor
+`t("Image upload failed")` (plus die Fehlermeldung, falls vorhanden) per
+`window.alert` und lässt den Inhalt unverändert:
+
+```tsx
+<RichTextEditor
+  value={description}
+  onChange={setDescription}
+  onUploadImage={async (file) => {
+    // Eigener Upload-Endpunkt der App; liefert z. B. {"url": "/media/rich/x.png"}.
+    const { url } = await postImage(file);
+    return url; // relative URL als String
+  }}
+  id="description-editor"
+  ariaLabel={t("Description")}
+/>
+```
+
+**Bilder aus eingefügtem HTML werden gefiltert, nicht nur Datei-Paste/-Drop:**
+Fügt man Rich-HTML aus einer Webseite ein (Browser-Copy&Paste, nicht als
+Datei), landet es über ProseMirrors HTML-Parser im Dokument — ein
+`<img src="https://…">` würde sonst am `onUploadImage`-Flow vorbei direkt
+eingefügt und wäre nach dem Speichern ein kaputtes `<img>` (der Backend-
+Sanitizer erlaubt nur `/media/…`-Quellen). Der Editor filtert deshalb per
+`transformPastedHTML` jedes eingefügte `<img>`, dessen `src` nicht mit
+`/media/` beginnt; ohne `onUploadImage` wird jedes eingefügte `<img>`
+entfernt (Bilder sind dann vollständig deaktiviert). Das betrifft nur
+eingefügtes HTML — vorhandene Bilder im initialen `value` bleiben
+unangetastet.
+
+**Rendern** des serverseitig sanitisierten HTML:
+
+```tsx
+import { RichText } from "@basicbar/ui";
+
+<RichText html={product.description} />
+// eigene Klassen statt des Prosa-Defaults (ersetzt, nicht ergänzt):
+<RichText html={product.description} className="text-3xl [&_img]:max-h-64" />
+```
+
+**Integration in `TranslatableField`** über `renderInput` (pro Sprache ein
+Editor, mit `format="html"` bleiben die Ausgefüllt-Punkte markup-blind und
+die Maschinenübersetzung erhält die Tags). `renderInput` bekommt neben `id`
+auch `labelId` — die Id von `TranslatableField`s eigenem sichtbaren `<label>`
+(nur gesetzt, wenn die `label`-Prop übergeben wurde); durchgereicht als
+`labelledBy` bindet der Editor sich per `aria-labelledby` an dieses Label,
+statt ein zweites, redundantes `ariaLabel` zu brauchen:
+
+```tsx
+<TranslatableField
+  label={t("Description")}
+  values={{ de: form.description_de, en: form.description_en }}
+  onChange={(lang, html) => setField(`description_${lang}`, html)}
+  format="html"
+  renderInput={({ value, onChange, id, labelId }) => (
+    <RichTextEditor
+      value={value}
+      onChange={onChange}
+      onUploadImage={uploadRichImage}
+      id={id}
+      labelledBy={labelId}
+    />
+  )}
+/>
+```
+
+**Übersetzungs-Keys**, die das Tool bereitstellen muss (Englisch als Key,
+siehe `initI18n`): `"Bold"`, `"Italic"`, `"Heading (large)"`,
+`"Heading (small)"`, `"Bulleted list"`, `"Numbered list"`, `"Link"`,
+`"Enter URL"`, `"Insert image (or drag and drop)"`,
+`"Image upload failed"`.
