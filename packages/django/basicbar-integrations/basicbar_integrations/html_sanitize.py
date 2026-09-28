@@ -10,6 +10,9 @@ offers: bold, italic, lists, links, headings (h2/h3) and images. Links may
 point anywhere (rel="noopener" is forced); images must come from the app's
 own /media/ storage.
 """
+import posixpath
+from urllib.parse import unquote
+
 import nh3
 
 ALLOWED_TAGS = {
@@ -22,11 +25,21 @@ ALLOWED_URL_SCHEMES = {"http", "https", "mailto"}
 
 def clean_media_url(url):
     """Accept only the app's own media storage: a relative ``/media/…`` path
-    without traversal — anything else becomes ""."""
+    whose decoded, normalised form stays inside ``/media/`` — anything else
+    becomes "". Percent-encoded dot segments (``%2e%2e``), double encoding
+    and backslashes are rejected (basicbar#6)."""
     url = (url or "").strip()
-    if url.startswith("/media/") and ".." not in url and not url.startswith("//"):
-        return url[:300]
-    return ""
+    if not url.startswith("/media/") or url.startswith("//") or "\\" in url:
+        return ""
+    decoded = unquote(url)
+    if "\\" in decoded or "%" in decoded:
+        # Backslashes and a leftover "%" (still-encoded after one decode
+        # pass) both signal an attempt to sneak a traversal past the check.
+        return ""
+    normalised = posixpath.normpath(decoded)
+    if normalised != "/media" and not normalised.startswith("/media/"):
+        return ""
+    return url[:300]
 
 
 def _attribute_filter(tag, attr, value):

@@ -7,6 +7,19 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### basicbar-integrations (→ wird `integrations/v0.2.1`)
+
+**Sicherheitsfix:** `clean_media_url` prüfte den rohen String, sodass
+Pfade wie `/media/%2e%2e/api/whoami/` oder `/media/a\..\b` durchkamen —
+Browser lösen die enthaltenen `..`-Segmente nach dem Decodieren aber
+trotzdem auf, sodass ein admin-verfasstes `<img>` einen same-origin GET
+auf beliebige Pfade auslösen konnte (basicbar#6). Geprüft wird jetzt der
+decodierte, normalisierte Pfad; einfach- und doppelt-encodierte
+`..`-Segmente sowie Backslashes werden abgelehnt.
+
+Migration: keine — reiner Bugfix, die öffentliche Signatur von
+`clean_media_url`/`clean_html` ändert sich nicht.
+
 ### @basicbar/ui (→ wird `ui/v0.4.0`)
 
 **`RichTextEditor` + `RichText`** (modulierbar#5), aus AbstimmBAR verschoben:

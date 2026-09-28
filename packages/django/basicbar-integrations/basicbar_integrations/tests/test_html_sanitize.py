@@ -42,3 +42,27 @@ class HtmlSanitizeTests(SimpleTestCase):
         self.assertEqual(clean_media_url("https://evil/x.png"), "")
         self.assertEqual(clean_media_url("/media/../etc/passwd"), "")
         self.assertEqual(clean_media_url("//evil/x.png"), "")
+
+    def test_clean_media_url_rejects_encoded_path_traversal(self):
+        for url in (
+            "/media/%2e%2e/api/whoami/",
+            "/media/.%2E/x",
+            "/media/%2E%2E/x",
+            "/media/%252e%252e/x",
+            "/media/..%2fapi",
+            "/media/a\\..\\b",
+            "/media/a/../../api",
+            "//evil.example/media/x",
+            "https://evil.example/media/x",
+        ):
+            self.assertEqual(clean_media_url(url), "", url)
+
+    def test_clean_media_url_keeps_valid_paths(self):
+        self.assertEqual(clean_media_url("/media/rich/abc.png"), "/media/rich/abc.png")
+        self.assertEqual(
+            clean_media_url("/media/products/Kuche2.jpeg"), "/media/products/Kuche2.jpeg"
+        )
+        self.assertEqual(clean_media_url("/media/rich/a%20b.png"), "/media/rich/a%20b.png")
+
+    def test_clean_html_drops_img_src_with_encoded_traversal(self):
+        self.assertNotIn("api", clean_html('<img src="/media/%2e%2e/api/">'))
