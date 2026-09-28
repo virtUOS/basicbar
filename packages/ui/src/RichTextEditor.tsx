@@ -18,6 +18,7 @@ import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import {
   Bold as BoldIcon,
+  Captions,
   Heading2,
   Heading3,
   ImagePlus,
@@ -62,11 +63,13 @@ export interface RichTextEditorProps {
 
 function ToolbarButton({
   active,
+  disabled,
   label,
   onClick,
   children,
 }: {
   active?: boolean;
+  disabled?: boolean;
   label: string;
   onClick: () => void;
   children: React.ReactNode;
@@ -77,10 +80,16 @@ function ToolbarButton({
       title={label}
       aria-label={label}
       aria-pressed={active}
+      disabled={disabled}
+      aria-disabled={disabled}
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
       className={`rounded px-2 py-1 text-sm ${
-        active ? "bg-brand-100 dark:bg-brand-900 text-brand-800 dark:text-brand-200" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+        disabled
+          ? "cursor-not-allowed text-slate-400 opacity-50 dark:text-slate-600"
+          : active
+            ? "bg-brand-100 dark:bg-brand-900 text-brand-800 dark:text-brand-200"
+            : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
       }`}
     >
       {children}
@@ -108,13 +117,25 @@ export function RichTextEditor({
       window.alert(`${t("Image upload failed")}${detail}`);
       return;
     }
+    // Ask for alt text once the upload has actually succeeded (WCAG 1.1.1);
+    // empty input or Cancel both mean "no description" — the image is
+    // inserted either way, just as a (possibly) decorative one.
+    const alt = (window.prompt(t("Image description (alt text)"), "") ?? "").trim();
     const chain = editor.chain().focus();
-    if (pos !== undefined) chain.insertContentAt(pos, { type: "image", attrs: { src: url } });
-    else chain.setImage({ src: url });
+    if (pos !== undefined) chain.insertContentAt(pos, { type: "image", attrs: { src: url, alt } });
+    else chain.setImage({ src: url, alt });
     chain.run();
   }
 
   const editor = useEditor({
+    // @tiptap/react v3 no longer re-renders on every transaction by default
+    // (perf choice — see `useEditorState`); we do want that, though: the
+    // toolbar reads `editor.isActive(...)` directly in the render body for
+    // every button (Bold/Italic/headings/link and now "Image description"),
+    // so a selection-only change (e.g. clicking into/out of an image, no
+    // document change) must still re-render this component or those buttons
+    // go stale until the next actual edit.
+    shouldRerenderOnTransaction: true,
     extensions: [
       StarterKit.configure({
         heading: { levels: [2, 3] },
@@ -240,6 +261,14 @@ export function RichTextEditor({
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }
 
+  function setImageAlt() {
+    if (!editor) return;
+    const previous = (editor.getAttributes("image").alt as string) ?? "";
+    const alt = window.prompt(t("Image description (alt text)"), previous);
+    if (alt === null) return; // cancelled: leave the current alt untouched
+    editor.chain().focus().updateAttributes("image", { alt: alt.trim() }).run();
+  }
+
   return (
     <div className="rounded-lg border border-slate-300 dark:border-slate-700 focus-within:ring-2 focus-within:ring-brand-600 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-slate-950">
       <div className="flex flex-nowrap gap-1 overflow-x-auto border-b border-slate-200 dark:border-slate-800 px-2 py-1">
@@ -310,6 +339,15 @@ export function RichTextEditor({
               }}
             />
           </label>
+        )}
+        {onUploadImage && (
+          <ToolbarButton
+            label={t("Image description")}
+            disabled={!editor.isActive("image")}
+            onClick={setImageAlt}
+          >
+            <Captions aria-hidden className="h-4 w-4" />
+          </ToolbarButton>
         )}
       </div>
       <EditorContent editor={editor} />

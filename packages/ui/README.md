@@ -108,6 +108,16 @@ URL als String; scheitert der Upload, zeigt der Editor
 />
 ```
 
+**Bildbeschreibung (Alt-Text, WCAG 1.1.1):** direkt nach einem erfolgreichen
+Upload fragt der Editor per `window.prompt` nach einer Beschreibung
+(`t("Image description (alt text)")`) — leere Eingabe oder Abbrechen setzen
+beide `alt=""` (bewusst dekoratives Bild), das Bild wird in jedem Fall
+eingefügt. Ein eigener Toolbar-Button (`t("Image description")`, nur
+sichtbar, wenn `onUploadImage` gesetzt ist) ist deaktiviert, solange kein
+Bild markiert ist; bei markiertem Bild öffnet er denselben Prompt,
+vorausgefüllt mit dem aktuellen Alt-Text, und übernimmt die Änderung —
+Abbrechen lässt den bestehenden Alt-Text unangetastet.
+
 **Bilder aus eingefügtem HTML werden gefiltert, nicht nur Datei-Paste/-Drop:**
 Fügt man Rich-HTML aus einer Webseite ein (Browser-Copy&Paste, nicht als
 Datei), landet es über ProseMirrors HTML-Parser im Dokument — ein
@@ -160,4 +170,5 @@ statt ein zweites, redundantes `ariaLabel` zu brauchen:
 siehe `initI18n`): `"Bold"`, `"Italic"`, `"Heading (large)"`,
 `"Heading (small)"`, `"Bulleted list"`, `"Numbered list"`, `"Link"`,
 `"Enter URL"`, `"Insert image (or drag and drop)"`,
-`"Image upload failed"`.
+`"Image upload failed"`, `"Image description (alt text)"`,
+`"Image description"`.

@@ -20,6 +20,32 @@ decodierte, normalisierte Pfad; einfach- und doppelt-encodierte
 Migration: keine — reiner Bugfix, die öffentliche Signatur von
 `clean_media_url`/`clean_html` ändert sich nicht.
 
+### @basicbar/ui (→ wird `ui/v0.5.0`)
+
+**Alt-Text für Bilder in `RichTextEditor`** (basicbar#7, WCAG 1.1.1): direkt
+nach einem erfolgreichen Bild-Upload fragt der Editor per `window.prompt`
+nach einer Beschreibung (`t("Image description (alt text)")`) — leere
+Eingabe oder Abbrechen setzen beide `alt=""` (bewusst dekoratives Bild), das
+Bild wird in jedem Fall eingefügt. Neuer Toolbar-Button
+`t("Image description")` (nur sichtbar, wenn `onUploadImage` gesetzt ist),
+deaktiviert, solange kein Bild markiert ist; bei markiertem Bild öffnet er
+denselben Prompt vorausgefüllt mit dem aktuellen Alt-Text und übernimmt
+Änderungen per `updateAttributes("image", { alt })` — Abbrechen lässt den
+bestehenden Alt-Text unangetastet. `ToolbarButton` hat dafür eine neue
+optionale `disabled`-Prop (reduzierte Deckkraft, `aria-disabled`).
+
+Nebenbei behoben: `useEditor` setzt jetzt `shouldRerenderOnTransaction: true`
+— TipTap 3 rendert standardmäßig nicht mehr bei reinen Selektionsänderungen
+neu, sodass sämtliche Toolbar-Buttons (Fett/Kursiv/Überschriften/Link und
+jetzt auch der neue Bildbeschreibungs-Button), die ihren aktiven/deaktivierten
+Zustand aus `editor.isActive(...)` lesen, nach einem Klick ohne Dokument-
+änderung (z. B. Bild ab-/anwählen) den alten Stand zeigten, bis die nächste
+Bearbeitung ein Re-Render auslöste.
+
+Migration: keine für Tools ohne `onUploadImage` — additiv. Tools mit
+Bild-Upload ergänzen die neuen Übersetzungs-Keys
+`"Image description (alt text)"` und `"Image description"`.
+
 ### @basicbar/ui (→ wird `ui/v0.4.0`)
 
 **`RichTextEditor` + `RichText`** (modulierbar#5), aus AbstimmBAR verschoben:
