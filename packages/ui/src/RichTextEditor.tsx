@@ -80,10 +80,11 @@ function ToolbarButton({
       title={label}
       aria-label={label}
       aria-pressed={active}
-      disabled={disabled}
-      aria-disabled={disabled}
+      // aria-disabled (not native disabled) keeps the button in the tab order,
+      // so keyboard users can discover it before selecting an image.
+      aria-disabled={disabled || undefined}
       onMouseDown={(event) => event.preventDefault()}
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       className={`rounded px-2 py-1 text-sm ${
         disabled
           ? "cursor-not-allowed text-slate-400 opacity-50 dark:text-slate-600"
@@ -262,7 +263,7 @@ export function RichTextEditor({
   }
 
   function setImageAlt() {
-    if (!editor) return;
+    if (!editor || !editor.isActive("image")) return;
     const previous = (editor.getAttributes("image").alt as string) ?? "";
     const alt = window.prompt(t("Image description (alt text)"), previous);
     if (alt === null) return; // cancelled: leave the current alt untouched
