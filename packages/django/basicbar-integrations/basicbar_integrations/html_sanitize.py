@@ -23,23 +23,50 @@ ALLOWED_ATTRIBUTES = {"a": {"href"}, "img": {"src", "alt"}}
 ALLOWED_URL_SCHEMES = {"http", "https", "mailto"}
 
 
+_CONTROL_CHARS = frozenset(chr(c) for c in range(0x20)) | {"\x7f"}  # C0 + DEL
+
+
+def _has_control_chars(value):
+    return any(c in _CONTROL_CHARS for c in value)
+
+
 def clean_media_url(url):
     """Accept only the app's own media storage: a relative ``/media/…`` path
     whose decoded, normalised form stays inside ``/media/`` — anything else
     becomes "". Percent-encoded dot segments (``%2e%2e``), double encoding
-    and backslashes are rejected (basicbar#6)."""
-    url = (url or "").strip()
-    if not url.startswith("/media/") or url.startswith("//") or "\\" in url:
+    and backslashes are rejected (basicbar#6), as are C0/DEL control
+    characters (e.g. a raw or ``%09``-encoded tab — browsers strip these
+    anywhere in a URL before resolving it, so ``normpath`` must never see
+    them), a ``?``/``#`` query or fragment (raw or encoded — a trailing
+    ``..`` hidden after one is still resolved by the browser; query strings
+    on media URLs aren't supported), and anything over 300 characters
+    (truncating *after* validation could cut a long, validated path back
+    down to a traversal)."""
+    url = url or ""
+    if len(url) > 300:
+        return ""
+    if (
+        not url.startswith("/media/")
+        or url.startswith("//")
+        or "\\" in url
+        or "?" in url
+        or "#" in url
+        or _has_control_chars(url)
+    ):
         return ""
     decoded = unquote(url)
-    if "\\" in decoded or "%" in decoded:
-        # Backslashes and a leftover "%" (still-encoded after one decode
-        # pass) both signal an attempt to sneak a traversal past the check.
+    if (
+        "\\" in decoded
+        or "%" in decoded
+        or "?" in decoded
+        or "#" in decoded
+        or _has_control_chars(decoded)
+    ):
         return ""
     normalised = posixpath.normpath(decoded)
     if normalised != "/media" and not normalised.startswith("/media/"):
         return ""
-    return url[:300]
+    return url
 
 
 def _attribute_filter(tag, attr, value):

@@ -17,6 +17,16 @@ auf beliebige Pfade auslösen konnte (basicbar#6). Geprüft wird jetzt der
 decodierte, normalisierte Pfad; einfach- und doppelt-encodierte
 `..`-Segmente sowie Backslashes werden abgelehnt.
 
+**Fix Runde 2 (basicbar#6):** drei weitere Bypasses, die der WHATWG-URL-
+Parser aber ein reiner Substring-Check nicht sieht, sind jetzt ebenfalls
+abgedeckt: rohe oder `%09`/`%0a`/`%0d`-codierte C0-/DEL-Steuerzeichen
+(Browser entfernen sie überall im URL vor dem Auflösen, sodass z. B.
+`/media/.&#9;./api/` sonst als `/api/` aufgelöst würde); ein `?`/`#`
+(roh oder codiert), das ein `..` davor verbirgt (`/media/..?x` →
+`/?x`); und `url[:300]`-Truncation *nach* der Validierung, die einen
+validierten langen Pfad nachträglich wieder auf eine Traversal kürzen
+konnte — über 300 Zeichen wird jetzt komplett abgelehnt statt gekürzt.
+
 Migration: keine — reiner Bugfix, die öffentliche Signatur von
 `clean_media_url`/`clean_html` ändert sich nicht.
 

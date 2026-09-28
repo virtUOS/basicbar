@@ -63,6 +63,35 @@ class HtmlSanitizeTests(SimpleTestCase):
             clean_media_url("/media/products/Kuche2.jpeg"), "/media/products/Kuche2.jpeg"
         )
         self.assertEqual(clean_media_url("/media/rich/a%20b.png"), "/media/rich/a%20b.png")
+        self.assertEqual(clean_media_url("/media/rich/gr%C3%BC%C3%9F.png"), "/media/rich/gr%C3%BC%C3%9F.png")
 
     def test_clean_html_drops_img_src_with_encoded_traversal(self):
         self.assertNotIn("api", clean_html('<img src="/media/%2e%2e/api/">'))
+
+    def test_clean_media_url_rejects_control_characters(self):
+        for url in (
+            "/media/.\t./api/",
+            "/media/.\n./api/",
+            "/media/%2e\r%2e/api/",
+            "/media/%09",
+        ):
+            self.assertEqual(clean_media_url(url), "", repr(url))
+
+    def test_clean_media_url_rejects_query_or_fragment(self):
+        for url in (
+            "/media/..?x",
+            "/media/.%2e?x",
+            "/media/%2e%2e#f",
+            "/media/rich/a.png?v=1",
+        ):
+            self.assertEqual(clean_media_url(url), "", url)
+
+    def test_clean_media_url_rejects_over_length_url_instead_of_truncating(self):
+        # Validated-then-truncated would cut this back down to ".../../..zzz"
+        # which normalises outside /media/ — must be rejected outright.
+        url = "/media/" + "a" * 287 + "/../..zzz"
+        self.assertEqual(len(url), 303)
+        self.assertEqual(clean_media_url(url), "")
+
+    def test_clean_html_drops_img_src_with_encoded_control_char(self):
+        self.assertNotIn("api", clean_html('<img src="/media/.&#9;./api/whoami/">'))
