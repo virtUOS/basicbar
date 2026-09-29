@@ -7,6 +7,55 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### basicbar-integrations (→ wird `integrations/v0.2.1`)
+
+**Sicherheitsfix:** `clean_media_url` prüfte den rohen String, sodass
+Pfade wie `/media/%2e%2e/api/whoami/` oder `/media/a\..\b` durchkamen —
+Browser lösen die enthaltenen `..`-Segmente nach dem Decodieren aber
+trotzdem auf, sodass ein admin-verfasstes `<img>` einen same-origin GET
+auf beliebige Pfade auslösen konnte (basicbar#6). Geprüft wird jetzt der
+decodierte, normalisierte Pfad; einfach- und doppelt-encodierte
+`..`-Segmente sowie Backslashes werden abgelehnt.
+
+**Fix Runde 2 (basicbar#6):** drei weitere Bypasses, die der WHATWG-URL-
+Parser aber ein reiner Substring-Check nicht sieht, sind jetzt ebenfalls
+abgedeckt: rohe oder `%09`/`%0a`/`%0d`-codierte C0-/DEL-Steuerzeichen
+(Browser entfernen sie überall im URL vor dem Auflösen, sodass z. B.
+`/media/.&#9;./api/` sonst als `/api/` aufgelöst würde); ein `?`/`#`
+(roh oder codiert), das ein `..` davor verbirgt (`/media/..?x` →
+`/?x`); und `url[:300]`-Truncation *nach* der Validierung, die einen
+validierten langen Pfad nachträglich wieder auf eine Traversal kürzen
+konnte — über 300 Zeichen wird jetzt komplett abgelehnt statt gekürzt.
+
+Migration: keine — reiner Bugfix, die öffentliche Signatur von
+`clean_media_url`/`clean_html` ändert sich nicht.
+
+### @basicbar/ui (→ wird `ui/v0.5.0`)
+
+**Alt-Text für Bilder in `RichTextEditor`** (basicbar#7, WCAG 1.1.1): direkt
+nach einem erfolgreichen Bild-Upload fragt der Editor per `window.prompt`
+nach einer Beschreibung (`t("Image description (alt text)")`) — leere
+Eingabe oder Abbrechen setzen beide `alt=""` (bewusst dekoratives Bild), das
+Bild wird in jedem Fall eingefügt. Neuer Toolbar-Button
+`t("Image description")` (nur sichtbar, wenn `onUploadImage` gesetzt ist),
+deaktiviert, solange kein Bild markiert ist; bei markiertem Bild öffnet er
+denselben Prompt vorausgefüllt mit dem aktuellen Alt-Text und übernimmt
+Änderungen per `updateAttributes("image", { alt })` — Abbrechen lässt den
+bestehenden Alt-Text unangetastet. `ToolbarButton` hat dafür eine neue
+optionale `disabled`-Prop (reduzierte Deckkraft, `aria-disabled`).
+
+Nebenbei behoben: `useEditor` setzt jetzt `shouldRerenderOnTransaction: true`
+— TipTap 3 rendert standardmäßig nicht mehr bei reinen Selektionsänderungen
+neu, sodass sämtliche Toolbar-Buttons (Fett/Kursiv/Überschriften/Link und
+jetzt auch der neue Bildbeschreibungs-Button), die ihren aktiven/deaktivierten
+Zustand aus `editor.isActive(...)` lesen, nach einem Klick ohne Dokument-
+änderung (z. B. Bild ab-/anwählen) den alten Stand zeigten, bis die nächste
+Bearbeitung ein Re-Render auslöste.
+
+Migration: keine für Tools ohne `onUploadImage` — additiv. Tools mit
+Bild-Upload ergänzen die neuen Übersetzungs-Keys
+`"Image description (alt text)"` und `"Image description"`.
+
 ### @basicbar/ui (→ wird `ui/v0.4.0`)
 
 **`RichTextEditor` + `RichText`** (modulierbar#5), aus AbstimmBAR verschoben:
