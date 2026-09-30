@@ -12,7 +12,8 @@ Tools identisch aussehen, übergeben sie dieselbe Ramp.
   (Plus Jakarta Sans Variable), Dark Mode per `.dark`-Klasse, Motion-Tokens
   (`pop`, `fade-up`, `out-quart`). Die `slate`/`brand`-Ramps übergibt das Tool
   (OKLCH, Konventionen im Preset-Docstring).
-- **`@basicbar/ui/base.css`** — gemeinsamer `@layer base`: Canvas hell/dunkel,
+- **`@basicbar/ui/base.css`** — gemeinsame Basis-Styles (`@layer base` plus
+  ungelayerte ProseMirror-Regeln): Canvas hell/dunkel,
   `accent-color`, `::selection`, konsistenter `:focus-visible`-Ring
   (WCAG 2.4.7), `color-scheme`-Regeln, Skip-Link (WCAG 2.4.1),
   `prefers-reduced-motion`, `text-wrap: balance`, tabellarische Ziffern,

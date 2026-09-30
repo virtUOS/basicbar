@@ -79,7 +79,9 @@
    CSP with `style-src 'self'` (basicbar#9). Re-check against that file when
    upgrading TipTap. Deliberately NOT inside an @layer: the ProseMirror-*
    classes are set at runtime by prosemirror-view (node_modules), so Tailwind's
-   content scan never sees them and would purge layered rules. */
+   content scan never sees them and would purge layered rules. (Tailwind v3;
+   re-check the cascade if a consumer moves to v4's native CSS layers, where
+   unlayered rules outrank utilities.) */
 .ProseMirror {
   position: relative;
 }
