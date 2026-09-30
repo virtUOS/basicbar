@@ -11,8 +11,9 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 **Geteilte Einstellungs-Bausteine** (ausleihbar#35): `LanguageOptions`,
 `AppearanceControl` und `PreferencesMenu`. Die ersten beiden sind Menüzeilen
-für das Account-Menü des Tools (Sprache als `menuitemradio`, Erscheinungsbild
-als `radiogroup`); `PreferencesMenu` ist der runde Einstellungen-Button mit
+für das Account-Menü des Tools (je eine beschriftete `role="group"` mit
+`menuitemradio`-Zeilen, gültig in `role="menu"`; `LanguageOptions` hat
+`heading?`); `PreferencesMenu` ist der runde Einstellungen-Button mit
 Popover für nicht angemeldete Besucher. Es gibt bewusst keinen Eintrag „Auto“
 bei der Sprache: ohne Wahl folgt der Detector dem System (die angezeigte
 Sprache ist markiert), eine Wahl wird von i18next gecacht und ist damit

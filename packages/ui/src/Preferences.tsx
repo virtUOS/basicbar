@@ -6,17 +6,19 @@
  * `AppearanceControl`) or, for signed-out visitors, as a round popover
  * button (`PreferencesMenu`). */
 import { Check, Monitor, Moon, SlidersHorizontal, Sun } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SUPPORTED_LANGUAGES } from "./i18n";
 import { useTheme, type Appearance } from "./theme";
 
-/** Auto / Light / Dark setting. Auto follows the OS; an explicit pick
+/** Auto / Light / Dark setting (a labelled `role="group"` of `menuitemradio`
+ *  rows, valid inside a `role="menu"`). Auto follows the OS; an explicit pick
  *  overrides it. Full-width radio rows (icon + label + check on the active
  *  option) to match the menu vocabulary. */
 export function AppearanceControl() {
   const { t } = useTranslation();
   const { appearance, setAppearance } = useTheme();
+  const headingId = useId();
   const options: {
     value: Appearance;
     label: string;
@@ -28,8 +30,8 @@ export function AppearanceControl() {
     { value: "dark", label: t("Dark"), icon: Moon },
   ];
   return (
-    <div role="radiogroup" aria-label={t("Appearance")}>
-      <p className="px-3 pb-0.5 pt-1 text-xs text-slate-400 dark:text-slate-300">
+    <div role="group" aria-labelledby={headingId}>
+      <p id={headingId} className="px-3 pb-0.5 pt-1 text-xs text-slate-400 dark:text-slate-300">
         {t("Appearance")}
       </p>
       {options.map((opt) => {
@@ -38,7 +40,7 @@ export function AppearanceControl() {
           <button
             key={opt.value}
             type="button"
-            role="radio"
+            role="menuitemradio"
             aria-checked={active}
             onClick={() => setAppearance(opt.value)}
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"
@@ -60,7 +62,7 @@ export function AppearanceControl() {
   );
 }
 
-/** Language options as `menuitemradio` rows. There is deliberately no "Auto"
+/** Language options as `menuitemradio` rows in a labelled `role="group"`. There is deliberately no "Auto"
  *  entry: without a manual pick the detector follows the system and the
  *  resolved language is the one marked; a pick is cached by i18next (the
  *  detector's cache) and is therefore binding from then on. `onChange` lets
@@ -68,17 +70,33 @@ export function AppearanceControl() {
 export function LanguageOptions({
   onChange,
   onPicked,
+  heading = true,
 }: {
   onChange?: (lang: string) => void;
   onPicked?: () => void;
+  /** Render the visible "Language" heading (default). */
+  heading?: boolean;
 }) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const headingId = useId();
   const resolved = i18n.resolvedLanguage ?? i18n.language;
   const current = SUPPORTED_LANGUAGES.some((l) => l.code === resolved)
     ? resolved
     : SUPPORTED_LANGUAGES[0]?.code;
   return (
-    <>
+    <div
+      role="group"
+      aria-labelledby={heading ? headingId : undefined}
+      aria-label={heading ? undefined : t("Language")}
+    >
+      {heading && (
+        <p
+          id={headingId}
+          className="px-3 pb-0.5 pt-1 text-xs text-slate-400 dark:text-slate-300"
+        >
+          {t("Language")}
+        </p>
+      )}
       {SUPPORTED_LANGUAGES.map((lang) => (
         <button
           key={lang.code}
@@ -98,7 +116,7 @@ export function LanguageOptions({
           )}
         </button>
       ))}
-    </>
+    </div>
   );
 }
 
@@ -159,11 +177,8 @@ export function PreferencesMenu({
           role="menu"
           className="absolute right-0 z-30 mt-2 w-56 animate-fade-up overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg shadow-slate-900/5 dark:border-slate-700 dark:bg-slate-800"
         >
-          <p className="px-3 pb-0.5 pt-1 text-xs text-slate-400 dark:text-slate-300">
-            {t("Language")}
-          </p>
           <LanguageOptions onChange={onLanguageChange} onPicked={closeAndFocus} />
-          <div className="my-1 border-t border-slate-100 dark:border-slate-700" />
+          <div role="separator" className="my-1 border-t border-slate-100 dark:border-slate-700" />
           <AppearanceControl />
         </div>
       )}
