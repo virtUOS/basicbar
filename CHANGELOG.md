@@ -7,6 +7,22 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### @basicbar/ui (→ wird `ui/v0.5.1`)
+
+**CSP-tauglicher `RichTextEditor`** (basicbar#9): TipTap hängte beim Mounten
+ein `<style data-tiptap-style>` mit den ProseMirror-Grundregeln an `<head>` —
+unter einer Content-Security-Policy mit `style-src 'self'` (ohne
+`'unsafe-inline'`) blockiert der Browser das, der Editor verliert dann u. a.
+sein Umbruchverhalten. Der Editor läuft jetzt mit `injectCSS: false`; die
+Regeln (unverändert aus `@tiptap/core` `src/style.ts`, TipTap 3.31) stehen in
+`base.css` — bewusst außerhalb jedes `@layer`, weil Tailwind die zur Laufzeit
+gesetzten `ProseMirror-*`-Klassen nicht sieht und gelayerte Regeln sonst
+entfernen würde. README: neuer Abschnitt „CSP“.
+
+Migration: keine, solange das Tool `@basicbar/ui/base.css` importiert (wie
+im README beschrieben). Wer `base.css` nicht einbindet, muss die
+ProseMirror-Regeln selbst bereitstellen.
+
 ### basicbar-integrations (→ wird `integrations/v0.2.1`)
 
 **Sicherheitsfix:** `clean_media_url` prüfte den rohen String, sodass
