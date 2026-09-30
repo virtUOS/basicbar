@@ -175,6 +175,33 @@ siehe `initI18n`): `"Bold"`, `"Italic"`, `"Heading (large)"`,
 `"Image upload failed"`, `"Image description (alt text)"`,
 `"Image description"`.
 
+## Preferences (language & appearance)
+
+Three shared components, styled like the rest of the -bar menus:
+
+- `LanguageOptions` (`{ onChange?, onPicked? }`) — language rows
+  (`menuitemradio`) from `SUPPORTED_LANGUAGES`.
+- `AppearanceControl` — Auto / Light / Dark radio rows (needs `ThemeProvider`).
+- `PreferencesMenu` (`{ onLanguageChange? }`) — round button with a popover
+  holding both; for signed-out visitors.
+
+```tsx
+// Signed-in: rows inside the app's own account menu
+<LanguageOptions onChange={(lang) => api.setLanguage(lang)} onPicked={close} />
+<AppearanceControl />
+
+// Guests
+<PreferencesMenu />
+```
+
+Language rule: there is no "Auto" entry. Without a manual pick the detector
+follows the system and the shown language is the marked one; a pick calls
+`i18n.changeLanguage`, which the detector caches, so it is binding from then
+on. Use `onChange` / `onLanguageChange` to persist the choice server-side.
+
+Translation keys (English source strings): `Appearance`, `Auto`,
+`(follows your system)`, `Light`, `Dark`, `Language`, `Preferences`.
+
 ## CSP
 
 Die Komponenten injizieren zur Laufzeit **keine** Inline-Styles oder

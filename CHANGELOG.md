@@ -7,6 +7,22 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### @basicbar/ui (→ wird `ui/v0.6.0`)
+
+**Geteilte Einstellungs-Bausteine** (ausleihbar#35): `LanguageOptions`,
+`AppearanceControl` und `PreferencesMenu`. Die ersten beiden sind Menüzeilen
+für das Account-Menü des Tools (Sprache als `menuitemradio`, Erscheinungsbild
+als `radiogroup`); `PreferencesMenu` ist der runde Einstellungen-Button mit
+Popover für nicht angemeldete Besucher. Es gibt bewusst keinen Eintrag „Auto“
+bei der Sprache: ohne Wahl folgt der Detector dem System (die angezeigte
+Sprache ist markiert), eine Wahl wird von i18next gecacht und ist damit
+verbindlich. `onChange` / `onLanguageChange` dienen zum serverseitigen
+Speichern. README: neuer Abschnitt „Preferences (language & appearance)“.
+
+Migration: additiv, nichts zu tun. Die Tools ergänzen in ihren Katalogen den
+Schlüssel „Preferences“ (die übrigen — Appearance, Auto, „(follows your
+system)“, Light, Dark, Language — existieren meist schon).
+
 ### @basicbar/ui (→ wird `ui/v0.5.1`)
 
 **CSP-tauglicher `RichTextEditor`** (basicbar#9): TipTap hängte beim Mounten
