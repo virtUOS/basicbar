@@ -137,6 +137,11 @@ export function RichTextEditor({
     // document change) must still re-render this component or those buttons
     // go stale until the next actual edit.
     shouldRerenderOnTransaction: true,
+    // TipTap would otherwise append a <style data-tiptap-style> to <head> at
+    // runtime, which a CSP with `style-src 'self'` (no 'unsafe-inline')
+    // blocks (ausleihbar#44/#45, basicbar#9). The same ProseMirror base rules
+    // ship in base.css instead.
+    injectCSS: false,
     extensions: [
       StarterKit.configure({
         heading: { levels: [2, 3] },

@@ -12,10 +12,12 @@ Tools identisch aussehen, übergeben sie dieselbe Ramp.
   (Plus Jakarta Sans Variable), Dark Mode per `.dark`-Klasse, Motion-Tokens
   (`pop`, `fade-up`, `out-quart`). Die `slate`/`brand`-Ramps übergibt das Tool
   (OKLCH, Konventionen im Preset-Docstring).
-- **`@basicbar/ui/base.css`** — gemeinsamer `@layer base`: Canvas hell/dunkel,
+- **`@basicbar/ui/base.css`** — gemeinsame Basis-Styles (`@layer base` plus
+  ungelayerte ProseMirror-Regeln): Canvas hell/dunkel,
   `accent-color`, `::selection`, konsistenter `:focus-visible`-Ring
   (WCAG 2.4.7), `color-scheme`-Regeln, Skip-Link (WCAG 2.4.1),
-  `prefers-reduced-motion`, `text-wrap: balance`, tabellarische Ziffern.
+  `prefers-reduced-motion`, `text-wrap: balance`, tabellarische Ziffern,
+  dazu die ProseMirror-Grundregeln für `RichTextEditor` (siehe „CSP“).
   Als erste Zeile der Tool-`index.css` importieren.
 - **`ThemeProvider` / `useTheme` / `prePaintScript`** — Auto/Light/Dark mit
   Live-Systemfolge und `color-scheme`-Sync; `storageKey` konfigurierbar
@@ -172,3 +174,18 @@ siehe `initI18n`): `"Bold"`, `"Italic"`, `"Heading (large)"`,
 `"Enter URL"`, `"Insert image (or drag and drop)"`,
 `"Image upload failed"`, `"Image description (alt text)"`,
 `"Image description"`.
+
+## CSP
+
+Die Komponenten injizieren zur Laufzeit **keine** Inline-Styles oder
+-Skripte, damit Tools eine strikte Content-Security-Policy
+(`script-src 'self'; style-src 'self'`, ohne `'unsafe-inline'`) fahren können.
+`RichTextEditor` läuft deshalb mit TipTaps `injectCSS: false`; die
+ProseMirror-Grundregeln (Umbruchverhalten, Gapcursor, Auswahl) kommen aus
+`base.css` — ein Tool, das `base.css` wie oben importiert, muss nichts weiter
+tun. React-`style={{}}`-Props (CSSOM) sind unter `style-src 'self'` erlaubt.
+
+Ausnahme: `prePaintScript()` liefert das Theme-Skript als String für ein
+Inline-`<script>` in `index.html`. Unter einer strikten CSP schreibt das Tool
+den Inhalt stattdessen in eine eigene Datei (z. B. `public/theme-init.js`) und
+bindet sie synchron im `<head>` ein (so macht es ausleihbar, #44).
