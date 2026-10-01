@@ -50,6 +50,31 @@ class OIDCAdminGroupTests(TestCase):
         self.backend.update_user(user, {"sub": "a3", "groups": []})
         user.refresh_from_db()
         self.assertFalse(user.is_superuser)
+        self.assertFalse(user.is_staff)
+        self.assertFalse(is_oidc_admin(user))
+
+    def test_local_promotion_survives_a_login_without_the_group(self):
+        # Promoted inside the tool (user management / Django admin), never a
+        # member of the IdP group: the next login must not demote them.
+        user = self.backend.create_user(
+            {"sub": "a6", "preferred_username": "local", "groups": ["students"]}
+        )
+        user.is_staff = user.is_superuser = True
+        user.save()
+        self.backend.update_user(user, {"sub": "a6", "groups": ["students"]})
+        user.refresh_from_db()
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_superuser)
+        # … and the tool may still revoke it locally: it is not an IdP admin.
+        self.assertFalse(is_oidc_admin(user))
+
+    def test_joining_the_group_later_grants_admin(self):
+        user = self.backend.create_user({"sub": "a7", "preferred_username": "y", "groups": []})
+        self.assertFalse(user.is_staff)
+        self.backend.update_user(user, {"sub": "a7", "groups": ["tool-admins"]})
+        user.refresh_from_db()
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(is_oidc_admin(user))
 
 
 class NoAdminGroupConfiguredTests(TestCase):

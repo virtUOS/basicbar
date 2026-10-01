@@ -16,15 +16,19 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
-from django.core.exceptions import FieldDoesNotExist, PermissionDenied
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.core.exceptions import FieldDoesNotExist, PermissionDenied, SuspiciousOperation
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
-from mozilla_django_oidc.views import OIDCAuthenticationRequestView
+from mozilla_django_oidc.views import (
+    OIDCAuthenticationCallbackView,
+    OIDCAuthenticationRequestView,
+)
 
 from . import conf
+from .models import UserSession
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +89,32 @@ class SilentLoginView(OIDCAuthenticationRequestView):
         return params
 
 
+class SafeOIDCCallbackView(OIDCAuthenticationCallbackView):
+    """mozilla-django-oidc's callback, tolerant of a replayed/stale callback.
+
+    The parent raises ``SuspiciousOperation`` when it receives a
+    ``code``/``state`` whose ``state`` is no longer in the session's
+    ``oidc_states`` (already consumed). That is exactly what a browser *Back*
+    press right after login does — it re-requests ``/oidc/callback/?code=…``
+    with the now-spent state — and it surfaced as a 400 error page.
+
+    We catch that one case and redirect to the SPA instead. The parent raises
+    *before* authenticating, so the replay never logs anyone in; this only
+    turns an ugly error page into a friendly redirect and does not weaken the
+    state check. Every other outcome (provider ``error``, unusable token)
+    already goes through the parent's ``login_failure`` redirect. Wired in
+    ``basicbar_auth.urls`` ahead of mozilla's own route. (From abstimmbar.)
+    """
+
+    def get(self, request):
+        try:
+            return super().get(request)
+        except SuspiciousOperation:
+            # A still-valid session lands logged in; otherwise the SPA shows
+            # the landing page.
+            return HttpResponseRedirect(settings.LOGIN_REDIRECT_URL)
+
+
 def _users_counting_toward_cap(UserModel):
     """Accounts that occupy a ``MAX_USERS`` slot. Anonymized (deleted) users
     don't count — removing one frees a slot — recognised by the retention
@@ -108,7 +138,7 @@ class OIDCBackend(OIDCAuthenticationBackend):
         if not subject:
             return self.UserModel.objects.none()
         users = self.UserModel.objects.filter(subject=subject)
-        if users.exists() or not conf.get("OIDC_MATCH_BY_USERNAME_FALLBACK"):
+        if not conf.get("OIDC_MATCH_BY_USERNAME_FALLBACK") or users.exists():
             return users
         # Subject drift (opt-in): the IdP re-issued its user IDs (re-imported
         # dev realm, realm/IdP migration). The username comes from the same
@@ -155,25 +185,34 @@ class OIDCBackend(OIDCAuthenticationBackend):
         # username-fallback match — see filter_users_by_claims.
         if claims.get("sub") and user.subject != claims.get("sub"):
             user.subject = claims.get("sub")
+        previous_claims = user.claims
         user.claims = claims or {}
         user.last_login = timezone.now()
-        self._apply_admin_group(user, claims)
+        self._apply_admin_group(user, claims, previous_claims)
         user.save()
         return user
 
-    def _apply_admin_group(self, user, claims):
+    def _apply_admin_group(self, user, claims, previous_claims=None):
         """Sync Django admin flags with an IdP group claim, if configured.
 
         When ``OIDC_ADMIN_GROUP`` is set, the IdP group is authoritative for
-        OIDC users: membership grants admin, absence revokes it. The local
-        ``createsuperuser`` account is a separate identity and is unaffected,
-        serving as a break-glass fallback.
+        the rights it granted: membership grants admin, and losing the
+        membership revokes it. Rights that did *not* come from the group —
+        a promotion made inside the tool (its user management, the Django
+        admin) — are left alone, so an app-level admin without the IdP group
+        does not lose the role on the next login. Whether the rights came
+        from the group is read off the previous claims snapshot
+        (``user.claims`` before this login). The local ``createsuperuser``
+        account is a separate identity and never passes through here.
         """
         if not conf.get("OIDC_ADMIN_GROUP"):
             return
-        is_admin = claims_in_admin_group(claims)
-        user.is_staff = is_admin
-        user.is_superuser = is_admin
+        if claims_in_admin_group(claims):
+            user.is_staff = True
+            user.is_superuser = True
+        elif claims_in_admin_group(previous_claims):
+            user.is_staff = False
+            user.is_superuser = False
 
 
 def provider_logout_url(request):
@@ -191,23 +230,28 @@ def provider_logout_url(request):
 def _delete_sessions_for_subject(subject):
     """Delete every active Django session belonging to the OIDC ``subject``.
 
-    Django's DB session store has no index from user to session, so we scan the
-    unexpired sessions and match the decoded ``_auth_user_id``. There are only
-    ever a handful of live sessions per user, so this stays cheap. Logging out
-    by subject (not ``sid``) drops all of the user's sessions, which is exactly
-    what a remote SSO logout should do.
+    Logging out by subject (not ``sid``) drops all of the user's sessions,
+    which is exactly what a remote SSO logout should do. The sessions come
+    from the ``UserSession`` index that the login signal maintains; the index
+    rows go with them. Only when the index knows nothing about the user do we
+    fall back to decoding every unexpired session row (sessions that were
+    created before the index existed, i.e. before basicbar-auth 0.2).
     """
-    user_ids = {
-        str(pk)
-        for pk in get_user_model().objects.filter(subject=subject).values_list(
-            "pk", flat=True
-        )
-    }
+    user_ids = list(
+        get_user_model().objects.filter(subject=subject).values_list("pk", flat=True)
+    )
     if not user_ids:
         return 0
+    indexed = UserSession.objects.filter(user_id__in=user_ids)
+    keys = list(indexed.values_list("session_key", flat=True))
+    if keys:
+        deleted, _ = Session.objects.filter(session_key__in=keys).delete()
+        indexed.delete()
+        return deleted
+    wanted = {str(pk) for pk in user_ids}
     deleted = 0
-    for session in Session.objects.filter(expire_date__gte=timezone.now()):
-        if session.get_decoded().get("_auth_user_id") in user_ids:
+    for session in Session.objects.filter(expire_date__gte=timezone.now()).iterator():
+        if session.get_decoded().get("_auth_user_id") in wanted:
             session.delete()
             deleted += 1
     return deleted

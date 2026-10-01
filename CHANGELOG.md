@@ -7,6 +7,54 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### basicbar-auth (→ wird `auth/v0.2.0`)
+
+**Session-Endpunkte und Routen im Paket** (Framework-Review; die vier Tools
+trugen identische Kopien): `basicbar_auth.views` mit `whoami_payload` /
+`whoami`, `logout_view`, `set_language`; `basicbar_auth.urls` mit
+`oidc/logout-redirect/`, `oidc/silent/`, `oidc/backchannel-logout/`,
+`oidc/callback/` (neu: `SafeOIDCCallbackView` aus abstimmbar — Browser-
+„Zurück“ nach dem Login landet auf der SPA statt auf einer 400-Seite),
+mozillas Routen und `api/whoami/language/`. `AbstractBasicUser` hat jetzt
+`language` (alle Tools hatten das identische Feld).
+
+**Admin-Gruppe entzieht nur, was sie verliehen hat.** Bisher setzte
+`OIDC_ADMIN_GROUP` bei jedem Login `is_staff`/`is_superuser` hart auf die
+Gruppenmitgliedschaft — eine Beförderung in der Nutzerverwaltung des Tools
+wurde beim nächsten Login still zurückgenommen. Jetzt wird nur entzogen,
+wenn der Claims-Snapshot des vorigen Logins die Gruppe enthielt.
+
+**Session-Index statt Komplett-Scan beim Back-Channel-Logout.** Neues Model
+`UserSession` (Login-/Logout-Signale), eigene Migration `basicbar_auth
+0001`. Der Scan über alle unabgelaufenen Sessions bleibt nur als Fallback
+für Sessions aus der Zeit vor dem Upgrade.
+
+Außerdem: `discover_endpoints` loggt Fehler als WARNING statt still `{}` zu
+liefern; `filter_users_by_claims` spart das `exists()` ohne aktivierten
+Fallback.
+
+**Migration:**
+
+1. `requirements.txt`: Tag `auth/v0.2.0`; `python manage.py migrate`
+   (legt `basicbar_auth_usersession` an).
+2. Optional: Tools, die von `AbstractBasicUser` erben (erkennbar, Template),
+   können ihr eigenes `language = CharField(max_length=10, blank=True)` aus
+   `accounts.User` streichen — Django erlaubt das Überschreiben von Feldern
+   abstrakter Basisklassen, es kollidiert also nichts, und die Definition ist
+   identisch (keine DB-Migration, `makemigrations --check` bleibt leer;
+   gegen erkennbar geprüft). Tools auf `AbstractUser` (ausleihbar,
+   abstimmbar, modulierbar) ändern nichts.
+3. Empfohlen: `config/urls.py` auf `path("", include("basicbar_auth.urls"))`
+   plus eigenes `api/whoami/` umstellen und die lokalen `logout_view` /
+   `set_language` löschen; `whoami` als `{**whoami_payload(request), …}`
+   schreiben (Beispiel im README). abstimmbar: `accounts/oidc.py`
+   (`SafeOIDCCallbackView`) und die eigene `oidc/callback/`-Route entfallen.
+   ausleihbar: `SetLanguageView` (DRF) kann durch `set_language` ersetzt
+   werden — gleiche URL, gleiche Antworten.
+4. Admin-Semantik prüfen: Wer sich darauf verlassen hat, dass der IdP-
+   Gruppen-Verlust *jede* Admin-Rolle entzieht, muss lokale Beförderungen
+   jetzt selbst zurücknehmen (Nutzerverwaltung / Django-Admin).
+
 ### @basicbar/ui (→ wird `ui/v0.7.0`)
 
 **TipTap raus aus den Bundles, die keinen Editor rendern** (Framework-Review):
