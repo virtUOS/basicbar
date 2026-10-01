@@ -7,6 +7,47 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### basicbar-lti (→ wird `lti/v0.1.4`)
+
+**Sicherheit: Reflected XSS im LTI-Login behoben.** Die 400er-Antworten von
+`lti_login` spiegelten `iss`/`client_id` aus GET-Parametern in eine
+HTML-Antwort (Django-Default-Content-Type) — eine präparierte URL konnte so
+Skript auf der Tool-Origin ausführen. Alle Fehlerantworten des Endpunkts sind
+jetzt `text/plain`. Migration: Version heben, sonst nichts.
+
+### basicbar-auth (→ wird `auth/v0.1.1`)
+
+**Sicherheit: Back-Channel-Logout-Tokens werden auf Frische geprüft.** Bisher
+prüfte der Endpunkt nur Signatur, Nonce-Verbot und iss/aud/events/sub — ein
+einmal abgefangenes Token ließ sich unbegrenzt wiederholen (erzwungener
+Logout als DoS). Jetzt ist `iat` Pflicht und darf höchstens
+`OIDC_BACKCHANNEL_MAX_AGE` Sekunden alt sein (neues Setting, Default 300);
+`exp` wird respektiert. Migration: Version heben; bei stark abweichenden
+Uhren zwischen IdP und Tool ggf. `OIDC_BACKCHANNEL_MAX_AGE` erhöhen.
+
+### basicbar-integrations (→ wird `integrations/v0.2.2`)
+
+- `ai.chat_json` und `translation_service.translate` fangen jetzt alle
+  Transportfehler (`ConnectionResetError`, `IncompleteRead`, …) als
+  `AIError`/`TranslationError`, statt sie als 500 durchzulassen.
+- HTTP-Fehler tragen den Provider-Body in der Meldung (z. B.
+  „HTTP 400: en is not supported“) statt nur „Bad Request“;
+  LibreTranslate-4xx heißen nicht mehr fälschlich „unavailable“.
+- Nicht-Objekt-JSON vom Übersetzungsdienst ist ein `TranslationError`.
+- Migration: Version heben; wer `str(exc)` an Nutzer durchreicht, zeigt jetzt
+  aussagekräftigere Texte.
+
+### Template
+
+- `REST_FRAMEWORK.DEFAULT_AUTHENTICATION_CLASSES` nur noch
+  `SessionAuthentication` — DRFs Default aktiviert `BasicAuthentication`, die
+  mit dem Break-glass-Superuser (ModelBackend) jeden Endpunkt für
+  Passwort-Raten ohne Rate-Limit und am CSRF vorbei öffnet. **Empfehlung für
+  Bestandstools** (abstimmbar, ausleihbar; erkennbar hat es bereits): dieselbe
+  Zeile in `config/settings.py` übernehmen.
+- CLAUDE.md: Der ui-Release entsteht als Draft und muss manuell veröffentlicht
+  werden, sonst ist der Tarball nicht abrufbar.
+
 ### @basicbar/ui (→ wird `ui/v0.6.0`)
 
 **Geteilte Einstellungs-Bausteine** (ausleihbar#35): `LanguageOptions`,
@@ -151,6 +192,14 @@ gekoppelt.
 Migration: keine — rein additiv. Neue UI-Strings `"Show all fields in one
 language"` und `"Show all fields in {{language}}"` (Tools ergänzen ihre
 Übersetzungen).
+
+### basicbar-lti (`lti/v0.1.3`, 2026-08-04 — Eintrag nachgetragen)
+
+- `lti_login` antwortet bei fehlenden Parametern (`iss`, `login_hint`,
+  `target_link_uri`) und nicht auflösbarer Plattform-Registrierung
+  (Issuer/Client-ID-Mismatch, auch Trailing-Slash) mit erklärendem `400`
+  statt opakem `500`; pylti1p3-Exceptions werden abgefangen. Migration:
+  Version heben, sonst nichts.
 
 ### basicbar-integrations (→ wird `integrations/v0.2.0`) und @basicbar/ui (→ wird `ui/v0.3.0`)
 

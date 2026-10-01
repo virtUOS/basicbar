@@ -101,3 +101,39 @@ class TranslationServiceTests(SimpleTestCase):
         ):
             with self.assertRaises(translation_service.TranslationError):
                 translation_service.translate("Hallo", "de", "en")
+
+
+class TranslationTransportErrorTests(SimpleTestCase):
+    def test_connection_reset_is_a_translation_error(self):
+        with override_settings(**LT_ON), patch(
+            "basicbar_integrations.translation_service.request.urlopen",
+            side_effect=ConnectionResetError("peer closed"),
+        ):
+            with self.assertRaises(translation_service.TranslationError):
+                translation_service.translate("Hallo", "de", "en")
+
+    def test_http_error_reports_status_and_provider_body(self):
+        from io import BytesIO
+
+        http_error = error.HTTPError(
+            "http://libretranslate.local/translate", 400, "Bad Request", {},
+            BytesIO(b'{"error":"en is not supported"}'),
+        )
+        with override_settings(**LT_ON), patch(
+            "basicbar_integrations.translation_service.request.urlopen",
+            side_effect=http_error,
+        ):
+            with self.assertRaises(translation_service.TranslationError) as ctx:
+                translation_service.translate("Hallo", "de", "en")
+        message = str(ctx.exception)
+        self.assertIn("HTTP 400", message)
+        self.assertIn("en is not supported", message)
+        self.assertNotIn("unavailable", message)
+
+    def test_non_object_json_is_a_translation_error(self):
+        with override_settings(**LT_ON), patch(
+            "basicbar_integrations.translation_service.request.urlopen",
+            return_value=_mock_response('["not", "an", "object"]'),
+        ):
+            with self.assertRaises(translation_service.TranslationError):
+                translation_service.translate("Hallo", "de", "en")

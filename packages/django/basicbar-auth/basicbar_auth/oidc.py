@@ -10,6 +10,7 @@ username fallback (``OIDC_MATCH_BY_USERNAME_FALLBACK``) — are off unless the
 deployment opts in; see the README's operator notes.
 """
 import logging
+import time
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -30,6 +31,14 @@ logger = logging.getLogger(__name__)
 # The event a valid OIDC back-channel logout token must carry (OpenID Connect
 # Back-Channel Logout 1.0, §2.4).
 BACKCHANNEL_LOGOUT_EVENT = "http://schemas.openid.net/event/backchannel-logout"
+
+# Tolerance when comparing a token's ``exp`` against our clock.
+_CLOCK_SKEW_SECONDS = 30
+
+
+def _is_timestamp(value) -> bool:
+    """A JWT NumericDate: int or float, but not bool (which is an int)."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
 def claims_in_admin_group(claims) -> bool:
@@ -241,6 +250,20 @@ def backchannel_logout(request):
     if not subject:
         # We key local sessions on the subject; a sid-only token can't be acted on.
         return HttpResponseBadRequest("missing sub")
+
+    # Freshness (§2.6): the token must carry ``iat`` and be recent — mozilla's
+    # verify_token checks only signature and nonce, so without this a captured
+    # token could be replayed indefinitely to force the user out again.
+    now = time.time()
+    max_age = conf.get("OIDC_BACKCHANNEL_MAX_AGE")
+    iat = payload.get("iat")
+    if not _is_timestamp(iat):
+        return HttpResponseBadRequest("missing iat")
+    if abs(now - iat) > max_age:
+        return HttpResponseBadRequest("logout_token too old")
+    exp = payload.get("exp")
+    if _is_timestamp(exp) and exp < now - _CLOCK_SKEW_SECONDS:
+        return HttpResponseBadRequest("logout_token expired")
 
     deleted = _delete_sessions_for_subject(subject)
     logger.info("Back-channel logout for sub=%s dropped %d session(s)", subject, deleted)

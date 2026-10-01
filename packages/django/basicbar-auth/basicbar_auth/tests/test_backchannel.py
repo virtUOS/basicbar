@@ -2,6 +2,7 @@
 # Copyright 2026 Universität Osnabrück (virtUOS)
 
 """OIDC Back-Channel Logout (ported from ausleihbar)."""
+import time
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -32,8 +33,40 @@ class BackChannelLogoutTests(TestCase):
             "iss": "https://idp.test/realms/x",
             "aud": "test-client",
             "sub": sub,
+            "iat": int(time.time()),
             "events": {BACKCHANNEL_LOGOUT_EVENT: {}},
         }
+
+    @patch("basicbar_auth.oidc.OIDCBackend.verify_token")
+    def test_token_without_iat_is_rejected(self, mock_verify):
+        payload = self._valid_payload()
+        del payload["iat"]
+        mock_verify.return_value = payload
+        self.assertEqual(self.client.post(self.url, {"logout_token": "tok"}).status_code, 400)
+
+    @patch("basicbar_auth.oidc.OIDCBackend.verify_token")
+    def test_stale_token_is_rejected_as_replay(self, mock_verify):
+        key = self._login(self.user)
+        payload = self._valid_payload()
+        payload["iat"] = int(time.time()) - 3600
+        mock_verify.return_value = payload
+        self.assertEqual(self.client.post(self.url, {"logout_token": "tok"}).status_code, 400)
+        self.assertTrue(Session.objects.filter(session_key=key).exists())
+
+    @patch("basicbar_auth.oidc.OIDCBackend.verify_token")
+    def test_expired_token_is_rejected(self, mock_verify):
+        payload = self._valid_payload()
+        payload["exp"] = int(time.time()) - 120
+        mock_verify.return_value = payload
+        self.assertEqual(self.client.post(self.url, {"logout_token": "tok"}).status_code, 400)
+
+    @patch("basicbar_auth.oidc.OIDCBackend.verify_token")
+    def test_max_age_is_configurable(self, mock_verify):
+        payload = self._valid_payload()
+        payload["iat"] = int(time.time()) - 600
+        mock_verify.return_value = payload
+        with override_settings(OIDC_BACKCHANNEL_MAX_AGE=900):
+            self.assertEqual(self.client.post(self.url, {"logout_token": "tok"}).status_code, 200)
 
     @patch("basicbar_auth.oidc.OIDCBackend.verify_token")
     def test_valid_token_deletes_only_that_users_sessions(self, mock_verify):

@@ -105,3 +105,50 @@ class AiChatJsonTests(SimpleTestCase):
     def test_no_thinking_flag_when_disabled_off(self):
         body = self._sent_payload()
         self.assertNotIn("chat_template_kwargs", body)
+
+
+class AiTransportErrorTests(SimpleTestCase):
+    """Every failure mode of the HTTP round trip must surface as AIError, and
+    an HTTP error must carry the provider's explanation."""
+
+    SETTINGS = dict(
+        AI_PROVIDER="litellm", AI_BASE_URL="https://x/v1",
+        AI_API_KEY="k", AI_MODEL="qwen-3.5", AI_TIMEOUT=5,
+    )
+
+    def test_connection_reset_is_an_aierror_not_a_500(self):
+        with override_settings(**self.SETTINGS), patch(
+            "basicbar_integrations.ai.request.urlopen",
+            side_effect=ConnectionResetError("peer closed"),
+        ):
+            with self.assertRaises(ai.AIError):
+                ai.chat_json("s", "u")
+
+    def test_incomplete_read_is_an_aierror(self):
+        from http.client import IncompleteRead
+
+        fake = MagicMock()
+        fake.read.side_effect = IncompleteRead(b"partial")
+        cm = MagicMock()
+        cm.__enter__.return_value = fake
+        with override_settings(**self.SETTINGS), patch(
+            "basicbar_integrations.ai.request.urlopen", return_value=cm
+        ):
+            with self.assertRaises(ai.AIError):
+                ai.chat_json("s", "u")
+
+    def test_http_error_message_includes_provider_body(self):
+        from io import BytesIO
+        from urllib import error
+
+        http_error = error.HTTPError(
+            "https://x/v1/chat/completions", 400, "Bad Request", {},
+            BytesIO(b'{"error":{"message":"context length exceeded"}}'),
+        )
+        with override_settings(**self.SETTINGS), patch(
+            "basicbar_integrations.ai.request.urlopen", side_effect=http_error
+        ):
+            with self.assertRaises(ai.AIError) as ctx:
+                ai.chat_json("s", "u")
+        self.assertIn("400", str(ctx.exception))
+        self.assertIn("context length exceeded", str(ctx.exception))

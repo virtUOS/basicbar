@@ -22,6 +22,9 @@ DEFAULTS = {
     "OIDC_ADMIN_GROUP": "",
     # Issuer used to validate back-channel logout tokens (empty = skip check).
     "OIDC_OP_ISSUER": "",
+    # Back-channel logout tokens older than this (seconds, measured from
+    # ``iat``) are rejected as replays; also absorbs clock skew.
+    "OIDC_BACKCHANNEL_MAX_AGE": 300,
     # Opt-in: when the IdP re-issued its subjects (re-imported dev realm,
     # realm/IdP migration), fall back to a username match instead of crashing
     # into the unique-username constraint. Only enable when the IdP never

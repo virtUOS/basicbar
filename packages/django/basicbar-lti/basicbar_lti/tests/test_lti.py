@@ -162,6 +162,31 @@ class LoginTests(LtiTestCase):
         )
         self.assertEqual(response.status_code, 400)
 
+    def test_error_responses_are_plain_text_not_html(self):
+        # The login endpoint echoes platform parameters and is reachable via
+        # GET: an HTML body would make it a reflected-XSS vector.
+        payload = "<script>alert(1)</script>"
+        response = self.client.get(
+            "/lti/login/",
+            {
+                "iss": payload,
+                "client_id": CLIENT_ID,
+                "login_hint": "user-1",
+                "target_link_uri": TOOL_LAUNCH,
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(response["Content-Type"].startswith("text/plain"))
+        for response in (
+            self.client.post("/lti/login/", {"iss": ISSUER}),
+            self.client.post(
+                "/lti/login/",
+                {"iss": ISSUER, "client_id": CLIENT_ID, "target_link_uri": TOOL_LAUNCH},
+            ),
+        ):
+            self.assertEqual(response.status_code, 400)
+            self.assertTrue(response["Content-Type"].startswith("text/plain"))
+
 
 class HandshakeTests(LtiTestCase):
     def test_instructor_launch_provisions_user(self):

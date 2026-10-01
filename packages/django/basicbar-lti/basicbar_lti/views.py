@@ -61,15 +61,15 @@ def lti_login(request):
     """
     target = _login_param(request, "target_link_uri")
     if not target:
-        return HttpResponse("Missing target_link_uri", status=400)
+        return _bad_request("Missing target_link_uri")
 
     iss = _login_param(request, "iss")
     login_hint = _login_param(request, "login_hint")
     client_id = _login_param(request, "client_id")
     if not iss:
-        return HttpResponse("Missing iss", status=400)
+        return _bad_request("Missing iss")
     if not login_hint:
-        return HttpResponse("Missing login_hint", status=400)
+        return _bad_request("Missing login_hint")
 
     tool_conf = build_tool_conf()
     if _find_registration(tool_conf, iss, client_id) is None:
@@ -77,12 +77,11 @@ def lti_login(request):
             "LTI login: no platform registered for issuer=%r client_id=%r",
             iss, client_id,
         )
-        return HttpResponse(
+        return _bad_request(
             f"No LTI platform registered for issuer={iss!r} "
             f"client_id={client_id!r}. Check the platform registration "
             f"(issuer and client_id must match exactly, including any "
-            f"trailing slash).",
-            status=400,
+            f"trailing slash)."
         )
 
     try:
@@ -95,7 +94,14 @@ def lti_login(request):
             "LTI login init failed (issuer=%r client_id=%r): %s",
             iss, client_id, exc,
         )
-        return HttpResponse(f"LTI login failed: {exc}", status=400)
+        return _bad_request(f"LTI login failed: {exc}")
+
+
+def _bad_request(message):
+    """A 400 that echoes request parameters for the operator — as plain text,
+    never HTML: the endpoint is reachable via GET, so an HTML body would be a
+    reflected-XSS vector on the tool's origin."""
+    return HttpResponse(message, status=400, content_type="text/plain; charset=utf-8")
 
 
 def lti_jwks(request):

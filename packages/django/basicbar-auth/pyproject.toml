@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "basicbar-auth"
-version = "0.1.0"
+version = "0.1.1"
 description = "OIDC-Fundament der virtUOS -bar-Tools: Backend, Silent Login, Back-Channel-Logout, Discovery, AbstractBasicUser, optionale Account-Limits"
 readme = "README.md"
 requires-python = ">=3.12"
