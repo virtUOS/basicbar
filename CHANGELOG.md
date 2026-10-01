@@ -142,6 +142,15 @@ Uhren zwischen IdP und Tool ggf. `OIDC_BACKCHANNEL_MAX_AGE` erhöhen.
 
 ### Template
 
+- **Pins:** basicbar-auth `auth/v0.2.0`, @basicbar/ui `ui/v0.7.0`.
+- `config/urls.py` nutzt `include("basicbar_auth.urls")` (OIDC-Routen inkl.
+  tolerantem Callback, `api/whoami/language/`); `accounts/views.py` enthält
+  nur noch `whoami` als `{**whoami_payload(request), …Feature-Flags}` —
+  `logout_view`/`set_language` kommen aus dem Paket. `accounts.User` hat kein
+  eigenes `language` mehr (geerbt, Migration unverändert).
+- Settings brechen produktiv mit `ImproperlyConfigured` ab, wenn
+  `OIDC_OP_ISSUER` gesetzt ist, die Discovery aber keine Endpunkte lieferte
+  (sonst scheitert jeder Login später mit unklarem Fehler).
 - `REST_FRAMEWORK.DEFAULT_AUTHENTICATION_CLASSES` nur noch
   `SessionAuthentication` — DRFs Default aktiviert `BasicAuthentication`, die
   mit dem Break-glass-Superuser (ModelBackend) jeden Endpunkt für

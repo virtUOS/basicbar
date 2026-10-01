@@ -262,6 +262,17 @@ if OIDC_OP_ISSUER and not OIDC_OP_AUTHORIZATION_ENDPOINT:
     OIDC_OP_JWKS_ENDPOINT = OIDC_OP_JWKS_ENDPOINT or _discovered.get("jwks_uri", "")
     OIDC_OP_LOGOUT_ENDPOINT = OIDC_OP_LOGOUT_ENDPOINT or _discovered.get("end_session_endpoint", "")
 
+# Fail fast in production: with an issuer configured but no endpoints (the
+# discovery document was unreachable or incomplete — see the WARNING from
+# basicbar_auth.discovery), every login would otherwise fail later with an
+# opaque error. In DEBUG the dev stack may simply not have Keycloak up yet.
+if OIDC_OP_ISSUER and not DEBUG and not (OIDC_OP_AUTHORIZATION_ENDPOINT and OIDC_OP_TOKEN_ENDPOINT):
+    raise ImproperlyConfigured(
+        f"OIDC_OP_ISSUER={OIDC_OP_ISSUER!r} is set, but the OIDC endpoints could not be "
+        "resolved — the provider's discovery document was unreachable. Set the "
+        "OIDC_OP_*_ENDPOINT variables explicitly or fix the issuer URL."
+    )
+
 OIDC_OP_LOGOUT_URL_METHOD = "basicbar_auth.oidc.provider_logout_url"
 
 # Claim mapping (provider-agnostic; defaults are standard OIDC claim names).
