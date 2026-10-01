@@ -3,18 +3,26 @@
 {{ project_description }} Django-Backend (`backend/`, Apps `config`/`accounts`/
 `common`) + React/Vite-SPA (`frontend/`). Gemeinsame Basis der virtUOS
 "-bar"-Tools aus dem basicbar-Repo: `basicbar-auth` (OIDC), `basicbar-integrations`
-(LibreTranslate/LiteLLM/Capabilities){% if use_lti %}, `basicbar-lti`{% endif %} und `@basicbar/ui`
-(Tailwind-Preset, base.css, Theme, i18n, TranslatableField). Paketcode nie
-lokal patchen — Änderungen gehören ins basicbar-Repo, Upgrade per Versions-Bump
-(Changelog dort = Migrationsanleitung).
+(LibreTranslate/LiteLLM){% if use_lti %}, `basicbar-lti`{% endif %} und `@basicbar/ui`
+(Tailwind-Preset, base.css, Theme, i18n, TranslatableField, Preferences). Paketcode
+nie lokal patchen — Änderungen gehören ins basicbar-Repo, Upgrade per
+Versions-Bump (Changelog dort = Migrationsanleitung).
 
 ## Befehle
 
 ```bash
 docker compose exec backend python manage.py test      # Backend-Tests
 docker compose exec frontend npx tsc -b                # Frontend-Typecheck
-docker compose exec backend sh -c "pip install -q ruff && ruff check ."  # Lint (wie CI)
+docker compose exec backend sh -c "pip install -q ruff && ruff check ."  # Lint (wie CI, Config in backend/pyproject.toml)
 ```
+
+## Workflow
+
+- Branch + PR/MR, nie direkt auf `main`; der Mensch merged.
+- Release = Git-Tag `vX.Y.Z`{% if ci_host == 'github' %} → GitHub Actions baut das Image nach GHCR{% endif %};
+  Deployment über `docker-compose.prod.yml` (siehe README).
+- Gerüst-Updates: `pipx run copier update --vcs-ref HEAD` (Identitäts- und
+  Inhaltsdateien sind davon ausgenommen, siehe README).
 
 ## Konventionen
 

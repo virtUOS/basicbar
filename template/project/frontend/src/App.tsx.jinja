@@ -1,112 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Universität Osnabrück (virtUOS)
 
-/** App shell: header (login/logout, theme, language), landing page.
+/** App shell: header (preferences, login/logout), landing page.
  *  Deliberately small — the tool grows from here. */
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useOutletContext } from "react-router-dom";
-import { Check, Globe, LogIn, LogOut, Monitor, Moon, Sun } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 import {
-  SUPPORTED_LANGUAGES,
+  PreferencesMenu,
   setDefaultContentLang,
   setTranslationEnabled,
-  useTheme,
-  type Appearance,
 } from "@basicbar/ui";
 import i18n from "./i18n";
 import { api, loginUrl, logoutUrl, type Whoami } from "./api";
-
-function MenuButton({
-  active,
-  onClick,
-  children,
-}: {
-  active?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      role="menuitemradio"
-      aria-checked={active}
-      onClick={onClick}
-      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-    >
-      <span className="flex-1">{children}</span>
-      {active && <Check aria-hidden className="h-4 w-4 text-brand-600" />}
-    </button>
-  );
-}
-
-/** Appearance (Auto/Light/Dark) + UI language, in one small menu. */
-function SettingsMenu({ whoami }: { whoami: Whoami | null }) {
-  const { t } = useTranslation();
-  const { appearance, setAppearance } = useTheme();
-  const [open, setOpen] = useState(false);
-
-  const appearances: { value: Appearance; label: string; icon: typeof Sun }[] = [
-    { value: "auto", label: t("Auto"), icon: Monitor },
-    { value: "light", label: t("Light"), icon: Sun },
-    { value: "dark", label: t("Dark"), icon: Moon },
-  ];
-
-  function chooseLanguage(code: string) {
-    void i18n.changeLanguage(code);
-    if (whoami?.authenticated) void api.setLanguage(code).catch(() => {});
-  }
-
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={t("Settings")}
-        className="flex items-center rounded-full p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
-      >
-        <Globe aria-hidden className="h-5 w-5 text-slate-500 dark:text-slate-400" />
-      </button>
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 z-30 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg shadow-slate-900/5 dark:border-slate-700 dark:bg-slate-900"
-        >
-          <p className="px-3 pb-0.5 pt-1 text-xs text-slate-400 dark:text-slate-500">
-            {t("Appearance")}
-          </p>
-          {appearances.map((option) => (
-            <MenuButton
-              key={option.value}
-              active={appearance === option.value}
-              onClick={() => setAppearance(option.value)}
-            >
-              <span className="flex items-center gap-2">
-                <option.icon aria-hidden className="h-4 w-4 text-slate-400" />
-                {option.label}
-              </span>
-            </MenuButton>
-          ))}
-          <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
-          <p className="px-3 pb-0.5 pt-1 text-xs text-slate-400 dark:text-slate-500">
-            {t("Language")}
-          </p>
-          {SUPPORTED_LANGUAGES.map((lang) => (
-            <MenuButton
-              key={lang.code}
-              active={(i18n.resolvedLanguage ?? "en").startsWith(lang.code)}
-              onClick={() => chooseLanguage(lang.code)}
-            >
-              {lang.label}
-            </MenuButton>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function Home() {
   const { t } = useTranslation();
@@ -163,7 +70,14 @@ export default function App() {
             {{ "{" }}{{ project_title | tojson }}{{ "}" }}
           </span>
           <div className="flex items-center gap-1">
-            <SettingsMenu whoami={whoami} />
+            {/* Language + appearance from @basicbar/ui. Once the tool has an
+                account menu for signed-in users, move LanguageOptions and
+                AppearanceControl in there (see the @basicbar/ui README). */}
+            <PreferencesMenu
+              onLanguageChange={(lang) => {
+                if (whoami?.authenticated) void api.setLanguage(lang).catch(() => {});
+              }}
+            />
             {whoami?.authenticated ? (
               <a
                 href={logoutUrl}
