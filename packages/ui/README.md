@@ -36,7 +36,11 @@ Tools identisch aussehen, übergeben sie dieselbe Ramp.
 import { createPreset } from "@basicbar/ui/tailwind-preset";
 export default {
   presets: [createPreset({ colors: { slate: {/* Tool-Ramp */}, brand: {/* Tool-Ramp */} } })],
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+    "./node_modules/@basicbar/ui/dist/**/*.js",
+  ],
 };
 
 // index.css
@@ -47,6 +51,10 @@ export default {
 import { initI18n, ThemeProvider } from "@basicbar/ui";
 initI18n({ resources: { en, de } });
 ```
+
+Der `dist`-Glob ist nötig, weil die Komponenten des Pakets (z. B.
+`RichTextEditor`, `PreferencesMenu`) ihre Tailwind-Klassen im Paket-Code
+tragen — ohne den Glob erzeugt Tailwind dafür kein CSS.
 
 Build: `npm install && npm run build` (tsup → `dist/`). Distribution als
 npm-Tarball über ein GitHub-Release-Asset (siehe ADR-0002, ADR-0004 und
@@ -174,6 +182,36 @@ siehe `initI18n`): `"Bold"`, `"Italic"`, `"Heading (large)"`,
 `"Enter URL"`, `"Insert image (or drag and drop)"`,
 `"Image upload failed"`, `"Image description (alt text)"`,
 `"Image description"`.
+
+## Preferences (language & appearance)
+
+Three shared components, styled like the rest of the -bar menus:
+
+- `LanguageOptions` (`{ onChange?, onPicked?, heading? }`) — a labelled
+  `role="group"` with its "Language" heading (`heading={false}` hides it) and
+  `menuitemradio` rows from `SUPPORTED_LANGUAGES`.
+- `AppearanceControl` — a labelled `role="group"` with its "Appearance"
+  heading and Auto / Light / Dark as `menuitemradio` rows (needs
+  `ThemeProvider`). Both are valid inside a `role="menu"`.
+- `PreferencesMenu` (`{ onLanguageChange? }`) — round button with a popover
+  holding both (groups separated by a `role="separator"`); for signed-out visitors.
+
+```tsx
+// Signed-in: rows inside the app's own account menu
+<LanguageOptions onChange={(lang) => api.setLanguage(lang)} onPicked={close} />
+<AppearanceControl />
+
+// Guests
+<PreferencesMenu />
+```
+
+Language rule: there is no "Auto" entry. Without a manual pick the detector
+follows the system and the shown language is the marked one; a pick calls
+`i18n.changeLanguage`, which the detector caches, so it is binding from then
+on. Use `onChange` / `onLanguageChange` to persist the choice server-side.
+
+Translation keys (English source strings): `Appearance`, `Auto`,
+`(follows your system)`, `Light`, `Dark`, `Language`, `Preferences`.
 
 ## CSP
 

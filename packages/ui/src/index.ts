@@ -21,6 +21,8 @@ export type {
 export { TranslatableField } from "./TranslatableField";
 export type { RenderInputArgs, TranslatableFieldProps } from "./TranslatableField";
 
+export { AppearanceControl, LanguageOptions, PreferencesMenu } from "./Preferences";
+
 export { RichTextEditor } from "./RichTextEditor";
 export type { RichTextEditorProps } from "./RichTextEditor";
 export { RichText } from "./RichText";
