@@ -28,6 +28,12 @@ Tools identisch aussehen, übergeben sie dieselbe Ramp.
   `<html lang>`-Sync nach WCAG 3.1.1). Die Kataloge bleiben im Tool.
 - **`contentLang`** — `localizedText`/`localizedMap`/`setLocalizedLang` & Co.
   für `{ lang: text }`-Inhalte (Spiegel des Backend-`resolve_translated_text`).
+- **`TranslatableField` / `TranslationFormProvider`** — Sprach-Tabs pro
+  Feld plus „alle Felder übersetzen“ (siehe `TranslatableField.tsx`).
+- **`RichText` / `stripHtml` / `isEmptyHtml`** — Rendern und Prüfen des
+  gespeicherten Rich-HTML; **`RichTextEditor`** (TipTap) als **eigener Entry**
+  `@basicbar/ui/rich-text-editor`, damit TipTap/ProseMirror nur in Bundles
+  landet, die den Editor wirklich rendern (siehe „Rich text“).
 
 ## Einbinden
 
@@ -68,6 +74,19 @@ Link, Überschriften H2/H3, optional Bilder) und die passende Renderkomponente
 für das gespeicherte HTML. Aus AbstimmBAR in die Basis verschoben
 (modulierbar#5), damit alle -bar-Tools eine Implementierung teilen.
 
+**Import-Pfade:** der Editor kommt aus dem eigenen Entry
+`@basicbar/ui/rich-text-editor`; `RichText`, `stripHtml` und `isEmptyHtml`
+aus `@basicbar/ui`. Grund: TipTap + ProseMirror sind ~300 kB (≈95 kB gzip)
+und sollen nur in Bundles landen, die den Editor rendern — ein Tool, das nur
+`RichText` anzeigt oder gar kein Rich-Text hat, zahlt sonst mit. Wer den
+Editor nur auf Admin-Seiten braucht, lädt ihn zusätzlich per `React.lazy`
+nach, dann liegt er in einem eigenen Chunk.
+
+```tsx
+import { RichText, stripHtml, isEmptyHtml } from "@basicbar/ui";
+import { RichTextEditor } from "@basicbar/ui/rich-text-editor";
+```
+
 **Sanitizing-Vertrag:** die Komponenten selbst sanitizen nichts — die
 Sicherheitsgrenze ist das Backend. Jedes Rich-Text-Feld muss beim Speichern
 (und beim Import) durch einen Allowlist-Sanitizer laufen, z. B.
@@ -90,7 +109,7 @@ Drag&Drop/Einfügen aus der Zwischenablage werden ignoriert; bestehende
 `<img>`-Inhalte bleiben trotzdem sichtbar):
 
 ```tsx
-import { RichTextEditor } from "@basicbar/ui";
+import { RichTextEditor } from "@basicbar/ui/rich-text-editor";
 
 <RichTextEditor
   value={description}
@@ -98,6 +117,11 @@ import { RichTextEditor } from "@basicbar/ui";
   ariaLabel={t("Description")}
 />
 ```
+
+**Schreibgeschützt** mit `editable={false}`: kein Toolbar, kein Cursor,
+Dateien per Drop/Paste werden ignoriert — z. B. während ein Formular
+speichert oder für Nutzer ohne Schreibrecht. Für die reine Anzeige
+gespeicherten HTMLs ist `RichText` das richtige Werkzeug (kostet kein TipTap).
 
 **Editor mit Bildern** — `onUploadImage` lädt hoch und liefert die relative
 URL als String; scheitert der Upload, zeigt der Editor
@@ -143,12 +167,21 @@ unangetastet.
 **Rendern** des serverseitig sanitisierten HTML:
 
 ```tsx
-import { RichText } from "@basicbar/ui";
+import { RichText, richTextClass } from "@basicbar/ui";
 
 <RichText html={product.description} />
 // eigene Klassen statt des Prosa-Defaults (ersetzt, nicht ergänzt):
 <RichText html={product.description} className="text-3xl [&_img]:max-h-64" />
+// Prosa-Default ergänzen statt kopieren:
+<RichText html={product.description} className={`${richTextClass} mt-4`} />
 ```
+
+**Prüfen** des gespeicherten HTML — `stripHtml(html)` liefert den sichtbaren
+Text (für Listen, Suchtreffer, Platzhalter „kein Fragetext“), `isEmptyHtml(html)`
+ist `true` für leere Werte und das `<p></p>`, das ein geöffneter Editor
+hinterlässt, aber `false` für reine Bild-Inhalte. Beide parsen per DOM (keine
+Regex), ohne etwas auszuführen. `TranslatableField` mit `format="html"`
+benutzt `isEmptyHtml` für seine Ausgefüllt-Punkte.
 
 **Integration in `TranslatableField`** über `renderInput` (pro Sprache ein
 Editor, mit `format="html"` bleiben die Ausgefüllt-Punkte markup-blind und
@@ -156,7 +189,9 @@ die Maschinenübersetzung erhält die Tags). `renderInput` bekommt neben `id`
 auch `labelId` — die Id von `TranslatableField`s eigenem sichtbaren `<label>`
 (nur gesetzt, wenn die `label`-Prop übergeben wurde); durchgereicht als
 `labelledBy` bindet der Editor sich per `aria-labelledby` an dieses Label,
-statt ein zweites, redundantes `ariaLabel` zu brauchen:
+statt ein zweites, redundantes `ariaLabel` zu brauchen. Auch `onBlur` wird
+durchgereicht (die `onBlur`-Prop des Feldes), falls der eigene Editor ein
+Blur-Speichern verdrahten will:
 
 ```tsx
 <TranslatableField
@@ -176,12 +211,38 @@ statt ein zweites, redundantes `ariaLabel` zu brauchen:
 />
 ```
 
-**Übersetzungs-Keys**, die das Tool bereitstellen muss (Englisch als Key,
-siehe `initI18n`): `"Bold"`, `"Italic"`, `"Heading (large)"`,
-`"Heading (small)"`, `"Bulleted list"`, `"Numbered list"`, `"Link"`,
-`"Enter URL"`, `"Insert image (or drag and drop)"`,
-`"Image upload failed"`, `"Image description (alt text)"`,
-`"Image description"`.
+**Floating-Controls von `TranslationFormProvider`** (Sprachumschalter +
+„alle Felder übersetzen“) sitzen per Default `fixed bottom-6 right-6 z-40`.
+Kollidiert das mit einer eigenen Sticky-Leiste (z. B. Speichern/Abbrechen am
+unteren Rand auf schmalen Screens), setzt das Tool die Position per
+`controlsClassName` statt per CSS-Override auf die Utility-Klassen:
+
+```tsx
+<TranslationFormProvider translate={…} controlsClassName="fixed bottom-6 right-6 z-40 max-md:bottom-[5.5rem]">
+```
+
+## Übersetzungs-Keys
+
+Alle Strings des Pakets laufen über `t()` mit Englisch als Key (siehe
+`initI18n`); das Tool stellt die deutschen (und weiteren) Übersetzungen in
+seinem Katalog bereit. Fehlende Keys fallen auf den englischen Text zurück.
+
+- Rich-Text-Editor: `"Bold"`, `"Italic"`, `"Heading (large)"`,
+  `"Heading (small)"`, `"Bulleted list"`, `"Numbered list"`, `"Link"`,
+  `"Enter URL"`, `"Insert image (or drag and drop)"`,
+  `"Image upload failed"`, `"Image description (alt text)"`,
+  `"Image description"`.
+- TranslatableField: `"translated"`, `"not translated"`,
+  `"translation may be outdated"`,
+  `"The other language was changed since this translation."`,
+  `"Mark as up to date"`, `"Translate from {{language}}"`,
+  `"Translating…"`, `"Translation failed."`,
+  `"A value in {{language}} is required."`.
+- TranslationFormProvider: `"Show all fields in one language"`,
+  `"Show all fields in {{language}}"`, `"Translate all fields"`,
+  `"Translating…"`, `"Some fields could not be translated."`.
+- Preferences: `"Preferences"`, `"Language"`, `"Appearance"`, `"Auto"`,
+  `"(follows your system)"`, `"Light"`, `"Dark"`.
 
 ## Preferences (language & appearance)
 
@@ -210,8 +271,10 @@ follows the system and the shown language is the marked one; a pick calls
 `i18n.changeLanguage`, which the detector caches, so it is binding from then
 on. Use `onChange` / `onLanguageChange` to persist the choice server-side.
 
-Translation keys (English source strings): `Appearance`, `Auto`,
-`(follows your system)`, `Light`, `Dark`, `Language`, `Preferences`.
+Keyboard: `PreferencesMenu` follows the WAI-ARIA menu pattern — opening
+focuses the first row, Up/Down cycle through the rows, Home/End jump,
+Escape closes and returns focus to the button. Translation keys: see
+"Übersetzungs-Keys" above.
 
 ## CSP
 

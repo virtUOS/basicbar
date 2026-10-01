@@ -11,16 +11,17 @@
  * columns (`title_de`/`title_en`) as well as `{ lang: text }` maps (bridge
  * with `localizedMap`/`setLocalizedLang`). Custom editors (rich text,
  * Markdown, …) plug in via `renderInput`; they stay in the tool. */
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import i18n, { SUPPORTED_LANGUAGES } from "./i18n";
+import { SUPPORTED_LANGUAGES } from "./i18n";
 import {
   defaultContentLangLabel,
   getDefaultContentLang,
   isTranslationEnabled,
 } from "./contentLang";
+import { isEmptyHtml } from "./html";
 import {
   MAX_TRANSLATE_LENGTH,
   useTranslationForm,
@@ -30,26 +31,23 @@ import {
 
 /** Language tabs ordered with the current UI language first, so the primary
  *  entry happens in the editor's own language. */
-function orderedLangs(): { code: string; label: string }[] {
-  const ui = (i18n.resolvedLanguage ?? "en").split("-")[0];
+function orderedLangs(uiLang: string): { code: string; label: string }[] {
+  const ui = uiLang.split("-")[0];
   const langs = SUPPORTED_LANGUAGES.map((l) => ({ code: l.code, label: l.label }));
-  return [...langs].sort((a, b) => {
+  return langs.sort((a, b) => {
     if (a.code === ui) return -1;
     if (b.code === ui) return 1;
     return 0;
   });
 }
 
-function stripHtml(html: string): string {
-  const div = document.createElement("div");
-  div.innerHTML = html;
-  return div.textContent?.trim() ?? "";
-}
-
 export interface RenderInputArgs {
   lang: string;
   value: string;
   onChange: (value: string) => void;
+  /** The field's `onBlur` prop, passed through so a custom editor can wire
+   *  the same blur-save the default input gets. */
+  onBlur?: () => void;
   id: string;
   /** Id of the visible `<label>` element, when there is one (omitted for a
    *  labelless/compact field) — pass through as e.g. `aria-labelledby` on a
@@ -86,8 +84,8 @@ export interface TranslatableFieldProps {
   placeholder?: string;
   /** Helper text shown under the field (applies to every language). */
   hint?: string;
-  /** Fires when the active-language input loses focus (e.g. onBlur-save);
-   *  not wired for `renderInput` editors. */
+  /** Fires when the active-language input loses focus (e.g. onBlur-save).
+   *  A `renderInput` editor receives it as `args.onBlur` and wires it itself. */
   onBlur?: () => void;
   /** Fires with the currently-edited language on mount and on every tab
    *  switch — lets a parent-rendered live preview follow the tab. */
@@ -95,8 +93,9 @@ export interface TranslatableFieldProps {
   /** Single-language authoring (e.g. an "easy mode"): no tabs, no translate
    *  button, no "translate all" registration; edits the canonical language. */
   singleLanguage?: boolean;
-  /** "html" marks values as rich HTML: status dots ignore markup and the
-   *  translate call preserves it (`format=html`). */
+  /** "html" marks values as rich HTML: status dots ignore markup (an empty
+   *  `<p></p>` counts as empty, an image-only value as filled — see
+   *  `isEmptyHtml`) and the translate call preserves it (`format=html`). */
   format?: TranslateFormat;
   /** Languages whose translation is potentially outdated (another language
    *  changed since the last recorded sync — computed by the backend via
@@ -139,9 +138,10 @@ export function TranslatableField({
   onTranslated,
   renderInput,
 }: TranslatableFieldProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const defaultLang = getDefaultContentLang();
-  const langs = orderedLangs();
+  const uiLang = i18n.resolvedLanguage ?? "en";
+  const langs = useMemo(() => orderedLangs(uiLang), [uiLang]);
   const [active, setActive] = useState(
     singleLanguage ? defaultLang : (langs[0]?.code ?? defaultLang),
   );
@@ -156,11 +156,18 @@ export function TranslatableField({
   const value = values[active] ?? "";
   const set = (v: string) => onChange(active, v);
 
-  /** Filled-state per language; rich HTML counts markup-only as empty. */
-  const plainOf = (lang: string) => {
-    const text = values[lang] ?? "";
-    return format === "html" ? stripHtml(text) : text.trim();
-  };
+  // Filled-state per language. For rich HTML this parses the value via the
+  // DOM, so it is computed once per render of the values, not once per
+  // tab/lookup — a form with many rich fields re-renders on every keystroke.
+  const filledByLang = useMemo(() => {
+    const out: Record<string, boolean> = {};
+    for (const l of SUPPORTED_LANGUAGES) {
+      const text = values[l.code] ?? "";
+      out[l.code] = format === "html" ? !isEmptyHtml(text) : !!text.trim();
+    }
+    return out;
+  }, [values, format]);
+  const filledIn = (lang: string) => filledByLang[lang] ?? false;
 
   // Register with the form-wide "translate all" controller (if present) and
   // keep a live snapshot it can read/write. Follow the language it switches to.
@@ -181,7 +188,7 @@ export function TranslatableField({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forcedNonce]);
 
-  const canonicalEmpty = required && !plainOf(defaultLang);
+  const canonicalEmpty = required && !filledIn(defaultLang);
 
   const activeStale = !singleLanguage && stale.includes(active);
 
@@ -191,9 +198,9 @@ export function TranslatableField({
   // from whichever other language already has text — so the missing language
   // is filled regardless of which one was entered first.
   const sourceLang =
-    defaultLang !== active && plainOf(defaultLang)
+    defaultLang !== active && filledIn(defaultLang)
       ? defaultLang
-      : langs.find((l) => l.code !== active && plainOf(l.code))?.code;
+      : langs.find((l) => l.code !== active && filledIn(l.code))?.code;
   const source = sourceLang ? (values[sourceLang] ?? "").trim() : "";
   const sourceLabel =
     langs.find((l) => l.code === sourceLang)?.label ?? sourceLang ?? "";
@@ -203,7 +210,7 @@ export function TranslatableField({
     !singleLanguage &&
     !!form &&
     isTranslationEnabled() &&
-    (!plainOf(active) || activeStale) &&
+    (!filledIn(active) || activeStale) &&
     !!source &&
     sourceLang !== active;
 
@@ -251,9 +258,15 @@ export function TranslatableField({
           {showTabs && (
             <div className="flex gap-1" role="tablist" aria-label={tabsLabel}>
               {langs.map((lang) => {
-                const filled = !!plainOf(lang.code);
+                const filled = filledIn(lang.code);
                 const isActive = lang.code === active;
                 const isStale = stale.includes(lang.code);
+                const status =
+                  filled && isStale
+                    ? t("translation may be outdated")
+                    : filled
+                      ? t("translated")
+                      : t("not translated");
                 // A filled language gets a solid dot; an empty one a hollow dot,
                 // so you can tell at a glance whether the language you're *not*
                 // viewing has text. A missing required default language and a
@@ -280,19 +293,19 @@ export function TranslatableField({
                         ? "bg-brand-400 text-slate-900"
                         : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
                     }`}
-                    title={`${lang.label} — ${
-                      filled && isStale
-                        ? t("translation may be outdated")
-                        : filled
-                          ? t("translated")
-                          : t("not translated")
-                    }`}
+                    title={`${lang.label} — ${status}`}
                   >
                     <span
                       aria-hidden="true"
                       className={`inline-block h-1.5 w-1.5 rounded-full border ${dotClass}`}
                     />
                     {lang.code}
+                    {/* The dot is colour-only; give screen readers the same
+                        status the title shows on hover (WCAG 1.4.1). */}
+                    <span className="sr-only">
+                      {" "}
+                      — {status}
+                    </span>
                   </button>
                 );
               })}
@@ -302,7 +315,7 @@ export function TranslatableField({
       )}
       <div className="mt-1">
         {renderInput ? (
-          renderInput({ lang: active, value, onChange: set, id: inputId, labelId })
+          renderInput({ lang: active, value, onChange: set, onBlur, id: inputId, labelId })
         ) : multiline ? (
           <textarea
             id={inputId}
