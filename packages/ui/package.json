@@ -1,10 +1,11 @@
 {
   "name": "@basicbar/ui",
-  "version": "0.6.0",
-  "description": "Design-System-Basis der virtUOS -bar-Tools: Tailwind-Preset, Basis-Styles, Theme (Dark Mode), i18n-Bootstrap, contentLang, RichTextEditor/RichText (TipTap)",
+  "version": "0.7.0",
+  "description": "Design-System-Basis der virtUOS -bar-Tools: Tailwind-Preset, Basis-Styles, Theme (Dark Mode), i18n-Bootstrap, contentLang, TranslatableField, Preferences, RichText; RichTextEditor (TipTap) als eigener Entry",
   "license": "Apache-2.0",
   "author": "Universität Osnabrück (virtUOS)",
   "type": "module",
+  "sideEffects": false,
   "files": [
     "dist",
     "base.css",
@@ -16,6 +17,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./rich-text-editor": {
+      "types": "./dist/rich-text-editor.d.ts",
+      "import": "./dist/rich-text-editor.js"
+    },
     "./tailwind-preset": "./tailwind-preset.js",
     "./base.css": "./base.css"
   },
@@ -25,14 +30,16 @@
   },
   "tsup": {
     "entry": [
-      "src/index.ts"
+      "src/index.ts",
+      "src/rich-text-editor.ts"
     ],
     "format": [
       "esm"
     ],
     "dts": true,
     "sourcemap": true,
-    "clean": true
+    "clean": true,
+    "splitting": true
   },
   "peerDependencies": {
     "i18next": ">=23",

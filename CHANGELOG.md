@@ -7,6 +7,61 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### @basicbar/ui (→ wird `ui/v0.7.0`)
+
+**TipTap raus aus den Bundles, die keinen Editor rendern** (Framework-Review):
+`RichTextEditor` liegt jetzt in einem eigenen Entry
+`@basicbar/ui/rich-text-editor`; das Paket ist `sideEffects: false` und wird
+mit Code-Splitting gebaut. Der Haupt-Entry `@basicbar/ui` importiert kein
+`@tiptap/*` mehr. Nagelprobe am gerenderten Template (kein Editor): Bundle
+575 kB → 280 kB (gzip 185 → 91 kB). Die `@tiptap/*`-Pakete bleiben bewusst
+`dependencies` (nicht optionale Peers): sie kosten nur Installationszeit, und
+die eine Pin-Stelle für alle Tools bleibt erhalten.
+
+Außerdem:
+
+- `stripHtml(html)` und `isEmptyHtml(html)` sind exportiert (abstimmbar
+  hatte vier Kopien). `isEmptyHtml` zählt ein Editor-Leer-`<p></p>` als
+  leer, einen reinen Bild-Inhalt aber als gefüllt; `TranslatableField` mit
+  `format="html"` nutzt das für seine Ausgefüllt-Punkte (vorher galt ein
+  Bild ohne Text als „nicht übersetzt“).
+- `richTextClass` (der Prosa-Default von `RichText`) ist exportiert, damit
+  Aufrufer ihn ergänzen können statt zu kopieren; `className` ersetzt
+  weiterhin.
+- `RichTextEditor` hat `editable?: boolean` (Default `true`): schreibgeschützt
+  ohne Toolbar und Cursor, Drop/Paste ignoriert; Umschalten zur Laufzeit via
+  `setEditable`.
+- `TranslationFormProvider` hat `controlsClassName?` für die Position der
+  Floating-Controls (Default `fixed bottom-6 right-6 z-40`) — ersetzt den
+  CSS-Override auf die Utility-Klassen in abstimmbar.
+- `renderInput` von `TranslatableField` bekommt `onBlur` durchgereicht.
+- Performance: `TranslatableField` berechnet die Sprachreihenfolge und den
+  Ausgefüllt-Status pro Render nur noch einmal (vorher pro Tab/Lookup, bei
+  HTML jeweils mit DOM-Parse); `targets` im Provider memoisiert.
+- A11y: die Sprach-Tabs tragen den Status („translated“ …) zusätzlich als
+  `sr-only`-Text (der Punkt war farb-only, WCAG 1.4.1); `PreferencesMenu`
+  fokussiert beim Öffnen die erste Zeile und unterstützt Pfeiltasten,
+  Home/End (WAI-ARIA-Menü-Pattern), `role="menu"` hat einen Namen.
+- README: Abschnitt „Übersetzungs-Keys“ mit allen Keys des Pakets.
+
+**Migration:**
+
+1. `package.json`: Tarball auf `ui/v0.7.0`.
+2. Jeden `RichTextEditor`-Import auf den neuen Pfad umstellen:
+   `import { RichTextEditor } from "@basicbar/ui/rich-text-editor";`
+   (`RichText`, `RichTextEditorProps`-Typ: `RichText` bleibt in
+   `@basicbar/ui`, der Props-Typ kommt aus dem Editor-Entry). Betroffen:
+   ausleihbar (`AdminWelcomePage`, `AdminPagesPage`, `AdminPoolsPage`),
+   abstimmbar (`components/TranslatableField.tsx`). Tools ohne Editor
+   (erkennbar, modulierbar) ändern nichts.
+3. Optional, empfohlen: lokale `stripHtml`-Kopien durch den Export ersetzen
+   (abstimmbar: `RoomsPage`, `ResultsPage`, `SetPage`, `QuestionPage` — dort
+   `!stripHtml(x) && !/<img/.test(x)` → `isEmptyHtml(x)`); abstimmbars
+   `.fixed.bottom-6.right-6.z-40`-Override in `index.css` durch
+   `controlsClassName="fixed bottom-6 right-6 z-40 max-md:bottom-[5.5rem]"` am
+   Provider ersetzen.
+4. Katalog: keine neuen Keys.
+
 ### basicbar-lti (→ wird `lti/v0.1.4`)
 
 **Sicherheit: Reflected XSS im LTI-Login behoben.** Die 400er-Antworten von

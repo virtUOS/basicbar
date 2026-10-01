@@ -23,10 +23,11 @@ export type { RenderInputArgs, TranslatableFieldProps } from "./TranslatableFiel
 
 export { AppearanceControl, LanguageOptions, PreferencesMenu } from "./Preferences";
 
-export { RichTextEditor } from "./RichTextEditor";
-export type { RichTextEditorProps } from "./RichTextEditor";
-export { RichText } from "./RichText";
+// RichTextEditor (TipTap) deliberately lives in its own entry,
+// "@basicbar/ui/rich-text-editor" — see src/rich-text-editor.ts.
+export { RichText, richTextClass } from "./RichText";
 export type { RichTextProps } from "./RichText";
+export { isEmptyHtml, stripHtml } from "./html";
 
 export {
   defaultContentLangLabel,

@@ -132,9 +132,18 @@ export function PreferencesMenu({
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    // A `role="menu"` promises arrow-key navigation (WAI-ARIA menu pattern):
+    // focus moves to the first item on open, Up/Down cycle through the
+    // menuitemradio rows, Home/End jump, Escape closes and restores focus.
+    const items = () =>
+      Array.from(
+        menuRef.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]') ?? [],
+      );
+    items()[0]?.focus();
     function onPointerDown(event: PointerEvent) {
       if (ref.current && !ref.current.contains(event.target as Node)) {
         setOpen(false);
@@ -144,7 +153,19 @@ export function PreferencesMenu({
       if (event.key === "Escape") {
         setOpen(false);
         triggerRef.current?.focus();
+        return;
       }
+      if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+      const list = items();
+      if (!list.length) return;
+      const current = list.indexOf(document.activeElement as HTMLElement);
+      let next: number;
+      if (event.key === "Home") next = 0;
+      else if (event.key === "End") next = list.length - 1;
+      else if (event.key === "ArrowDown") next = (current + 1) % list.length;
+      else next = (current - 1 + list.length) % list.length;
+      event.preventDefault();
+      list[next]?.focus();
     }
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
@@ -174,7 +195,9 @@ export function PreferencesMenu({
       </button>
       {open && (
         <div
+          ref={menuRef}
           role="menu"
+          aria-label={t("Preferences")}
           className="absolute right-0 z-30 mt-2 w-56 animate-fade-up overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg shadow-slate-900/5 dark:border-slate-700 dark:bg-slate-800"
         >
           <LanguageOptions onChange={onLanguageChange} onPicked={closeAndFocus} />

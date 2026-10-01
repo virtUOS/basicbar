@@ -71,9 +71,15 @@ export const MAX_TRANSLATE_LENGTH = 5000;
 export function TranslationFormProvider({
   children,
   translate,
+  controlsClassName = "fixed bottom-6 right-6 z-40",
 }: {
   children: ReactNode;
   translate: TranslateFn;
+  /** Positioning of the floating controls (replaces the default
+   *  `fixed bottom-6 right-6 z-40`) — e.g. to lift them above a tool's own
+   *  sticky action bar on narrow screens: `fixed bottom-6 right-6 z-40
+   *  max-md:bottom-[5.5rem]`. The pill's own layout is not affected. */
+  controlsClassName?: string;
 }) {
   const { t } = useTranslation();
   const registry = useRef(
@@ -102,8 +108,9 @@ export function TranslationFormProvider({
   }, []);
 
   const defaultLang = getDefaultContentLang();
-  const targets = SUPPORTED_LANGUAGES.map((l) => l.code).filter(
-    (c) => c !== defaultLang,
+  const targets = useMemo(
+    () => SUPPORTED_LANGUAGES.map((l) => l.code).filter((c) => c !== defaultLang),
+    [defaultLang],
   );
 
   async function translateAll() {
@@ -167,7 +174,7 @@ export function TranslationFormProvider({
     <TranslationFormContext.Provider value={contextValue}>
       {children}
       {showControls && (
-        <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-1">
+        <div className={`${controlsClassName} flex flex-col items-end gap-1`}>
           {error && (
             <span className="rounded-md bg-white px-2 py-1 text-xs text-rose-600 shadow dark:bg-slate-800 dark:text-rose-400">
               {error}
