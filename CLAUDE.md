@@ -50,7 +50,10 @@ pipx run copier copy . /tmp/probe --trust --defaults --vcs-ref HEAD --data proje
   **Tag `<paket>/vX.Y.Z` erst nach dem Merge** auf den main-Commit setzen
   (sonst zeigt er auf verwaiste Commits). Beim Tag `ui/v*` packt die CI
   `@basicbar/ui` per `npm pack` und hängt den Tarball als GitHub-Release-Asset
-  an; die Django-Pakete werden von den Tools direkt als GitHub-Archiv-Tarball
+  an — **als Draft**: Assets eines Drafts sind nicht öffentlich, die URL in
+  den Tool-`package.json`s funktioniert erst nach dem manuellen „Publish
+  release“ (`gh release edit ui/vX.Y.Z --draft=false`). Die Django-Pakete
+  werden von den Tools direkt als GitHub-Archiv-Tarball
   vom Tag installiert (`/archive/refs/tags/<tag>.tar.gz#subdirectory=…` — Repo
   ist deshalb öffentlich). Details/Gründe des Hosts:
   [ADR-0004](docs/ADR/0004-umzug-nach-github.md).

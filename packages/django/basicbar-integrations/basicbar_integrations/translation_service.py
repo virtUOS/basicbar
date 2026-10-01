@@ -14,6 +14,7 @@ import json
 from urllib import error, request
 
 from . import conf
+from ._http import TRANSPORT_ERRORS, http_error_detail
 
 
 class TranslationError(Exception):
@@ -64,8 +65,18 @@ def _libretranslate(text: str, source: str, target: str, *, html: bool = False) 
     try:
         with request.urlopen(req, timeout=15) as response:
             data = json.loads(response.read().decode("utf-8"))
-    except (error.URLError, TimeoutError, ValueError) as exc:
+    except error.HTTPError as exc:
+        # A 4xx carries the actual cause in its body ("en is not supported");
+        # that is a configuration problem, not an outage.
+        detail = http_error_detail(exc)
+        raise TranslationError(
+            f"Translation service returned HTTP {exc.code}"
+            + (f": {detail}" if detail else "")
+        ) from exc
+    except TRANSPORT_ERRORS as exc:
         raise TranslationError(f"Translation service unavailable: {exc}") from exc
+    if not isinstance(data, dict):
+        raise TranslationError("Translation service returned an unexpected response.")
     translated = data.get("translatedText")
     if not translated:
         raise TranslationError("Translation service returned no text.")

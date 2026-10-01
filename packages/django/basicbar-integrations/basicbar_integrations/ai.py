@@ -14,6 +14,7 @@ from typing import Any
 from urllib import error, request
 
 from . import conf
+from ._http import TRANSPORT_ERRORS, http_error_detail
 
 
 class AIError(Exception):
@@ -72,5 +73,8 @@ def chat_json(system: str, user: str, *, max_tokens: int | None = None) -> Any:
         if not content:
             raise AIError("empty response from model")
         return json.loads(content)
-    except (error.URLError, TimeoutError, ValueError, KeyError, IndexError, TypeError) as exc:
+    except error.HTTPError as exc:
+        detail = http_error_detail(exc)
+        raise AIError(f"AI request failed: {exc}" + (f" — {detail}" if detail else "")) from exc
+    except TRANSPORT_ERRORS as exc:
         raise AIError(f"AI request failed: {exc}") from exc
