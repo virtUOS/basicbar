@@ -22,35 +22,21 @@ jobs:
           fi
           echo "SPDX-Header vollständig."
 
-  integrations-tests:
+  django-packages:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [integrations, auth, lti]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install --quiet ./packages/django/basicbar-integrations
-      - run: cd packages/django/basicbar-integrations && python runtests.py
-
-  auth-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install --quiet ./packages/django/basicbar-auth
-      - run: cd packages/django/basicbar-auth && python runtests.py
-
-  lti-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install --quiet ./packages/django/basicbar-lti
-      - run: cd packages/django/basicbar-lti && python runtests.py
+          cache: pip
+          cache-dependency-path: packages/django/basicbar-${{ matrix.package }}/pyproject.toml
+      - run: pip install --quiet ./packages/django/basicbar-${{ matrix.package }}
+      - run: cd packages/django/basicbar-${{ matrix.package }} && python runtests.py
 
   ui-build:
     runs-on: ubuntu-latest
@@ -59,6 +45,57 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
+          cache-dependency-path: packages/ui/package-lock.json
       - run: cd packages/ui && npm ci --no-fund --no-audit
       - run: cd packages/ui && npm run build
       - run: cd packages/ui && npx tsc --noEmit
+
+  # Renders the Copier template with defaults (LTI on, so every conditional
+  # branch is exercised) and runs the generated tool's lint, checks, test suite
+  # and frontend build — catches Jinja errors, stale package pins and broken
+  # settings before the next real tool does.
+  template-probe:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: probe
+          POSTGRES_USER: probe
+          POSTGRES_PASSWORD: probe
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U probe"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      POSTGRES_DB: probe
+      POSTGRES_USER: probe
+      POSTGRES_PASSWORD: probe
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Render template
+        run: >-
+          pipx run copier copy --trust --defaults --vcs-ref HEAD
+          --data project_slug=probe --data use_lti=true --data ci_host=github
+          . /tmp/probe
+      - name: Backend lint, checks, tests
+        run: |
+          cd /tmp/probe/backend
+          pip install --quiet -r requirements.txt ruff
+          ruff check .
+          python manage.py check
+          python manage.py makemigrations --check --dry-run
+          python manage.py test
+      - name: Frontend build
+        run: cd /tmp/probe/frontend && npm install --no-fund --no-audit && npm run build

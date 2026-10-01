@@ -47,6 +47,32 @@ Uhren zwischen IdP und Tool ggf. `OIDC_BACKCHANNEL_MAX_AGE` erhöhen.
   Zeile in `config/settings.py` übernehmen.
 - CLAUDE.md: Der ui-Release entsteht als Draft und muss manuell veröffentlicht
   werden, sonst ist der Tarball nicht abrufbar.
+- **Template-Refresh (Framework-Review):** Paket-Pins aktuell (integrations
+  0.2.2, auth 0.1.1, lti 0.1.4, ui 0.6.0 — bisher 0.1.0/0.1.0/0.1.2/0.2.1,
+  d. h. ohne den `clean_media_url`-Sicherheitsfix); `api.ts` fällt im
+  Prod-Build nicht mehr auf `localhost` zurück (same-origin) und behandelt
+  204/FormData korrekt; die 90-Zeilen-`SettingsMenu`-Kopie ist durch
+  `PreferencesMenu` aus @basicbar/ui ersetzt (Katalog-Key „Preferences“);
+  Settings verweigern `DEBUG=0` mit dem Dev-`SECRET_KEY`.
+- **Prod-Gerüst** (bislang nur in abstimmbar/ausleihbar): Root-`Dockerfile`
+  (Multi-Stage, SPA gebacken), `docker-compose.prod.yml` (Pflichtvariablen
+  per `:?`), `.env.prod.example`, Release-Workflow nach GHCR.
+- **Neue Copier-Frage `ci_host`** (github/gitlab, Default github): rendert
+  GitHub-Actions-CI + Release-Workflow oder die GitLab-Pipeline.
+- **`_skip_if_exists`**: `copier update` lässt Identitäts-/Inhaltsdateien
+  (tailwind.config.js, App.tsx, locales, README/CLAUDE.md, Keycloak-Realm,
+  Caddyfile, .env.prod.example) in Ruhe — erkennbars 11 Hue-Konflikte
+  entfallen damit. `_message_after_copy` nennt die ersten Schritte.
+- Schlankere Images: kein `libpq-dev`/`gcc` mehr (Wheels), `.dockerignore`
+  für Dev- und Prod-Build-Kontext; `gunicorn` entfernt (ASGI/uvicorn);
+  ruff-Konfiguration (`backend/pyproject.toml`, Import-Sortierung) und
+  echte Basis-Tests in `common/tests.py`.
+- Repo-CI: `template-probe`-Job rendert das Template (mit LTI) und fährt
+  Lint, `check`, `makemigrations --check`, Tests gegen PostgreSQL und den
+  Frontend-Build der generierten Anwendung; Paket-Jobs als Matrix mit Caches.
+- Migration Bestandstools (optional, per `copier update --vcs-ref HEAD`):
+  Konflikte sind in Gerüst-Dateien (compose, Dockerfiles, settings, api.ts)
+  zu erwarten — Diff lesen; die Identitätsdateien bleiben unberührt.
 
 ### @basicbar/ui (→ wird `ui/v0.6.0`)
 

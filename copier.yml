@@ -1,10 +1,36 @@
 # Copier-Template der virtUOS "-bar"-Tools (Basicbar Phase 6).
-# Neues Tool erzeugen:
-#   pipx run copier copy https://github.com/virtUOS/basicbar.git mein-tool
-# Später Template-Updates einspielen: `pipx run copier update` im Projekt.
+# Neues Tool erzeugen (--vcs-ref HEAD ist Pflicht, sonst gilt der neueste
+# Paket-Tag als Template-Version):
+#   pipx run copier copy --vcs-ref HEAD https://github.com/virtUOS/basicbar.git mein-tool
+# Später Template-Updates einspielen: `pipx run copier update --vcs-ref HEAD`.
 
 _subdirectory: template/project
 _min_copier_version: "9.0.0"
+
+# Dateien, die nach der Generierung dem Tool gehören — Identität (Farb-Ramps),
+# App-Shell, Übersetzungskataloge, Doku, Deployment-Spezifika. `copier update`
+# lässt sie in Ruhe; Gerüst-Updates betreffen compose, Dockerfiles, CI,
+# settings, api-Client.
+_skip_if_exists:
+  - frontend/tailwind.config.js
+  - frontend/src/App.tsx
+  - frontend/src/locales/**
+  - README.md
+  - CLAUDE.md
+  - keycloak/realm-export.json
+  - Caddyfile
+  - .env.prod.example
+
+_message_after_copy: |
+  {{ project_title }} ist generiert. Nächste Schritte:
+
+    cd {{ _copier_conf.dst_path }}
+    git init -b main && git add -A && git commit -m "Gerüst aus basicbar-Template"
+    docker compose up -d && docker compose exec backend python manage.py migrate
+    docker compose exec frontend npm install --package-lock-only   # Lockfile committen (CI-Cache)
+
+  Login: http://localhost:{{ frontend_port }} mit demo/demo (Admin: admin-demo/demo).
+  Nach dem ersten Push: main schützen (Push "no one", Merge via PR/MR).
 
 project_slug:
   type: str
@@ -24,28 +50,28 @@ project_description:
 
 frontend_port:
   type: int
-  help: "Host-Port des Vite-Dev-Servers (ausleihbar 5173, abstimmbar 5174, modulierbar 5175, …)"
-  default: 5176
+  help: "Host-Port des Vite-Dev-Servers (ausleihbar 5173, abstimmbar 5174, modulierbar 5175, erkennbar 5176, …)"
+  default: 5177
 
 backend_port:
   type: int
-  help: "Host-Port des Django-Backends (ausleihbar 8001, abstimmbar 8002, modulierbar 8003, …)"
-  default: 8004
+  help: "Host-Port des Django-Backends (ausleihbar 8001, abstimmbar 8002, modulierbar 8003, erkennbar 8004, …)"
+  default: 8005
 
 keycloak_port:
   type: int
-  help: "Host-Port des Dev-Keycloak (ausleihbar 8080, abstimmbar 8081, modulierbar 8082, …)"
-  default: 8083
+  help: "Host-Port des Dev-Keycloak (ausleihbar 8080, abstimmbar 8081, modulierbar 8082, erkennbar 8083, …)"
+  default: 8084
 
 postgres_port:
   type: int
-  help: "Host-Port von PostgreSQL (ausleihbar 5432, abstimmbar 5433, modulierbar 5434, …)"
-  default: 5435
+  help: "Host-Port von PostgreSQL (ausleihbar 5432, abstimmbar 5433, modulierbar 5434, erkennbar 5435, …)"
+  default: 5436
 
 brand_hue:
   type: int
-  help: "OKLCH-Farbton des Marken-Akzents (ausleihbar Honig ≈ 91, abstimmbar Grün ≈ 150; Startwert, Feintuning in tailwind.config.js)"
-  default: 260
+  help: "OKLCH-Farbton des Marken-Akzents (ausleihbar Honig ≈ 91, abstimmbar Grün ≈ 150, erkennbar Violett ≈ 260; Startwert, Feintuning in tailwind.config.js)"
+  default: 320
 
 neutral_hue:
   type: int
@@ -56,3 +82,11 @@ use_lti:
   type: bool
   help: "LTI 1.3 vorbereiten (basicbar-lti: Plattform-Registrierung, Middleware — Launch-App folgt nach abstimmbar-Vorbild)?"
   default: false
+
+ci_host:
+  type: str
+  help: "Wo laufen CI und Release? github = GitHub Actions + Release-Image nach GHCR (ADR-0004), gitlab = Pipeline auf der Uni-GitLab"
+  choices:
+    - github
+    - gitlab
+  default: github

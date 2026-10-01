@@ -5,6 +5,8 @@
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -30,6 +32,13 @@ def _int_or_default(name, default):
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-insecure-secret-key-change-me")
 
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
+
+# Refuse to start a production instance on the development key — a forgotten
+# .env variable would otherwise sign sessions and CSRF tokens with a public value.
+if not DEBUG and SECRET_KEY.startswith("dev-insecure"):
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY must be set to a long random value when DJANGO_DEBUG=0."
+    )
 
 ALLOWED_HOSTS = _env_list(
     "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0,backend"

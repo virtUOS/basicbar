@@ -3,8 +3,11 @@
 
 /** Minimal API client: session state + CSRF, ready to grow with the tool. */
 
+// Same origin in production (the SPA is served next to the API behind Caddy);
+// only the Vite dev server needs the backend container's host port.
 const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:{{ backend_port }}";
+  import.meta.env.VITE_API_BASE_URL ??
+  (import.meta.env.DEV ? "http://localhost:{{ backend_port }}" : "");
 
 export const loginUrl = `${API_BASE}/oidc/authenticate/`;
 export const silentLoginUrl = `${API_BASE}/oidc/silent/`;
@@ -30,12 +33,13 @@ let csrfToken = "";
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     credentials: "include",
+    ...init,
     headers: {
-      "Content-Type": "application/json",
+      // FormData bodies get their multipart boundary from the browser.
+      ...(init.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
       ...init.headers,
     },
-    ...init,
   });
   if (!response.ok) {
     let detail = `HTTP ${response.status}`;
@@ -46,6 +50,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     }
     throw new Error(detail);
   }
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 

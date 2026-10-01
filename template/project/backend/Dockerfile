@@ -5,9 +5,10 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# System dependencies: psycopg build deps + gettext (for compilemessages)
+# gettext for compilemessages. psycopg[binary] and uvicorn[standard] ship
+# wheels, so no compiler or libpq headers are needed.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libpq-dev gcc gettext \
+    && apt-get install -y --no-install-recommends gettext \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -17,4 +18,5 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# docker-compose.yml overrides this with --reload for development.
+CMD ["uvicorn", "config.asgi:application", "--host", "0.0.0.0", "--port", "8000"]

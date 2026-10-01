@@ -4,9 +4,10 @@
   "Dark": "Dunkel",
   "Appearance": "Erscheinungsbild",
   "Language": "Sprache",
-  "Settings": "Einstellungen",
   "Sign in": "Anmelden",
   "Sign out": "Abmelden",
   "Signed in as": "Angemeldet als",
-  "Skip to content": "Zum Inhalt springen"
+  "Skip to content": "Zum Inhalt springen",
+  "Preferences": "Einstellungen",
+  "(follows your system)": "(folgt deinem System)"
 }

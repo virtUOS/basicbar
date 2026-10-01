@@ -20,6 +20,30 @@ docker compose exec backend python manage.py test
 - Django-Admin: http://localhost:{{ backend_port }}/admin/ (Break-glass-Konto
   per `docker compose exec backend python manage.py createsuperuser`).
 
+## Produktion
+
+Ein Release ist **ein Image** (Root-`Dockerfile`: SPA gebaut und ins
+Django-Image gebacken). `docker-compose.prod.yml` fährt PostgreSQL, die App
+(uvicorn, migriert und sammelt Statics beim Start) und Caddy (TLS, serviert
+SPA/Statics/Media direkt aus Volumes):
+
+```bash
+cp .env.prod.example .env      # ausfüllen — Pflichtvariablen erzwingt compose
+# Caddyfile: Domain und ACME-Mail eintragen
+docker compose -f docker-compose.prod.yml up -d --build
+```
+{% if ci_host == 'github' %}
+Ein Tag `vX.Y.Z` baut per GitHub Actions das Image nach
+`ghcr.io/virtuos/{{ project_slug }}` (Major-Bumps warten auf Freigabe im
+Environment `major-release`); auf dem Server dann `pull` statt `--build`
+und bei Bedarf `{{ project_slug | upper }}_VERSION` pinnen.
+{% else %}
+Die Pipeline auf der Uni-GitLab lintet, testet und baut; das Release-Image
+wird auf dem Server per `up -d --build` aus dem Checkout gebaut.
+{% endif %}
+Die Settings verweigern den Start mit dem Entwicklungs-`SECRET_KEY`, sobald
+`DJANGO_DEBUG=0` ist.
+
 ## Basis aktualisieren
 
 Die gemeinsamen Bausteine kommen aus dem basicbar-Repo (Changelog dort ist
@@ -27,11 +51,16 @@ die Upgrade-Anleitung):
 
 - **Backend-Pakete** (`backend/requirements.txt`): Tag in der URL heben.
 - **@basicbar/ui** (`frontend/package.json`): Tarball-Version heben.
-- **Projektgerüst**: `pipx run copier update` spielt Template-Änderungen ein.
+- **Projektgerüst**: `pipx run copier update --vcs-ref HEAD` spielt
+  Template-Änderungen ein. Identitäts- und Inhaltsdateien (Farb-Ramps,
+  `App.tsx`, Kataloge, README/CLAUDE.md, Keycloak-Realm, Caddyfile,
+  `.env.prod.example`) überschreibt es nicht — die gehören diesem Tool.
 
 ## Konventionen
 
 Apache-2.0 mit SPDX-Headern; jede App hält Tests neben dem Code
 (`docker compose exec backend python manage.py test`); Frontend-Typecheck
-mit `docker compose exec frontend npx tsc -b`. CI: Lint (ruff), Backend-Tests
-gegen PostgreSQL, Frontend-Build.
+mit `docker compose exec frontend npx tsc -b`; Lint mit ruff
+(`backend/pyproject.toml`, inkl. Import-Sortierung). CI
+({% if ci_host == 'github' %}GitHub Actions{% else %}Uni-GitLab{% endif %}):
+Lint, Backend-Tests gegen PostgreSQL, Frontend-Build.

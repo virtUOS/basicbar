@@ -7,7 +7,7 @@ from rest_framework.permissions import BasePermission
 
 class IsAdmin(BasePermission):
     """Site administrators only — Django staff or superusers. Staff is
-    granted via the OIDC admin group (see accounts.oidc)."""
+    granted via the OIDC admin group (basicbar_auth.oidc)."""
 
     def has_permission(self, request, view):
         user = request.user

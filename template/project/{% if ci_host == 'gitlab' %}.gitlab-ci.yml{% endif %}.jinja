@@ -32,7 +32,9 @@ frontend-build:
   image: node:22-slim
   script:
     - cd frontend
-    - npm install --no-fund --no-audit
+    # npm ci once the lockfile is committed (reproducible, installs the
+    # platform-specific optional deps reliably); plain install before that.
+    - if [ -f package-lock.json ]; then npm ci --no-fund --no-audit; else npm install --no-fund --no-audit; fi
     - npm run build
   cache:
     key:

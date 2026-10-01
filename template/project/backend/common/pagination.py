@@ -3,8 +3,7 @@
 
 """Default pagination that lets the client pick the page size.
 
-The management/overview lists page and sort client-side (favorites float to
-the top, per-user sort), so the SPA fetches the full set with a large
+Lists that page and sort client-side fetch the full set with a large
 ``page_size``; the shape stays ``{count, results}`` for every caller."""
 from rest_framework.pagination import PageNumberPagination
 
