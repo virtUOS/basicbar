@@ -189,7 +189,10 @@ die Maschinenübersetzung erhält die Tags). `renderInput` bekommt neben `id`
 auch `labelId` — die Id von `TranslatableField`s eigenem sichtbaren `<label>`
 (nur gesetzt, wenn die `label`-Prop übergeben wurde); durchgereicht als
 `labelledBy` bindet der Editor sich per `aria-labelledby` an dieses Label,
-statt ein zweites, redundantes `ariaLabel` zu brauchen. Auch `onBlur` wird
+statt ein zweites, redundantes `ariaLabel` zu brauchen. Ebenso `describedBy`
+(die Ids der gerade sichtbaren Hilfe-/Statustexte: `hint`, Veraltet-Hinweis,
+Pflichtfeld-Fehler) — als `describedBy` durchgereicht setzt der Editor
+`aria-describedby`, Screenreader lesen den Hinweis mit dem Feld vor. Auch `onBlur` wird
 durchgereicht (die `onBlur`-Prop des Feldes), falls der eigene Editor ein
 Blur-Speichern verdrahten will:
 
@@ -199,13 +202,14 @@ Blur-Speichern verdrahten will:
   values={{ de: form.description_de, en: form.description_en }}
   onChange={(lang, html) => setField(`description_${lang}`, html)}
   format="html"
-  renderInput={({ value, onChange, id, labelId }) => (
+  renderInput={({ value, onChange, id, labelId, describedBy }) => (
     <RichTextEditor
       value={value}
       onChange={onChange}
       onUploadImage={uploadRichImage}
       id={id}
       labelledBy={labelId}
+      describedBy={describedBy}
     />
   )}
 />

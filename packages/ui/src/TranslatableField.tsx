@@ -54,6 +54,10 @@ export interface RenderInputArgs {
    *  custom editor that has no native `<label htmlFor>` association of its
    *  own (`RichTextEditor`'s `labelledBy`). */
   labelId?: string;
+  /** Space-separated ids of the field's helper/status texts (hint, outdated
+   *  notice, required error), when any is shown — pass through as
+   *  `aria-describedby` (`RichTextEditor`'s `describedBy`). */
+  describedBy?: string;
 }
 
 const DEFAULT_INPUT_CLASS =
@@ -239,6 +243,14 @@ export function TranslatableField({
   const showTabs = !singleLanguage;
   const tabsLabel = ariaLabel ?? label;
   const labelId = label ? `${inputId}-label` : undefined;
+  // Helper/status texts are announced with the input (aria-describedby).
+  const hintId = `${baseId}-hint`;
+  const staleId = `${baseId}-stale`;
+  const requiredId = `${baseId}-required`;
+  const describedBy =
+    [hint && hintId, activeStale && staleId, canonicalEmpty && requiredId]
+      .filter(Boolean)
+      .join(" ") || undefined;
 
   return (
     <div className={`block text-xs text-slate-500 dark:text-slate-400 ${className}`}>
@@ -315,7 +327,7 @@ export function TranslatableField({
       )}
       <div className="mt-1">
         {renderInput ? (
-          renderInput({ lang: active, value, onChange: set, onBlur, id: inputId, labelId })
+          renderInput({ lang: active, value, onChange: set, onBlur, id: inputId, labelId, describedBy })
         ) : multiline ? (
           <textarea
             id={inputId}
@@ -324,6 +336,7 @@ export function TranslatableField({
             placeholder={placeholder}
             onChange={(e) => set(e.target.value)}
             onBlur={onBlur}
+            aria-describedby={describedBy}
             className={inputClass}
           />
         ) : (
@@ -333,12 +346,13 @@ export function TranslatableField({
             placeholder={placeholder}
             onChange={(e) => set(e.target.value)}
             onBlur={onBlur}
+            aria-describedby={describedBy}
             className={inputClass}
           />
         )}
       </div>
       {activeStale && (
-        <p className="mt-1 text-amber-600 dark:text-amber-400">
+        <p id={staleId} className="mt-1 text-amber-700 dark:text-amber-400">
           {t("The other language was changed since this translation.")}
         </p>
       )}
@@ -369,9 +383,13 @@ export function TranslatableField({
         </div>
       )}
       {translateError && <p className="mt-1 text-rose-500">{translateError}</p>}
-      {hint && <p className="mt-1 text-slate-400 dark:text-slate-500">{hint}</p>}
+      {hint && (
+        <p id={hintId} className="mt-1 text-slate-600 dark:text-slate-300">
+          {hint}
+        </p>
+      )}
       {canonicalEmpty && (
-        <p className="mt-1 text-rose-500">
+        <p id={requiredId} className="mt-1 text-rose-600 dark:text-rose-400">
           {t("A value in {{language}} is required.", {
             language: defaultContentLangLabel(),
           })}
