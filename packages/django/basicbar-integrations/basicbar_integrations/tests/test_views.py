@@ -82,23 +82,43 @@ class TranslateEndpointTests(TestCase):
         self.assertEqual(response.json(), {"translated": "<p>Hi</p>"})
 
 
-class CapabilitiesEndpointTests(TestCase):
-    """GET /api/capabilities/ — feature discovery for the frontend."""
+class CapabilitiesPayloadTests(TestCase):
+    """``capabilities_payload()`` — the flags every tool mixes into whoami."""
 
     def test_everything_off_by_default(self):
-        response = self.client.get("/api/capabilities/")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"translation": False, "ai": False})
+        from basicbar_integrations.capabilities import capabilities_payload
+
+        with override_settings(MODELTRANSLATION_DEFAULT_LANGUAGE="de"):
+            payload = capabilities_payload()
+        self.assertEqual(
+            payload,
+            {
+                "ai_enabled": False,
+                "content_default_language": "de",
+                "content_translation_enabled": False,
+            },
+        )
 
     @override_settings(**LT_ON)
     def test_reports_enabled_translation(self):
-        response = self.client.get("/api/capabilities/")
-        self.assertEqual(response.json(), {"translation": True, "ai": False})
+        from basicbar_integrations.capabilities import capabilities_payload
+
+        self.assertTrue(capabilities_payload()["content_translation_enabled"])
 
     @override_settings(
         AI_PROVIDER="litellm", AI_BASE_URL="https://x/v1",
         AI_API_KEY="k", AI_MODEL="qwen-3.5",
     )
     def test_reports_enabled_ai(self):
-        response = self.client.get("/api/capabilities/")
-        self.assertEqual(response.json(), {"translation": False, "ai": True})
+        from basicbar_integrations.capabilities import capabilities_payload
+
+        self.assertTrue(capabilities_payload()["ai_enabled"])
+
+    def test_default_language_falls_back_to_language_code(self):
+        from basicbar_integrations.capabilities import capabilities_payload
+
+        with override_settings(LANGUAGE_CODE="en"):
+            self.assertEqual(capabilities_payload()["content_default_language"], "en")
+
+    def test_capabilities_endpoint_is_gone(self):
+        self.assertEqual(self.client.get("/api/capabilities/").status_code, 404)

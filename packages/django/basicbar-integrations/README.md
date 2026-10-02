@@ -13,9 +13,12 @@ Provider-SDKs.
   `{translated}`; validiert Sprachen gegen `settings.LANGUAGES`, sanitized
   HTML-Ergebnisse serverseitig. Permission per Subclass anpassbar
   (Default `IsAuthenticated`).
-- `views.CapabilitiesView` — `GET` → `{"translation": bool, "ai": bool, …}`,
-  damit das Frontend Features ohne Build-Varianten ein-/ausblendet;
-  erweiterbar über `extra_capabilities()`.
+- `capabilities.capabilities_payload()` — `{"ai_enabled", "content_default_language",
+  "content_translation_enabled"}` für das `whoami` des Tools (neben
+  `basicbar_auth.views.whoami_payload`), damit das Frontend Features ohne
+  zweiten Request und ohne Build-Varianten ein-/ausblendet.
+- `translation_sync` — Helfer für den Übersetzungs-Sync-Zustand pro Feld
+  (`record_synced`, `stale_map`, `modeltranslation_values`, …).
 - `html_sanitize` — die eine HTML-Allowlist für Rich-Content (nh3-basiert).
 
 ## Einbinden
@@ -24,7 +27,14 @@ Provider-SDKs.
 INSTALLED_APPS = [..., "basicbar_integrations"]
 
 # urls.py
-path("api/", include("basicbar_integrations.urls")),  # translate/ + capabilities/
+path("api/", include("basicbar_integrations.urls")),  # translate/
+
+# accounts/views.py
+from basicbar_auth.views import whoami_payload
+from basicbar_integrations.capabilities import capabilities_payload
+
+def whoami(request):
+    return JsonResponse({**whoami_payload(request), **capabilities_payload()})
 ```
 
 Alle Settings haben Defaults („aus“) — ein Tool ohne Konfiguration startet
