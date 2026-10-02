@@ -7,7 +7,40 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
-### basicbar-auth (→ wird `auth/v0.2.0`)
+### basicbar-integrations (→ wird `integrations/v0.3.0`)
+
+**`CapabilitiesView` entfernt** (Framework-Review: kein Tool hat
+`GET /api/capabilities/` je aufgerufen — alle vier mischen die Flags in ihr
+`whoami`). An seine Stelle tritt `capabilities.capabilities_payload()` mit
+genau den drei Schlüsseln, die die Tools heute von Hand zusammensetzen
+(`ai_enabled`, `content_default_language`, `content_translation_enabled`).
+`basicbar_integrations.urls` enthält nur noch `translate/`.
+
+Migration: Version heben. Wer `basicbar_integrations.urls` einbindet,
+verliert den unbenutzten Endpunkt — sonst nichts. Empfohlen: in
+`accounts/views.py` `whoami` als
+`{**whoami_payload(request), **capabilities_payload(), …}` schreiben und die
+drei Inline-Flags löschen.
+
+### Alle Django-Pakete (→ werden `auth/v0.2.1`, `lti/v0.1.5`, `integrations/v0.3.0`)
+
+`__version__` kommt aus den Paket-Metadaten (`importlib.metadata`) statt aus
+einem zweiten handgepflegten String — die Versionen drifteten im Review
+auseinander. Ein nicht installierter Checkout meldet `0.0.0.dev0`. Keine
+Migration.
+
+### Repo
+
+- CHANGELOG: alle Releases seit Juli standen unter „[Unreleased] (→ wird …)“,
+  obwohl längst getaggt — jetzt je ein datierter Abschnitt pro Tag.
+- README: die Paket-Tabelle nennt keine Versionsnummern mehr (sie waren vom
+  Juli); aktuelle Stände stehen in den Tags und hier.
+- Doku-Drift zum Capabilities-Endpunkt in CLAUDE.md und EXTRAKTIONSPLAN
+  bereinigt.
+
+## auth/v0.2.0 — 2026-10-01
+
+### basicbar-auth
 
 **Session-Endpunkte und Routen im Paket** (Framework-Review; die vier Tools
 trugen identische Kopien): `basicbar_auth.views` mit `whoami_payload` /
@@ -55,7 +88,9 @@ Fallback.
    Gruppen-Verlust *jede* Admin-Rolle entzieht, muss lokale Beförderungen
    jetzt selbst zurücknehmen (Nutzerverwaltung / Django-Admin).
 
-### @basicbar/ui (→ wird `ui/v0.7.0`)
+## ui/v0.7.0 — 2026-10-01
+
+### @basicbar/ui
 
 **TipTap raus aus den Bundles, die keinen Editor rendern** (Framework-Review):
 `RichTextEditor` liegt jetzt in einem eigenen Entry
@@ -110,7 +145,9 @@ Außerdem:
    Provider ersetzen.
 4. Katalog: keine neuen Keys.
 
-### basicbar-lti (→ wird `lti/v0.1.4`)
+## lti/v0.1.4 — 2026-10-01
+
+### basicbar-lti
 
 **Sicherheit: Reflected XSS im LTI-Login behoben.** Die 400er-Antworten von
 `lti_login` spiegelten `iss`/`client_id` aus GET-Parametern in eine
@@ -118,7 +155,9 @@ HTML-Antwort (Django-Default-Content-Type) — eine präparierte URL konnte so
 Skript auf der Tool-Origin ausführen. Alle Fehlerantworten des Endpunkts sind
 jetzt `text/plain`. Migration: Version heben, sonst nichts.
 
-### basicbar-auth (→ wird `auth/v0.1.1`)
+## auth/v0.1.1 — 2026-10-01
+
+### basicbar-auth
 
 **Sicherheit: Back-Channel-Logout-Tokens werden auf Frische geprüft.** Bisher
 prüfte der Endpunkt nur Signatur, Nonce-Verbot und iss/aud/events/sub — ein
@@ -128,7 +167,9 @@ Logout als DoS). Jetzt ist `iat` Pflicht und darf höchstens
 `exp` wird respektiert. Migration: Version heben; bei stark abweichenden
 Uhren zwischen IdP und Tool ggf. `OIDC_BACKCHANNEL_MAX_AGE` erhöhen.
 
-### basicbar-integrations (→ wird `integrations/v0.2.2`)
+## integrations/v0.2.2 — 2026-10-01
+
+### basicbar-integrations
 
 - `ai.chat_json` und `translation_service.translate` fangen jetzt alle
   Transportfehler (`ConnectionResetError`, `IncompleteRead`, …) als
@@ -140,7 +181,9 @@ Uhren zwischen IdP und Tool ggf. `OIDC_BACKCHANNEL_MAX_AGE` erhöhen.
 - Migration: Version heben; wer `str(exc)` an Nutzer durchreicht, zeigt jetzt
   aussagekräftigere Texte.
 
-### Template
+## Template — 2026-10-01
+
+### Template (basicbar#13, #14, #17)
 
 - **Pins:** basicbar-auth `auth/v0.2.0`, @basicbar/ui `ui/v0.7.0`.
 - `config/urls.py` nutzt `include("basicbar_auth.urls")` (OIDC-Routen inkl.
@@ -186,7 +229,9 @@ Uhren zwischen IdP und Tool ggf. `OIDC_BACKCHANNEL_MAX_AGE` erhöhen.
   Konflikte sind in Gerüst-Dateien (compose, Dockerfiles, settings, api.ts)
   zu erwarten — Diff lesen; die Identitätsdateien bleiben unberührt.
 
-### @basicbar/ui (→ wird `ui/v0.6.0`)
+## ui/v0.6.0 — 2026-10-01
+
+### @basicbar/ui
 
 **Geteilte Einstellungs-Bausteine** (ausleihbar#35): `LanguageOptions`,
 `AppearanceControl` und `PreferencesMenu`. Die ersten beiden sind Menüzeilen
@@ -203,7 +248,9 @@ Migration: additiv, nichts zu tun. Die Tools ergänzen in ihren Katalogen den
 Schlüssel „Preferences“ (die übrigen — Appearance, Auto, „(follows your
 system)“, Light, Dark, Language — existieren meist schon).
 
-### @basicbar/ui (→ wird `ui/v0.5.1`)
+## ui/v0.5.1 — 2026-09-30
+
+### @basicbar/ui
 
 **CSP-tauglicher `RichTextEditor`** (basicbar#9): TipTap hängte beim Mounten
 ein `<style data-tiptap-style>` mit den ProseMirror-Grundregeln an `<head>` —
@@ -219,7 +266,9 @@ Migration: keine, solange das Tool `@basicbar/ui/base.css` importiert (wie
 im README beschrieben). Wer `base.css` nicht einbindet, muss die
 ProseMirror-Regeln selbst bereitstellen.
 
-### basicbar-integrations (→ wird `integrations/v0.2.1`)
+## integrations/v0.2.1 — 2026-09-29
+
+### basicbar-integrations
 
 **Sicherheitsfix:** `clean_media_url` prüfte den rohen String, sodass
 Pfade wie `/media/%2e%2e/api/whoami/` oder `/media/a\..\b` durchkamen —
@@ -242,7 +291,9 @@ konnte — über 300 Zeichen wird jetzt komplett abgelehnt statt gekürzt.
 Migration: keine — reiner Bugfix, die öffentliche Signatur von
 `clean_media_url`/`clean_html` ändert sich nicht.
 
-### @basicbar/ui (→ wird `ui/v0.5.0`)
+## ui/v0.5.0 — 2026-09-29
+
+### @basicbar/ui
 
 **Alt-Text für Bilder in `RichTextEditor`** (basicbar#7, WCAG 1.1.1): direkt
 nach einem erfolgreichen Bild-Upload fragt der Editor per `window.prompt`
@@ -268,7 +319,9 @@ Migration: keine für Tools ohne `onUploadImage` — additiv. Tools mit
 Bild-Upload ergänzen die neuen Übersetzungs-Keys
 `"Image description (alt text)"` und `"Image description"`.
 
-### @basicbar/ui (→ wird `ui/v0.4.0`)
+## ui/v0.4.0 — 2026-09-27
+
+### @basicbar/ui
 
 **`RichTextEditor` + `RichText`** (modulierbar#5), aus AbstimmBAR verschoben:
 der eine WYSIWYG-Editor (TipTap) für formatierte Langtext-Felder — Fett,
@@ -316,7 +369,9 @@ ergänzt die Übersetzungs-Keys `"Bold"`, `"Italic"`, `"Heading (large)"`,
 `"Heading (small)"`, `"Bulleted list"`, `"Numbered list"`, `"Link"`,
 `"Enter URL"`, `"Insert image (or drag and drop)"`, `"Image upload failed"`.
 
-### @basicbar/ui (→ wird `ui/v0.3.1`)
+## ui/v0.3.1 — 2026-08-28
+
+### @basicbar/ui
 
 **Globaler Sprach-Umschalter** (modulierbar#99): Der schwebende
 Übersetzungs-Block zeigt jetzt einen kompakten DE/EN-Umschalter, der mit
@@ -331,15 +386,9 @@ Migration: keine — rein additiv. Neue UI-Strings `"Show all fields in one
 language"` und `"Show all fields in {{language}}"` (Tools ergänzen ihre
 Übersetzungen).
 
-### basicbar-lti (`lti/v0.1.3`, 2026-08-04 — Eintrag nachgetragen)
+## integrations/v0.2.0 + ui/v0.3.0 — 2026-07-23
 
-- `lti_login` antwortet bei fehlenden Parametern (`iss`, `login_hint`,
-  `target_link_uri`) und nicht auflösbarer Plattform-Registrierung
-  (Issuer/Client-ID-Mismatch, auch Trailing-Slash) mit erklärendem `400`
-  statt opakem `500`; pylti1p3-Exceptions werden abgefangen. Migration:
-  Version heben, sonst nichts.
-
-### basicbar-integrations (→ wird `integrations/v0.2.0`) und @basicbar/ui (→ wird `ui/v0.3.0`)
+### basicbar-integrations und @basicbar/ui
 
 **Veraltete Übersetzungen markieren** (modulierbar#31, generisch für alle
 Tools): Wird eine Sprache nach der Übersetzung geändert, gilt die
@@ -375,6 +424,16 @@ Migration (Adoption ist opt-in — ohne neue Props/Aufrufe ändert sich nichts):
 5. Neue Katalog-Schlüssel (de-Übersetzungen ergänzen):
    `translation may be outdated`, `The other language was changed since
    this translation.`, `Mark as up to date`.
+
+## lti/v0.1.3 — 2026-07-20
+
+### basicbar-lti (Eintrag nachgetragen am 2026-08-04)
+
+- `lti_login` antwortet bei fehlenden Parametern (`iss`, `login_hint`,
+  `target_link_uri`) und nicht auflösbarer Plattform-Registrierung
+  (Issuer/Client-ID-Mismatch, auch Trailing-Slash) mit erklärendem `400`
+  statt opakem `500`; pylti1p3-Exceptions werden abgefangen. Migration:
+  Version heben, sonst nichts.
 
 ## lti/v0.1.2 — 2026-07-19
 

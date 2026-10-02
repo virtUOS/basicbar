@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "basicbar-integrations"
-version = "0.2.2"
-description = "Optionale Integrationen der virtUOS -bar-Tools: LibreTranslate, LiteLLM, Capabilities-Endpoint"
+version = "0.3.0"
+description = "Optionale Integrationen der virtUOS -bar-Tools: LibreTranslate, LiteLLM, HTML-Allowlist, Übersetzungs-Sync"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Apache-2.0" }

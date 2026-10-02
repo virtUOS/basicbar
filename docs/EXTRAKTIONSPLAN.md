@@ -45,7 +45,7 @@ basicbar/
 │   │   ├── basicbar-auth/         # OIDC-Backend, Discovery, Session-Endpoints,
 │   │   │                          #   AbstractBasicUser (abstrakt!), Permissions-Basis
 │   │   ├── basicbar-integrations/ # translation_service (LibreTranslate),
-│   │   │                          #   ai (LiteLLM), Capabilities-Endpoint
+│   │   │                          #   ai (LiteLLM), capabilities_payload
 │   │   └── basicbar-lti/          # LTI-1.3-App aus abstimmbar (pyLTI1p3-Muster)
 │   └── ui/                        # @basicbar/ui (npm): Design-Tokens (CSS-Variablen),
 │                                  #   Theme + Dark Mode, i18n-Setup, contentLang,
@@ -76,9 +76,13 @@ Upgrades pro Tool.
    `accounts.User(AbstractBasicUser)` mit eigenen Migrationen. Bestehende Tools
    müssen ihr User-Model dafür *nicht* umbauen — sie adoptieren zunächst nur
    Backend/Discovery/Views.
-2. **Capabilities-Endpoint** in `basicbar-integrations`: `GET /api/capabilities`
-   → `{ translation: bool, ai: bool, lti: bool }`. Frontend blendet Features
-   automatisch ein/aus; keine Build-Varianten.
+2. **Feature-Flags im `whoami`**, nicht als eigener Endpunkt: die Tools
+   mischen `basicbar_integrations.capabilities.capabilities_payload()`
+   (`ai_enabled`, `content_default_language`, `content_translation_enabled`)
+   in ihr `/api/whoami/` — ein Request beim Laden, das Frontend blendet
+   Features automatisch ein/aus; keine Build-Varianten. (Der ursprünglich
+   geplante `GET /api/capabilities` wurde von keinem Tool genutzt und ist mit
+   integrations 0.3.0 wieder entfernt.)
 3. **Optionalität per Env**, wie bereits etabliert (`LIBRETRANSLATE_URL`,
    `AI_PROVIDER`/`AI_BASE_URL`/…): aus = Feature unsichtbar. Stdlib-`urllib`-
    Ansatz (keine Zusatzabhängigkeiten) beibehalten.
@@ -190,8 +194,9 @@ Distribution: Repo öffentlich, Installation als GitLab-Archiv-Tarball vom
 Tag (kein git im Image, Dockerfiles unverändert). Umstellungs-MRs:
 ausleihbar !166, abstimmbar !90 — beide Suiten grün, Docker-Builds
 end-to-end verifiziert. Der Sync-Workflow (taggen → pinnen → bumpen) ist
-damit einmal komplett bewiesen. Capabilities-Endpoint ist im Paket, die
-Frontend-Adoption in den Tools folgt bei Gelegenheit (z. B. mit Phase 3).
+damit einmal komplett bewiesen. (Der Capabilities-Endpoint wurde nie
+adoptiert und ist mit integrations 0.3.0 durch `capabilities_payload()`
+ersetzt — siehe Entscheidung 2.)
 
 ### Phase 3 — `@basicbar/ui` (der Design-Sync, Hauptmotivation)
 

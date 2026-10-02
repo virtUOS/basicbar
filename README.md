@@ -19,14 +19,16 @@ Compose · Caddy. Lizenz Apache-2.0.
 
 ## Die Pakete
 
-| Paket | Inhalt | Aktuelles Release |
-|---|---|---|
-| `basicbar-auth` | OIDC-Login (mozilla-django-oidc): Backend mit Claim-Mapping und IdP-Gruppen→Admin, Silent SSO, Back-Channel-Logout, Endpoint-Discovery, `AbstractBasicUser`, optionale Account-Obergrenze und Subject-Drift-Heilung. Betreiber-Hinweise zu Löschfristen/Kennungs-Vakanz im Paket-README. | `auth/v0.1.0` |
-| `basicbar-integrations` | Optionale Dienste, aus per Default: LibreTranslate-Client + Übersetzungs-Endpunkt, LiteLLM-Client (OpenAI-kompatibel), Capabilities-Endpoint fürs Frontend, HTML-Allowlist (nh3). | `integrations/v0.1.0` |
-| `basicbar-lti` | LTI-1.3-Fundament (PyLTI1p3): Plattform-Registrierung + Staff-API, Tool-Keypair, OIDC-Initiation/JWKS, JIT-Nutzer-Provisionierung mit optionaler E-Mail-Unifizierung, iframe-Middleware. Der Launch selbst bleibt Tool-Code (Kurskontext → Fachmodell). | `lti/v0.1.2` |
-| `@basicbar/ui` | Designsystem-Basis: Tailwind-Preset (Font, Dark Mode, Motion — die Farb-Ramps bleiben als Identität im Tool: „ein System, pro Tool ein Akzent“), `base.css` (A11y-Grundausstattung), ThemeProvider, i18n-Bootstrap, `contentLang`, `TranslatableField`/„alle Felder übersetzen“. | `ui/v0.2.1` |
+| Paket | Inhalt |
+|---|---|
+| `basicbar-auth` | OIDC-Login (mozilla-django-oidc): Backend mit Claim-Mapping und IdP-Gruppen→Admin, Silent SSO, Back-Channel-Logout, Endpoint-Discovery, `AbstractBasicUser`, optionale Account-Obergrenze und Subject-Drift-Heilung. Session-Endpunkte (`whoami_payload`, `logout_view`, `set_language`) und URL-Verdrahtung. Betreiber-Hinweise zu Löschfristen/Kennungs-Vakanz im Paket-README. |
+| `basicbar-integrations` | Optionale Dienste, aus per Default: LibreTranslate-Client + Übersetzungs-Endpunkt, LiteLLM-Client (OpenAI-kompatibel), `capabilities_payload()` fürs `whoami`, HTML-Allowlist (nh3), Übersetzungs-Sync-Helfer. |
+| `basicbar-lti` | LTI-1.3-Fundament (PyLTI1p3): Plattform-Registrierung + Staff-API, Tool-Keypair, OIDC-Initiation/JWKS, JIT-Nutzer-Provisionierung mit optionaler E-Mail-Unifizierung, iframe-Middleware. Der Launch selbst bleibt Tool-Code (Kurskontext → Fachmodell). |
+| `@basicbar/ui` | Designsystem-Basis: Tailwind-Preset (Font, Dark Mode, Motion — die Farb-Ramps bleiben als Identität im Tool: „ein System, pro Tool ein Akzent“), `base.css` (A11y-Grundausstattung), ThemeProvider, i18n-Bootstrap, `contentLang`, `TranslatableField`/„alle Felder übersetzen“, Preferences-Menü, `RichText`; `RichTextEditor` (TipTap) als eigener Entry. |
 
-Details und Begründungen: [docs/ADR/](docs/ADR/) · Historie und Vorgehen:
+Aktuelle Versionen: die Tags `<paket>/vX.Y.Z` bzw. [CHANGELOG.md](CHANGELOG.md)
+(dort auch die Migrationsschritte je Release). Details und Begründungen:
+[docs/ADR/](docs/ADR/) · Historie und Vorgehen:
 [docs/EXTRAKTIONSPLAN.md](docs/EXTRAKTIONSPLAN.md).
 
 ## Neues Tool erzeugen

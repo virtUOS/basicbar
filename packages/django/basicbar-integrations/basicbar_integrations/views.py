@@ -9,11 +9,11 @@ a different permission subclass the view and wire their own URL.
 """
 
 from django.conf import settings
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from . import ai, html_sanitize, translation_service
+from . import html_sanitize, translation_service
 
 
 class TranslateView(APIView):
@@ -51,24 +51,3 @@ class TranslateView(APIView):
         if fmt == "html":
             translated = self.clean_html(translated)
         return Response({"translated": translated})
-
-
-class CapabilitiesView(APIView):
-    """Which optional integrations this deployment offers.
-
-    Lets the frontend show or hide features without build variants. Tools can
-    extend the payload (e.g. ``{"lti": True}``) via ``extra_capabilities``.
-    """
-
-    permission_classes = [AllowAny]
-
-    def extra_capabilities(self, request) -> dict:
-        return {}
-
-    def get(self, request):
-        capabilities = {
-            "translation": translation_service.is_enabled(),
-            "ai": ai.is_enabled(),
-        }
-        capabilities.update(self.extra_capabilities(request))
-        return Response(capabilities)

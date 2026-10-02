@@ -11,7 +11,8 @@ GitHub-Actions-Runner öffentlicher „-bar“-Tools die Pakete erreichen könne
 ## Layout
 
 - `packages/django/basicbar-integrations` — LibreTranslate-/LiteLLM-Clients,
-  Translate- und Capabilities-Endpoint, HTML-Allowlist (nh3).
+  Translate-Endpoint, `capabilities_payload()` fürs `whoami` der Tools,
+  HTML-Allowlist (nh3), Übersetzungs-Sync-Helfer.
 - `packages/django/basicbar-auth` — OIDC (mozilla-django-oidc): Backend,
   Silent Login, Back-Channel-Logout (mit Session-Index `UserSession`, eigene
   Migration), Discovery, `AbstractBasicUser`, Session-Endpunkte

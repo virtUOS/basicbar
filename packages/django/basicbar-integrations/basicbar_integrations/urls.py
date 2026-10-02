@@ -3,9 +3,8 @@
 
 from django.urls import path
 
-from .views import CapabilitiesView, TranslateView
+from .views import TranslateView
 
 urlpatterns = [
     path("translate/", TranslateView.as_view(), name="basicbar-translate"),
-    path("capabilities/", CapabilitiesView.as_view(), name="basicbar-capabilities"),
 ]
