@@ -7,6 +7,21 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### @basicbar/ui (→ wird `ui/v0.7.1`)
+
+**A11y-Fix `TranslatableField`** (#11): Der `hint` hatte mit
+`text-slate-400` nur ~2,6:1 Kontrast und war nicht mit dem Feld verknüpft.
+Jetzt `text-slate-600 dark:text-slate-300` (AA), und Hinweis,
+Veraltet-Hinweis und Pflichtfeld-Fehler hängen per `aria-describedby` an der
+Eingabe (Screenreader lesen sie mit dem Feld vor); Veraltet- und
+Fehlertext ebenfalls auf AA-Kontrast (`amber-700`, `rose-600`).
+`renderInput` bekommt dafür `describedBy`, `RichTextEditor` eine gleichnamige
+Prop (auch zur Laufzeit aktualisiert).
+
+Migration: Tarball auf `ui/v0.7.1`. Wer `renderInput` mit `RichTextEditor`
+nutzt, reicht zusätzlich `describedBy={describedBy}` durch (sonst bleibt der
+Editor ohne Beschreibung — nichts bricht).
+
 ### basicbar-integrations (→ wird `integrations/v0.3.0`)
 
 **`CapabilitiesView` entfernt** (Framework-Review: kein Tool hat

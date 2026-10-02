@@ -58,6 +58,9 @@ export interface RichTextEditorProps {
    *  on the editable element); an alternative to `ariaLabel` when a visible
    *  label already exists (e.g. `TranslatableField`'s `labelId`). */
   labelledBy?: string;
+  /** Ids of helper texts describing this editor (sets `aria-describedby`),
+   *  e.g. `TranslatableField`'s `describedBy`. */
+  describedBy?: string;
   id?: string;
   /** `false` renders the content read-only in the editor's own frame — no
    *  toolbar, no caret, pasted/dropped files ignored — e.g. while a form is
@@ -109,6 +112,7 @@ export function RichTextEditor({
   onUploadImage,
   ariaLabel,
   labelledBy,
+  describedBy,
   id,
   editable = true,
 }: RichTextEditorProps) {
@@ -265,6 +269,25 @@ export function RichTextEditor({
   useEffect(() => {
     if (editor && editor.isEditable !== editable) editor.setEditable(editable);
   }, [editor, editable]);
+
+  // Not in `editorProps.attributes`: those are read once and re-applied by
+  // ProseMirror on every update, but the described-by set changes at runtime
+  // (e.g. a required-field error appearing), so it is synced directly.
+  useEffect(() => {
+    if (!editor) return;
+    const apply = () => {
+      // Before mount `editor.view` is a stub that throws on `dom`.
+      if (!editor.isInitialized || editor.isDestroyed) return;
+      const dom = editor.view.dom;
+      if (describedBy) dom.setAttribute("aria-describedby", describedBy);
+      else dom.removeAttribute("aria-describedby");
+    };
+    apply();
+    editor.on("create", apply);
+    return () => {
+      editor.off("create", apply);
+    };
+  }, [editor, describedBy]);
 
   if (!editor) return null;
 
