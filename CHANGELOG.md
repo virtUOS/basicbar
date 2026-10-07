@@ -7,20 +7,16 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
-### @basicbar/ui (→ wird `ui/v0.7.1`)
+### @basicbar/ui (→ wird `ui/v0.7.2`)
 
-**A11y-Fix `TranslatableField`** (#11): Der `hint` hatte mit
-`text-slate-400` nur ~2,6:1 Kontrast und war nicht mit dem Feld verknüpft.
-Jetzt `text-slate-600 dark:text-slate-300` (AA), und Hinweis,
-Veraltet-Hinweis und Pflichtfeld-Fehler hängen per `aria-describedby` an der
-Eingabe (Screenreader lesen sie mit dem Feld vor); Veraltet- und
-Fehlertext ebenfalls auf AA-Kontrast (`amber-700`, `rose-600`).
-`renderInput` bekommt dafür `describedBy`, `RichTextEditor` eine gleichnamige
-Prop (auch zur Laufzeit aktualisiert).
+**Sicherheits-Fix `stripHtml` / `isEmptyHtml`** (#20): Beide parsten über
+`innerHTML` auf einem Element des Live-Dokuments — dort lädt der Browser
+Bilder und führt Inline-Handler aus, `<img src=x onerror=…>` lief also, auch
+ohne Einhängen. Jetzt wird in einem inerten `DOMParser`-Dokument geparst
+(nichts wird ausgeführt oder geladen); `isEmptyHtml` erkennt Bilder über den
+geparsten Body statt per Regex. Verhalten sonst unverändert.
 
-Migration: Tarball auf `ui/v0.7.1`. Wer `renderInput` mit `RichTextEditor`
-nutzt, reicht zusätzlich `describedBy={describedBy}` durch (sonst bleibt der
-Editor ohne Beschreibung — nichts bricht).
+Migration: Tarball auf `ui/v0.7.2`. Keine Code-Änderung nötig.
 
 ### basicbar-integrations (→ wird `integrations/v0.3.0`)
 
@@ -52,6 +48,23 @@ Migration.
   Juli); aktuelle Stände stehen in den Tags und hier.
 - Doku-Drift zum Capabilities-Endpunkt in CLAUDE.md und EXTRAKTIONSPLAN
   bereinigt.
+
+## ui/v0.7.1 — 2026-10-02
+
+### @basicbar/ui
+
+**A11y-Fix `TranslatableField`** (#11): Der `hint` hatte mit
+`text-slate-400` nur ~2,6:1 Kontrast und war nicht mit dem Feld verknüpft.
+Jetzt `text-slate-600 dark:text-slate-300` (AA), und Hinweis,
+Veraltet-Hinweis und Pflichtfeld-Fehler hängen per `aria-describedby` an der
+Eingabe (Screenreader lesen sie mit dem Feld vor); Veraltet- und
+Fehlertext ebenfalls auf AA-Kontrast (`amber-700`, `rose-600`).
+`renderInput` bekommt dafür `describedBy`, `RichTextEditor` eine gleichnamige
+Prop (auch zur Laufzeit aktualisiert).
+
+Migration: Tarball auf `ui/v0.7.1`. Wer `renderInput` mit `RichTextEditor`
+nutzt, reicht zusätzlich `describedBy={describedBy}` durch (sonst bleibt der
+Editor ohne Beschreibung — nichts bricht).
 
 ## auth/v0.2.0 — 2026-10-01
 
