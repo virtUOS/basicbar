@@ -7,6 +7,26 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### Template
+
+**App-spezifische Cookie-Namen für Session und CSRF** (#22): Browser trennen
+Cookies pro Host, nicht pro Port. Tools, die parallel auf demselben Host laufen
+(in der Entwicklung mehrere „-bar“-Tools auf `localhost`), überschrieben sich
+gegenseitig `sessionid`/`csrftoken` – man war in den anderen Tools abgemeldet
+(`403 "Anmeldedaten fehlen."`) und POSTs scheiterten an CSRF. Das Template
+setzt jetzt `SESSION_COOKIE_NAME = "<project_slug>_sessionid"` und
+`CSRF_COOKIE_NAME = "<project_slug>_csrftoken"`. `basicbar-auth`
+(Silent Login, Back-Channel-Logout, `whoami` mit CSRF-Token) und
+`basicbar-lti` setzen keine festen Cookie-Namen voraus; das Template-Frontend
+liest den CSRF-Token aus `whoami`, nicht aus dem Cookie.
+
+Migration (bestehende Tools): in `backend/config/settings.py` die zwei Zeilen
+ergänzen (Slug des Tools einsetzen). Wer das CSRF-Cookie im Frontend selbst
+per Namen liest (z. B. `getCookie("csrftoken")`), stellt auf den neuen Namen
+oder auf den Token aus `whoami` um. Beim Deploy werden alle Nutzenden einmal
+abgemeldet (per Silent-SSO meist sofort wieder angemeldet). Bereits
+übernommen: ausleihbar (virtUOS/ausleihbar#105), kalkulierbar.
+
 ### @basicbar/ui (→ wird `ui/v0.7.2`)
 
 **Sicherheits-Fix `stripHtml` / `isEmptyHtml`** (#20): Beide parsten über
