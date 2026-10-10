@@ -27,7 +27,40 @@ oder auf den Token aus `whoami` um. Beim Deploy werden alle Nutzenden einmal
 abgemeldet (per Silent-SSO meist sofort wieder angemeldet). Bereits
 übernommen: ausleihbar (virtUOS/ausleihbar#105), kalkulierbar.
 
-### @basicbar/ui (→ wird `ui/v0.8.0`)
+### basicbar-integrations (→ wird `integrations/v0.3.0`)
+
+**`CapabilitiesView` entfernt** (Framework-Review: kein Tool hat
+`GET /api/capabilities/` je aufgerufen — alle vier mischen die Flags in ihr
+`whoami`). An seine Stelle tritt `capabilities.capabilities_payload()` mit
+genau den drei Schlüsseln, die die Tools heute von Hand zusammensetzen
+(`ai_enabled`, `content_default_language`, `content_translation_enabled`).
+`basicbar_integrations.urls` enthält nur noch `translate/`.
+
+Migration: Version heben. Wer `basicbar_integrations.urls` einbindet,
+verliert den unbenutzten Endpunkt — sonst nichts. Empfohlen: in
+`accounts/views.py` `whoami` als
+`{**whoami_payload(request), **capabilities_payload(), …}` schreiben und die
+drei Inline-Flags löschen.
+
+### Alle Django-Pakete (→ werden `auth/v0.2.1`, `lti/v0.1.5`, `integrations/v0.3.0`)
+
+`__version__` kommt aus den Paket-Metadaten (`importlib.metadata`) statt aus
+einem zweiten handgepflegten String — die Versionen drifteten im Review
+auseinander. Ein nicht installierter Checkout meldet `0.0.0.dev0`. Keine
+Migration.
+
+### Repo
+
+- CHANGELOG: alle Releases seit Juli standen unter „[Unreleased] (→ wird …)“,
+  obwohl längst getaggt — jetzt je ein datierter Abschnitt pro Tag.
+- README: die Paket-Tabelle nennt keine Versionsnummern mehr (sie waren vom
+  Juli); aktuelle Stände stehen in den Tags und hier.
+- Doku-Drift zum Capabilities-Endpunkt in CLAUDE.md und EXTRAKTIONSPLAN
+  bereinigt.
+
+## ui/v0.8.0 — 2026-10-10
+
+### @basicbar/ui
 
 Anlass: Auf Smartphones verdeckte die schwebende Übersetzungsleiste
 („DE · EN · Alle Felder übersetzen“) Formularinhalte (abstimmbar #179);
@@ -37,7 +70,8 @@ CSS-Overrides auf Paket-Markup. Das wird jetzt Paket-Funktion.
 - **Verschiebbare Übersetzungsleiste:** Die schwebende Leiste von
   `TranslationFormProvider` hat links einen Griff (`GripVertical`,
   Name/Tooltip `"Move translation controls"`). Ziehen mit Maus oder Touch
-  verschiebt die ganze Leiste als `transform: translate(…)` – die Position aus
+  verschiebt die ganze Leiste per CSS-`translate` (setzt sich mit
+  Tailwind-Transform-Utilities in `controlsClassName` zusammen) – die Position aus
   `controlsClassName` bleibt der Anker. Die Leiste bleibt vollständig im
   Viewport (auch nach Fenstergrößenänderung); der Versatz wird pro Browser in
   `localStorage` (`basicbar_translation_controls_offset`) gemerkt.
@@ -78,7 +112,9 @@ Migration:
 5. Die schwebende Leiste hat jetzt einen Griff – wer das nicht will:
    `movable={false}`.
 
-### @basicbar/ui (→ wird `ui/v0.7.2`)
+## ui/v0.7.2 — 2026-10-07
+
+### @basicbar/ui
 
 **Sicherheits-Fix `stripHtml` / `isEmptyHtml`** (#20): Beide parsten über
 `innerHTML` auf einem Element des Live-Dokuments — dort lädt der Browser
@@ -88,37 +124,6 @@ ohne Einhängen. Jetzt wird in einem inerten `DOMParser`-Dokument geparst
 geparsten Body statt per Regex. Verhalten sonst unverändert.
 
 Migration: Tarball auf `ui/v0.7.2`. Keine Code-Änderung nötig.
-
-### basicbar-integrations (→ wird `integrations/v0.3.0`)
-
-**`CapabilitiesView` entfernt** (Framework-Review: kein Tool hat
-`GET /api/capabilities/` je aufgerufen — alle vier mischen die Flags in ihr
-`whoami`). An seine Stelle tritt `capabilities.capabilities_payload()` mit
-genau den drei Schlüsseln, die die Tools heute von Hand zusammensetzen
-(`ai_enabled`, `content_default_language`, `content_translation_enabled`).
-`basicbar_integrations.urls` enthält nur noch `translate/`.
-
-Migration: Version heben. Wer `basicbar_integrations.urls` einbindet,
-verliert den unbenutzten Endpunkt — sonst nichts. Empfohlen: in
-`accounts/views.py` `whoami` als
-`{**whoami_payload(request), **capabilities_payload(), …}` schreiben und die
-drei Inline-Flags löschen.
-
-### Alle Django-Pakete (→ werden `auth/v0.2.1`, `lti/v0.1.5`, `integrations/v0.3.0`)
-
-`__version__` kommt aus den Paket-Metadaten (`importlib.metadata`) statt aus
-einem zweiten handgepflegten String — die Versionen drifteten im Review
-auseinander. Ein nicht installierter Checkout meldet `0.0.0.dev0`. Keine
-Migration.
-
-### Repo
-
-- CHANGELOG: alle Releases seit Juli standen unter „[Unreleased] (→ wird …)“,
-  obwohl längst getaggt — jetzt je ein datierter Abschnitt pro Tag.
-- README: die Paket-Tabelle nennt keine Versionsnummern mehr (sie waren vom
-  Juli); aktuelle Stände stehen in den Tags und hier.
-- Doku-Drift zum Capabilities-Endpunkt in CLAUDE.md und EXTRAKTIONSPLAN
-  bereinigt.
 
 ## ui/v0.7.1 — 2026-10-02
 

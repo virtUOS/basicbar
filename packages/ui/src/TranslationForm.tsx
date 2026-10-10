@@ -117,6 +117,14 @@ export function TranslationControlsSlot({
   const idRef = useRef<number | null>(null);
   if (idRef.current === null) idRef.current = ++nextSlotId;
 
+  // Unregister only on unmount (or provider change): a changed `media` must
+  // update the slot in place, not re-append it as "most recently mounted".
+  useLayoutEffect(() => {
+    if (!registry) return;
+    const id = idRef.current!;
+    return () => registry.remove(id);
+  }, [registry]);
+
   useLayoutEffect(() => {
     const el = ref.current;
     if (!registry || !el) return;
@@ -126,10 +134,7 @@ export function TranslationControlsSlot({
     const report = () => registry.upsert({ id, el, matches: !!mql?.matches });
     report();
     mql?.addEventListener("change", report);
-    return () => {
-      mql?.removeEventListener("change", report);
-      registry.remove(id);
-    };
+    return () => mql?.removeEventListener("change", report);
   }, [registry, media]);
 
   return <div ref={ref} className={`empty:hidden ${className}`.trim()} />;
@@ -342,16 +347,30 @@ export function TranslationFormProvider({
       const pos = window.getComputedStyle(el).position;
       const isOut = pos === "fixed" || pos === "absolute";
       setPositioned(isOut);
-      if (!isOut || !movable) return;
-      // Re-clamp (e.g. after a resize or with an offset stored on a wider
+      // Until `positioned` is set no offset is applied yet, so the box below
+      // would be off by it; this effect re-runs once it flips.
+      if (!isOut || !movable || !positioned) return;
+      // Re-clamp (after a resize, a size change of the pill itself — error
+      // message, "Translating…" — or with an offset stored on a wider
       // screen) without persisting, so a wider window restores the spot.
       const cur = offsetRef.current;
       const next = clampOffset(cur, baseRect(el, cur));
-      if (next.x !== cur.x || next.y !== cur.y) setOffset(next);
+      if (next.x !== cur.x || next.y !== cur.y) {
+        offsetRef.current = next;
+        setOffset(next);
+      }
     };
     sync();
     window.addEventListener("resize", sync);
-    return () => window.removeEventListener("resize", sync);
+    const ro =
+      typeof ResizeObserver !== "undefined" && floatRef.current
+        ? new ResizeObserver(() => sync())
+        : null;
+    if (ro && floatRef.current) ro.observe(floatRef.current);
+    return () => {
+      window.removeEventListener("resize", sync);
+      ro?.disconnect();
+    };
   }, [floating, movable, positioned, controlsClassName]);
 
   const drag = useRef<{
@@ -422,6 +441,8 @@ export function TranslationFormProvider({
       moveTo(moves[e.key], true);
     } else if (e.key === "Home" || e.key === "Escape") {
       e.preventDefault();
+      // Don't let the reset also close a surrounding dialog.
+      e.stopPropagation();
       resetOffset();
     }
   };
@@ -514,7 +535,10 @@ export function TranslationFormProvider({
             className={`${controlsClassName} flex flex-col items-end gap-1`}
             style={
               canMove && (offset.x || offset.y)
-                ? { transform: `translate(${offset.x}px, ${offset.y}px)` }
+                ? // The individual `translate` property composes with any
+                  // Tailwind transform utility in `controlsClassName`
+                  // (e.g. `-translate-x-1/2`) instead of replacing it.
+                  { translate: `${offset.x}px ${offset.y}px` }
                 : undefined
             }
           >

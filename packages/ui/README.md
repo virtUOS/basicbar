@@ -228,7 +228,7 @@ unteren Rand auf schmalen Screens), setzt das Tool die Position per
 
 **Verschieben:** Die schwebende Leiste hat links einen Griff (Ziehen mit
 Maus/Touch, Pfeiltasten 16 px bzw. mit Umschalt 64 px; `Pos1`/`Esc` oder
-Doppelklick setzen zurück). Der Versatz liegt als `transform` über der
+Doppelklick setzen zurück). Der Versatz liegt als CSS-`translate` über der
 Position aus `controlsClassName` und wird pro Browser in `localStorage`
 (`basicbar_translation_controls_offset`) gemerkt. Abschalten mit
 `movable={false}`.
@@ -237,7 +237,9 @@ Position aus `controlsClassName` und wird pro Browser in `localStorage`
 Smartphones), setzt die Seite einen Platzhalter in den Fluss. Solange er
 gemountet ist und `media` passt (Default `"(max-width: 767px)"`), rendert der
 Provider die Leiste dort hinein – ohne Fixed-Positionierung und Griff; sonst
-schwebt sie wie gewohnt. Bei mehreren Slots gewinnt der zuletzt gemountete.
+schwebt sie wie gewohnt. Bei mehreren Slots gewinnt der zuletzt gemountete –
+auch wenn dessen `media` gerade nicht passt und ein älterer Slot passen würde
+(dann schwebt die Leiste).
 
 ```tsx
 <TranslationFormProvider
