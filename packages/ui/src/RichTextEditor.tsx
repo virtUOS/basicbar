@@ -318,7 +318,9 @@ export function RichTextEditor({
       }`}
     >
       {editable && (
-        <div className="flex flex-nowrap gap-1 overflow-x-auto border-b border-slate-200 dark:border-slate-800 px-2 py-1">
+        // Wraps onto further rows on narrow screens instead of a horizontal
+        // scroller whose hidden buttons had no affordance.
+        <div className="flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-800 px-2 py-1">
           <ToolbarButton
             label={t("Bold")}
             active={editor.isActive("bold")}

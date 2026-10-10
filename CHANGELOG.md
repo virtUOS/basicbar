@@ -27,6 +27,57 @@ oder auf den Token aus `whoami` um. Beim Deploy werden alle Nutzenden einmal
 abgemeldet (per Silent-SSO meist sofort wieder angemeldet). Bereits
 übernommen: ausleihbar (virtUOS/ausleihbar#105), kalkulierbar.
 
+### @basicbar/ui (→ wird `ui/v0.8.0`)
+
+Anlass: Auf Smartphones verdeckte die schwebende Übersetzungsleiste
+(„DE · EN · Alle Felder übersetzen“) Formularinhalte (abstimmbar #179);
+abstimmbar umging das mit einem verschachtelten Provider und zwei
+CSS-Overrides auf Paket-Markup. Das wird jetzt Paket-Funktion.
+
+- **Verschiebbare Übersetzungsleiste:** Die schwebende Leiste von
+  `TranslationFormProvider` hat links einen Griff (`GripVertical`,
+  Name/Tooltip `"Move translation controls"`). Ziehen mit Maus oder Touch
+  verschiebt die ganze Leiste als `transform: translate(…)` – die Position aus
+  `controlsClassName` bleibt der Anker. Die Leiste bleibt vollständig im
+  Viewport (auch nach Fenstergrößenänderung); der Versatz wird pro Browser in
+  `localStorage` (`basicbar_translation_controls_offset`) gemerkt.
+  Tastatur: Pfeiltasten 16 px, mit Umschalt 64 px; `Pos1`/`Esc` oder
+  Doppelklick auf den Griff setzen zurück. Ein bloßer Klick tut nichts. Der
+  Griff erscheint nur, solange die Leiste `fixed`/`absolute` positioniert ist.
+  Abschalten: `movable={false}`.
+- **Andockplatz `TranslationControlsSlot`** (`{ className?, media? }`): ein
+  Platzhalter, den eine Seite dorthin setzt, wo die Leiste im Fluss stehen
+  soll (z. B. oben im Formular). Solange ein Slot gemountet ist und seine
+  Media Query passt (Default `"(max-width: 767px)"`, exportiert als
+  `TRANSLATION_SLOT_MEDIA`, = unter Tailwind `md`), rendert der nächste
+  Provider die Leiste per Portal in den Slot – ohne Fixed-Positionierung,
+  Griff und Versatz. Sonst schwebt sie wie bisher; der leere Slot ist per
+  `:empty` ausgeblendet. Bei mehreren Slots gewinnt der zuletzt gemountete.
+  Neue Provider-Prop `slotControlsClassName` (Default `flex justify-end`,
+  also rechtsbündig) für die angedockte Variante; `controlsClassName` gilt nur
+  für die schwebende.
+- **Rich-Text-Toolbar bricht um** (`flex-wrap`) statt horizontal zu scrollen
+  – auf schmalen Screens waren die versteckten Buttons nicht zu erahnen; wo
+  die Zeile passt, ändert sich nichts.
+- **Sprach-Tabs von `TranslatableField`:** Trefferfläche per `::after` auf
+  ≥ 24 px Höhe (WCAG 2.5.8), Optik unverändert.
+
+Migration:
+
+1. Tarball auf `ui/v0.8.0`, Vite-Dep-Cache leeren.
+2. Neuen Übersetzungs-Key `"Move translation controls"` in den deutschen
+   Katalog aufnehmen (Vorschlag: `"Übersetzungsleiste verschieben"`).
+3. Optional: `<TranslationControlsSlot />` oben in Formulare mit
+   übersetzbaren Feldern setzen (innerhalb des `TranslationFormProvider`), damit
+   die Leiste auf Smartphones im Fluss steht statt Inhalte zu verdecken. Wer
+   die Leiste in Tests über eine Hook-Klasse findet, gibt sie auch in
+   `slotControlsClassName` mit (z. B. `"my-hook flex justify-end"`).
+   Workarounds wie ein verschachtelter Provider pro Formular entfallen.
+4. Lokale Overrides für Toolbar-Umbruch oder Tab-Trefferfläche (falls
+   vorhanden) entfernen.
+5. Die schwebende Leiste hat jetzt einen Griff – wer das nicht will:
+   `movable={false}`.
+
 ### @basicbar/ui (→ wird `ui/v0.7.2`)
 
 **Sicherheits-Fix `stripHtml` / `isEmptyHtml`** (#20): Beide parsten über

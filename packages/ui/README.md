@@ -28,8 +28,9 @@ Tools identisch aussehen, übergeben sie dieselbe Ramp.
   `<html lang>`-Sync nach WCAG 3.1.1). Die Kataloge bleiben im Tool.
 - **`contentLang`** — `localizedText`/`localizedMap`/`setLocalizedLang` & Co.
   für `{ lang: text }`-Inhalte (Spiegel des Backend-`resolve_translated_text`).
-- **`TranslatableField` / `TranslationFormProvider`** — Sprach-Tabs pro
-  Feld plus „alle Felder übersetzen“ (siehe `TranslatableField.tsx`).
+- **`TranslatableField` / `TranslationFormProvider` / `TranslationControlsSlot`**
+  — Sprach-Tabs pro Feld plus verschiebbare Leiste „alle Felder übersetzen“,
+  optional im Formular angedockt (siehe `TranslatableField.tsx`).
 - **`RichText` / `stripHtml` / `isEmptyHtml`** — Rendern und Prüfen des
   gespeicherten Rich-HTML; **`RichTextEditor`** (TipTap) als **eigener Entry**
   `@basicbar/ui/rich-text-editor`, damit TipTap/ProseMirror nur in Bundles
@@ -225,6 +226,33 @@ unteren Rand auf schmalen Screens), setzt das Tool die Position per
 <TranslationFormProvider translate={…} controlsClassName="fixed bottom-6 right-6 z-40 max-md:bottom-[5.5rem]">
 ```
 
+**Verschieben:** Die schwebende Leiste hat links einen Griff (Ziehen mit
+Maus/Touch, Pfeiltasten 16 px bzw. mit Umschalt 64 px; `Pos1`/`Esc` oder
+Doppelklick setzen zurück). Der Versatz liegt als `transform` über der
+Position aus `controlsClassName` und wird pro Browser in `localStorage`
+(`basicbar_translation_controls_offset`) gemerkt. Abschalten mit
+`movable={false}`.
+
+**Andocken im Formular:** Wo die Leiste Inhalte verdecken würde (v. a. auf
+Smartphones), setzt die Seite einen Platzhalter in den Fluss. Solange er
+gemountet ist und `media` passt (Default `"(max-width: 767px)"`), rendert der
+Provider die Leiste dort hinein – ohne Fixed-Positionierung und Griff; sonst
+schwebt sie wie gewohnt. Bei mehreren Slots gewinnt der zuletzt gemountete.
+
+```tsx
+<TranslationFormProvider
+  translate={…}
+  controlsClassName="fixed bottom-6 right-6 z-40"
+  slotControlsClassName="flex justify-end" // Default: rechtsbündig
+>
+  …
+  <form className="grid gap-6">
+    <TranslationControlsSlot />           {/* optional: className, media */}
+    <TranslatableField … />
+  </form>
+</TranslationFormProvider>
+```
+
 ## Übersetzungs-Keys
 
 Alle Strings des Pakets laufen über `t()` mit Englisch als Key (siehe
@@ -244,7 +272,8 @@ seinem Katalog bereit. Fehlende Keys fallen auf den englischen Text zurück.
   `"A value in {{language}} is required."`.
 - TranslationFormProvider: `"Show all fields in one language"`,
   `"Show all fields in {{language}}"`, `"Translate all fields"`,
-  `"Translating…"`, `"Some fields could not be translated."`.
+  `"Translating…"`, `"Some fields could not be translated."`,
+  `"Move translation controls"`.
 - Preferences: `"Preferences"`, `"Language"`, `"Appearance"`, `"Auto"`,
   `"(follows your system)"`, `"Light"`, `"Dark"`.
 
