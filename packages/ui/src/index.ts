@@ -9,6 +9,8 @@ export type { Language } from "./i18n";
 
 export {
   MAX_TRANSLATE_LENGTH,
+  TRANSLATION_SLOT_MEDIA,
+  TranslationControlsSlot,
   TranslationFormProvider,
   useTranslationForm,
 } from "./TranslationForm";

@@ -293,6 +293,8 @@ export function TranslatableField({
                       : missingRequired
                         ? "border-amber-500"
                         : "border-current opacity-40";
+                // The ::after box extends the ~21px pill to a ≥24px hit area
+                // (WCAG 2.5.8) without changing its look.
                 return (
                   <button
                     key={lang.code}
@@ -300,7 +302,7 @@ export function TranslatableField({
                     role="tab"
                     aria-selected={isActive}
                     onClick={() => setActive(lang.code)}
-                    className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium uppercase transition-colors ${
+                    className={`relative flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] font-medium uppercase transition-colors ${
                       isActive
                         ? "bg-brand-400 text-slate-900"
                         : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
