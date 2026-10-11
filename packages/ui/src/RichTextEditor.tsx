@@ -313,7 +313,7 @@ export function RichTextEditor({
 
   return (
     <div
-      className={`rounded-lg border border-slate-300 dark:border-slate-700 focus-within:ring-2 focus-within:ring-brand-600 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-slate-950 ${
+      className={`rounded-lg border border-field focus-within:ring-2 focus-within:ring-brand-600 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-slate-950 ${
         editable ? "" : "bg-slate-50 dark:bg-slate-900"
       }`}
     >

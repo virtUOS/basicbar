@@ -11,7 +11,14 @@
  * Ramp conventions (keep these when authoring a tool ramp, see the READMEs of
  * the existing tools; values are OKLCH and tuned for WCAG AA):
  * - `slate` is the neutral ramp, usually hue-tinted toward the accent
- *   (warm for honey, cool for green). slate-400 on white stays ≥4.5:1.
+ *   (warm for honey, cool for green). Muted text (typically slate-400/500)
+ *   must reach ≥4.5:1 on the page and card backgrounds in BOTH themes — a
+ *   single ramp value often can't, so check light and dark and, if needed,
+ *   drive it through a CSS variable that dark mode lifts.
+ * - Form-control borders and error text are NOT ramp steps: use the `field`
+ *   and `danger` tokens below (variables `--bb-field-border` / `--bb-danger`
+ *   with contrast-checked defaults in base.css; tools override the variables
+ *   to tint them).
  * - `brand` is the single accent: CTAs use brand-400 with dark ink text,
  *   brand-600 is the focus/selection color (≥3:1 non-text on white),
  *   brand-700 is accent text on white (≥4.5:1).
@@ -55,7 +62,13 @@ export function createPreset({ colors } = {}) {
             "sans-serif",
           ],
         },
-        colors,
+        colors: {
+          // Semantic tokens; defaults live in base.css. Tools tint them by
+          // overriding the CSS variables, not by redefining `field`/`danger`.
+          field: "oklch(var(--bb-field-border) / <alpha-value>)",
+          danger: "oklch(var(--bb-danger) / <alpha-value>)",
+          ...colors,
+        },
         transitionTimingFunction: {
           "out-quart": "cubic-bezier(0.25, 1, 0.5, 1)",
         },

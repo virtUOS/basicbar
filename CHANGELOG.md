@@ -58,6 +58,52 @@ Migration.
 - Doku-Drift zum Capabilities-Endpunkt in CLAUDE.md und EXTRAKTIONSPLAN
   bereinigt.
 
+## ui/v0.9.0 — 2026-10-11
+
+### @basicbar/ui
+
+Anlass: abstimmbar #178 (Kontrast) brauchte einen Formularfeld-Rahmen mit
+≥ 3:1 (WCAG 1.4.11) und Fehlertext mit ≥ 4.5:1 und überschrieb dafür per CSS
+den Rahmen des Paket-Editors. Beides wird jetzt Paket-Funktion.
+
+- **Neue semantische Farben `field` und `danger`** im Preset (mit
+  `/ <alpha-value>`, also z. B. `border-field/50`, `text-danger`). Sie lesen
+  die CSS-Variablen `--bb-field-border` und `--bb-danger` (OKLCH-Kanäle ohne
+  `oklch()`), deren Defaults `base.css` setzt (hell unter `:root`, dunkel unter
+  `:root.dark`). Defaults und berechnete Kontraste stehen als Kommentar in
+  `base.css`: `field` hell `0.6 0 0` (3.5–3.95:1 auf Weiß/slate-50/100), dunkel
+  `0.56 0 0` (≥ 3.76:1 auf slate-900/950); `danger` hell `0.55 0.235 27`
+  (≥ 4.74:1), dunkel `0.704 0.191 22.216` = red-400 (≥ 5.03:1).
+- **Komponenten nutzen die Tokens:** Rahmen von `RichTextEditor` (Fokusring
+  unverändert) und Standard-Input von `TranslatableField` → `border-field`
+  (sichtbar etwas dunkler als vorher); Pflicht-Sternchen, Übersetzungsfehler und
+  „Pflichtfeld“-Meldung in `TranslatableField` sowie die Fehlermeldung der
+  Übersetzungsleiste → `text-danger` (vorher rose-500/600/400).
+- **Preset-Kommentar korrigiert:** „slate-400 ≥ 4.5:1 auf Weiß“ galt nicht für
+  jede Rampe. Gedämpfter Text ist in beiden Themes gegen Seite und Karten auf
+  ≥ 4.5:1 zu prüfen.
+
+Tönen: Die Defaults sind neutral. Ein Tool färbt sie ein, indem es die
+Variablen in seinem eigenen (ungeschichteten) CSS überschreibt, z. B.
+
+```css
+:root { --bb-field-border: 0.62 0.011 220; --bb-danger: 0.55 0.235 27; }
+:root.dark { --bb-field-border: 0.56 0.011 220; }
+```
+
+und die Kontraste (field ≥ 3:1, danger ≥ 4.5:1) gegen die eigenen Hintergründe
+nachrechnet.
+
+Migration:
+
+1. Tarball auf `ui/v0.9.0`, Vite-Dep-Cache leeren.
+2. Eigene Overrides des Editor-Rahmens (z. B. `.xy-rte > div.rounded-lg
+   { border-color: … }`) entfernen; stattdessen `--bb-field-border` setzen,
+   falls der Default nicht passt. Eine lokale `field`-Farbe im Tool-Preset
+   durch die Variable ersetzen.
+3. Optional: lokale Fehlerrot-Muster (`text-red-600 dark:text-red-400` o. ä.)
+   durch `text-danger` ersetzen.
+
 ## ui/v0.8.0 — 2026-10-10
 
 ### @basicbar/ui

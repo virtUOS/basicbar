@@ -61,7 +61,7 @@ export interface RenderInputArgs {
 }
 
 const DEFAULT_INPUT_CLASS =
-  "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 dark:bg-slate-900 dark:text-slate-100";
+  "w-full rounded-lg border border-field bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 dark:bg-slate-900 dark:text-slate-100";
 
 export interface TranslatableFieldProps {
   /** Visible label above the field; omit for compact inline uses (the
@@ -260,7 +260,7 @@ export function TranslatableField({
             <span className="flex items-center gap-1">
               <label id={labelId} htmlFor={inputId} className={labelClassName}>
                 {label}
-                {required && <span className="text-rose-500"> *</span>}
+                {required && <span className="text-danger"> *</span>}
               </label>
               {labelAddon}
             </span>
@@ -384,14 +384,14 @@ export function TranslatableField({
           )}
         </div>
       )}
-      {translateError && <p className="mt-1 text-rose-500">{translateError}</p>}
+      {translateError && <p className="mt-1 text-danger">{translateError}</p>}
       {hint && (
         <p id={hintId} className="mt-1 text-slate-600 dark:text-slate-300">
           {hint}
         </p>
       )}
       {canonicalEmpty && (
-        <p id={requiredId} className="mt-1 text-rose-600 dark:text-rose-400">
+        <p id={requiredId} className="mt-1 text-danger">
           {t("A value in {{language}} is required.", {
             language: defaultContentLangLabel(),
           })}
