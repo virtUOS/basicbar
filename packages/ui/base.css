@@ -16,9 +16,29 @@
      `color-scheme` on <html>; these rules cover the pre-React first paint. */
   :root {
     color-scheme: light;
+    /* Semantic colour tokens (Tailwind colours `field` and `danger`, see
+       tailwind-preset.js). Values are OKLCH channels without `oklch()` so the
+       preset can append `/ <alpha-value>`. Neutral defaults: a tool tints
+       them by overriding the variables in its own (unlayered) CSS, e.g.
+       `:root { --bb-field-border: 0.6 0.011 220; }`, and re-checks the ratios.
+       Computed WCAG contrast (sRGB, clamped):
+       --bb-field-border (form-control boundary, WCAG 1.4.11 needs >=3:1)
+         light 0.6 0 0: 3.95 on white, 3.78 on slate-50, 3.54 on slate-100
+         dark 0.56 0 0: 4.17 on slate-950/#090e10, 3.76 on slate-900,
+                        3.13 on slate-800
+       --bb-danger (error text, WCAG 1.4.3 needs >=4.5:1)
+         light 0.55 0.235 27: 5.29 on white, 5.07 on slate-50, 4.74 on slate-100
+         dark 0.704 0.191 22.216 (red-400): 6.7 on slate-950, 6.04 on slate-900,
+                                            5.03 on slate-800
+       (slate ramps of abstimmbar and ausleihbar; both give the same ratios to
+       within 0.01.) */
+    --bb-field-border: 0.6 0 0;
+    --bb-danger: 0.55 0.235 27;
   }
   :root.dark {
     color-scheme: dark;
+    --bb-field-border: 0.56 0 0;
+    --bb-danger: 0.704 0.191 22.216;
   }
 
   /* Ink on white in light mode; a near-black canvas in dark mode. The accent

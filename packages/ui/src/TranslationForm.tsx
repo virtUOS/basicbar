@@ -450,7 +450,7 @@ export function TranslationFormProvider({
   const renderControls = (withHandle: boolean) => (
     <>
       {error && (
-        <span className="rounded-md bg-white px-2 py-1 text-xs text-rose-600 shadow dark:bg-slate-800 dark:text-rose-400">
+        <span className="rounded-md bg-white px-2 py-1 text-xs text-danger shadow dark:bg-slate-800">
           {error}
         </span>
       )}

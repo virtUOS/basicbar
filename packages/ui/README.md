@@ -12,6 +12,9 @@ Tools identisch aussehen, übergeben sie dieselbe Ramp.
   (Plus Jakarta Sans Variable), Dark Mode per `.dark`-Klasse, Motion-Tokens
   (`pop`, `fade-up`, `out-quart`). Die `slate`/`brand`-Ramps übergibt das Tool
   (OKLCH, Konventionen im Preset-Docstring).
+  Dazu die semantischen Farben `field` (Formularrahmen, ≥ 3:1) und `danger`
+  (Fehlertext, ≥ 4.5:1) über die Variablen `--bb-field-border`/`--bb-danger`
+  (Defaults in `base.css`, vom Tool überschreibbar).
 - **`@basicbar/ui/base.css`** — gemeinsame Basis-Styles (`@layer base` plus
   ungelayerte ProseMirror-Regeln): Canvas hell/dunkel,
   `accent-color`, `::selection`, konsistenter `:focus-visible`-Ring
