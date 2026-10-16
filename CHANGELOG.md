@@ -7,6 +7,25 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### @basicbar/ui (→ wird `ui/v0.9.1`)
+
+**`RichTextEditor` verwirft keine Eingaben mehr durch veraltete Echos.** Der
+Editor glich seinen `value` per Effekt ab und rief bei jeder Abweichung vom
+aktuellen Editor-HTML `setContent` auf. Die eigenen Änderungen kommen aber
+einen Render später als `value` zurück — unter Last (asynchrone
+State-/Autosave-Runden) tippt man dazwischen weiter, das Echo ist dann schon
+veraltet und setzte den Editor auf den älteren Text zurück: das neueste
+Zeichen ging verloren, ein Leerzeichen am Ende endgültig (ProseMirror
+entfernt es beim Parsen). Der Editor merkt sich jetzt seine eigenen
+`onChange`-Werte und ignoriert deren Echos (aktuell wie veraltet). Echte
+Änderungen von außen werden weiter übernommen — auch eine, die einem früheren
+Wert gleicht (z. B. Formular-Reset auf `""`, Wechsel zu einer Frage mit
+identischem Text).
+
+Migration: Tarball auf `ui/v0.9.1`, Vite-Dep-Cache leeren. Eigene
+Echo-Wrapper um den Editor (abstimmbar: `RichTextInput` in
+`TranslatableField.tsx`) können entfallen.
+
 ### Template
 
 **App-spezifische Cookie-Namen für Session und CSRF** (#22): Browser trennen

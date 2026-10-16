@@ -27,7 +27,7 @@ import {
   List,
   ListOrdered,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 /** Bold that only recognises explicit <strong>/<b> tags. TipTap's default
@@ -118,6 +118,21 @@ export function RichTextEditor({
 }: RichTextEditorProps) {
   const { t } = useTranslation();
 
+  // Echo bookkeeping for the outside-value sync below. Our own edits come
+  // back as `value` one render later — and under load the user may type
+  // again before the sync effect runs, so that echo is already stale. We
+  // remember what we emitted to tell such echoes apart from genuine outside
+  // changes.
+  const sync = useRef({
+    // The `value` prop the sync effect saw last.
+    prop: value,
+    // Newest HTML emitted via onChange (null: none since the last outside
+    // change), and every emission the parent hasn't caught up with yet (any
+    // of them may still come back as `value`).
+    latest: null as string | null,
+    pending: new Set<string>(),
+  }).current;
+
   async function insertImageFile(editor: Editor, file: File, pos?: number) {
     if (!onUploadImage || !editor.isEditable) return;
     let url: string;
@@ -184,7 +199,12 @@ export function RichTextEditor({
       Image,
     ],
     content: value,
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      sync.latest = html;
+      sync.pending.add(html);
+      onChange(html);
+    },
     editorProps: {
       attributes: {
         ...(id ? { id } : {}),
@@ -251,18 +271,40 @@ export function RichTextEditor({
   });
 
   // Sync when the value changes from OUTSIDE (e.g. applying an AI rephrasing,
-  // or switching the active language tab). The guard avoids clobbering the
-  // cursor during normal typing (there the stored value already equals the
-  // editor's HTML). emitUpdate:false so this settles without a second round
-  // that would reset the caret to the top while the user is typing (#50).
-  // addToHistory:false keeps this out of the undo stack — otherwise a single
-  // Ctrl+Z right after an external sync (e.g. switching language tabs) would
-  // undo INTO the previous tab's content instead of the user's own last edit.
+  // switching the active language tab, a form reset). Echoes of our own edits
+  // are ignored — the current one and stale ones alike: under load a
+  // keystroke can land between the render carrying an echo and this effect,
+  // and resetting to that older text would drop the newest keystroke (and
+  // for good a trailing space, which ProseMirror strips on parse). A change
+  // of the prop that is not a pending own emission is external and applied,
+  // even when it equals an earlier text (e.g. resetting a field to "").
+  // emitUpdate:false so this settles without a second round that would reset
+  // the caret to the top while the user is typing (#50). addToHistory:false
+  // keeps this out of the undo stack — otherwise a single Ctrl+Z right after
+  // an external sync (e.g. switching language tabs) would undo INTO the
+  // previous tab's content instead of the user's own last edit.
   useEffect(() => {
-    if (editor && value !== editor.getHTML()) {
+    if (!editor) return;
+    if (value === sync.prop) {
+      // Prop unchanged (e.g. the editor instance just became available):
+      // align only if the user hasn't edited yet.
+      if (sync.latest !== null) return;
+    } else {
+      sync.prop = value;
+      if (value === sync.latest) {
+        // Caught up with the newest emission: older ones can't come back.
+        sync.pending.clear();
+        return;
+      }
+      if (sync.pending.has(value)) return; // stale own echo
+      // Outside change: forget our emissions.
+      sync.latest = null;
+      sync.pending.clear();
+    }
+    if (value !== editor.getHTML()) {
       editor.chain().setMeta("addToHistory", false).setContent(value, { emitUpdate: false }).run();
     }
-  }, [editor, value]);
+  }, [editor, value, sync]);
 
   // `editable` in useEditor only seeds the initial state; flips afterwards
   // (e.g. a form toggling into "saving") go through setEditable.
