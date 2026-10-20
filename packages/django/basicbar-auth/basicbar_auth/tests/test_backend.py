@@ -109,13 +109,52 @@ class SubjectDriftTests(TestCase):
         """A re-imported dev realm (or an IdP migration) re-issues subjects;
         the login must match the existing account instead of crashing into
         the unique-username constraint."""
-        matched = self.backend.filter_users_by_claims(self.drifted)
+        with self.assertLogs("basicbar_auth.oidc", level="WARNING"):
+            matched = self.backend.filter_users_by_claims(self.drifted)
         self.assertEqual(list(matched), [self.user])
         # update_user adopts the new subject, so the next login matches
         # directly again.
         updated = self.backend.update_user(self.user, self.drifted)
         self.assertEqual(updated.subject, "new-sub-456")
         self.assertEqual(self.backend.filter_users_by_claims(self.drifted).count(), 1)
+
+    @override_settings(OIDC_MATCH_BY_USERNAME_FALLBACK=True)
+    def test_fallback_never_adopts_a_local_account_without_subject(self):
+        """A break-glass account from ``createsuperuser`` has no OIDC subject;
+        an IdP login with the same username must not take it over."""
+        for subject in (None, ""):
+            with self.subTest(subject=subject):
+                User.objects.all().delete()
+                User.objects.create(username="frank", subject=subject)
+                claims = {**CLAIMS, "sub": f"fresh-{subject!r}"}
+                self.assertEqual(self.backend.filter_users_by_claims(claims).count(), 0)
+                with self.assertRaises(PermissionDenied):
+                    self.backend.create_user(claims)
+                self.assertEqual(User.objects.count(), 1)
+
+    @override_settings(OIDC_MATCH_BY_USERNAME_FALLBACK=True)
+    def test_fallback_leaves_a_local_superuser_untouched(self):
+        User.objects.all().delete()
+        root = User.objects.create_superuser(username="frank", password="pw")
+        claims = {**CLAIMS, "sub": "fresh-sub"}
+        self.assertEqual(self.backend.filter_users_by_claims(claims).count(), 0)
+        # Nothing matched, so the OIDC flow takes the create path; the
+        # username clash is rejected instead of adopting the superuser.
+        with self.assertRaises(PermissionDenied):
+            self.backend.create_user(claims)
+        root.refresh_from_db()
+        self.assertTrue(root.is_superuser)
+        self.assertIsNone(root.subject)
+
+    @override_settings(OIDC_MATCH_BY_USERNAME_FALLBACK=True)
+    def test_fallback_never_adopts_an_lti_native_account(self):
+        User.objects.all().delete()
+        User.objects.create(username="frank", subject="lti:3:abc")
+        claims = {**CLAIMS, "sub": "fresh-sub"}
+        self.assertEqual(self.backend.filter_users_by_claims(claims).count(), 0)
+        with self.assertLogs("basicbar_auth.oidc", level="WARNING"):
+            with self.assertRaises(PermissionDenied):
+                self.backend.create_user(claims)
 
     @override_settings(OIDC_MATCH_BY_USERNAME_FALLBACK=True)
     def test_unknown_subject_and_username_matches_nothing(self):

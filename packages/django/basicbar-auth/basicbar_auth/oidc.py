@@ -145,9 +145,28 @@ class OIDCBackend(OIDCAuthenticationBackend):
         # trusted IdP, so fall back to it instead of crashing into the
         # unique-username constraint; update_user persists the new subject.
         username = claims.get(conf.get("OIDC_CLAIM_USERNAME"))
-        if username:
-            return self.UserModel.objects.filter(username__iexact=username)
-        return self.UserModel.objects.none()
+        if not username:
+            return self.UserModel.objects.none()
+        # Only accounts that already carry an OIDC subject qualify: local
+        # accounts (createsuperuser break-glass, no subject) and LTI-native
+        # accounts (``lti:<platform>:<sub>``, see basicbar-lti) must never be
+        # adopted by an IdP login that merely shares the username.
+        candidates = (
+            self.UserModel.objects.filter(username__iexact=username)
+            .exclude(subject__isnull=True)
+            .exclude(subject="")
+            .exclude(subject__startswith="lti:")
+        )
+        # Evaluating once fills the queryset cache, so the caller reuses it.
+        matches = list(candidates)
+        if len(matches) == 1:
+            logger.warning(
+                "OIDC username fallback adopts user %r: subject %r -> %r",
+                matches[0].get_username(),
+                matches[0].subject,
+                subject,
+            )
+        return candidates
 
     def create_user(self, claims):
         # Optional per-deployment cap on accounts. New identities are turned
@@ -162,8 +181,23 @@ class OIDCBackend(OIDCAuthenticationBackend):
                 raise PermissionDenied(
                     "The maximum number of user accounts has been reached."
                 )
+        username = claims.get(conf.get("OIDC_CLAIM_USERNAME")) or claims.get("sub")
+        # A local or LTI-native account with this username is not linked to
+        # this identity (the fallback refuses to adopt it): refuse cleanly
+        # instead of crashing into the unique-username constraint.
+        if self.UserModel.objects.filter(username__iexact=username).exists():
+            logger.warning(
+                "Refusing OIDC account creation: username %r already exists "
+                "and is not linked to sub=%r.",
+                username,
+                claims.get("sub"),
+            )
+            raise PermissionDenied(
+                "An account with this username already exists and is not "
+                "linked to this identity."
+            )
         user = self.UserModel(
-            username=claims.get(conf.get("OIDC_CLAIM_USERNAME")) or claims.get("sub"),
+            username=username,
             email=claims.get(conf.get("OIDC_CLAIM_EMAIL"), ""),
             subject=claims.get("sub"),
             first_name=claims.get(conf.get("OIDC_CLAIM_FIRST_NAME"), ""),

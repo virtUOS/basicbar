@@ -7,6 +7,26 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### basicbar-auth (→ wird `auth/v0.2.2`)
+
+**Username-Fallback übernimmt keine lokalen oder LTI-Konten mehr** (Security-
+Review Abstimmbar). Mit `OIDC_MATCH_BY_USERNAME_FALLBACK=True` konnte ein
+IdP-Login ein lokales Break-Glass-Konto (`createsuperuser`, kein Subject)
+oder ein LTI-natives Konto (`lti:<platform>:<sub>`) mit gleichem Usernamen
+übernehmen — samt Superuser-Rechten. Der Fallback matcht jetzt nur Konten
+mit vorhandenem, nicht-`lti:`-Subject (Subject-Drift nach Realm-Reimport
+funktioniert unverändert). Jede Übernahme wird als WARNING mit Username sowie
+altem und neuem Subject protokolliert. Kollidiert der Username mit einem
+solchen Konto, verweigert `create_user` sauber mit `PermissionDenied` (Fehler-
+Redirect statt 500, WARNING-Log); das bestehende Konto bleibt unberührt. Die Kollisionsprüfung auf dem
+Create-Pfad ist case-insensitiv (`username__iexact`): eine IdP-Identität
+„Frank“ wird abgewiesen, wenn lokal „frank“ existiert — bewusste
+Verhaltensänderung, unabhängig vom Fallback-Flag.
+
+Migration: Version heben. Wer sich bewusst auf die Übernahme lokaler Konten
+verlassen hat, muss diesen Account einmalig manuell mit dem OIDC-Subject
+versehen.
+
 ### @basicbar/ui (→ wird `ui/v0.9.1`)
 
 **`RichTextEditor` verwirft keine Eingaben mehr durch veraltete Echos.** Der

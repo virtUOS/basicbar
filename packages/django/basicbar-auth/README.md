@@ -86,6 +86,8 @@ standort-neutral — die Policy ist Konfiguration:
   eine neue Person das verwaiste Konto (samt Historie!) ihrer Vorgängerin
   erben. An Hochschulen üblich sind Mindest-Vakanzzeiten für Kennungen;
   fragt eure IdP-Betreiber.
+  Greift nur auf Konten mit vorhandenem OIDC-Subject; lokale Konten und
+  LTI-Konten werden nie übernommen.
 - **Löschfrist für inaktive Accounts** (Retention/Anonymisierung — die
   Umsetzung liegt derzeit im jeweiligen Tool, z. B. ausleihbar; das Paket
   liefert dafür `last_login`-Pflege und die `anonymized_at`-Konvention).
