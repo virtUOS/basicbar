@@ -48,6 +48,20 @@ Echo-Wrapper um den Editor (abstimmbar: `RichTextInput` in
 
 ### Template
 
+**Caddyfile leitet an den Dienst `app` weiter:** `Caddyfile.jinja` schickte
+`/api/*`, `/admin/*` und `/oidc/*` an `backend:8000`. In
+`docker-compose.prod.yml` heißt der Django-Dienst aber `app`, einen Dienst
+`backend` gibt es dort nicht. Caddy konnte den Upstream deshalb nicht
+auflösen: API, Login und Django-Admin waren in Produktion nicht erreichbar,
+nur die SPA wurde ausgeliefert. Das Template verwendet jetzt `app:8000`.
+
+Migration (bestehende Tools): Das `Caddyfile` gehört dem Tool
+(`_skip_if_exists`), `copier update` ändert es also nicht. Im eigenen
+`Caddyfile` jedes `reverse_proxy backend:8000` durch `reverse_proxy app:8000`
+ersetzen, sofern der Prod-Dienst `app` heißt. Bereits umgestellt:
+kalkulierbar, ansehbar. Nicht betroffen: ausleihbar (älteres Gerüst, dessen
+Prod-Dienst heißt weiterhin `backend`).
+
 **App-spezifische Cookie-Namen für Session und CSRF** (#22): Browser trennen
 Cookies pro Host, nicht pro Port. Tools, die parallel auf demselben Host laufen
 (in der Entwicklung mehrere „-bar“-Tools auf `localhost`), überschrieben sich
