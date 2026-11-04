@@ -7,6 +7,24 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### basicbar-integrations (→ wird `integrations/v0.4.0`)
+
+**Neues Modul `metrics`: token-geschützter Prometheus-Endpunkt.**
+`MetricsView` (DRF-`APIView`, nur `GET`/`HEAD`) rendert Gauges im
+Prometheus-Textformat 0.0.4, ohne zusätzliche Abhängigkeit. Das Tool leitet
+ab, implementiert `collect(gauges)` und hängt den View selbst ein (außerhalb
+von `/api/`, das Paket registriert keine URL). Neues Setting `METRICS_TOKEN`
+(Default `""`): leer → `404`; sonst nur mit exakt `Authorization: Bearer
+<token>`, sonst `401` mit `WWW-Authenticate: Bearer`. Antworten tragen
+`Cache-Control: no-store`. `Gauges.gauge(...)` escaped Label-Werte und weist
+ungültige Namen sowie doppelte Familien mit `ValueError` ab. Details im
+README („Prometheus-Metriken“).
+
+Migration: nur Version heben; Metriken sind opt-in über `METRICS_TOKEN`.
+Wer sie nutzt: Subclass + URL anlegen, `METRICS_TOKEN` in beiden
+Compose-Dateien durchreichen und `/metrics` im Caddyfile an `app:8000`
+weiterleiten.
+
 ### basicbar-auth (→ wird `auth/v0.2.2`)
 
 **Username-Fallback übernimmt keine lokalen oder LTI-Konten mehr** (Security-

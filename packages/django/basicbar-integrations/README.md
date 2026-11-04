@@ -20,6 +20,8 @@ Provider-SDKs.
 - `translation_sync` — Helfer für den Übersetzungs-Sync-Zustand pro Feld
   (`record_synced`, `stale_map`, `modeltranslation_values`, …).
 - `html_sanitize` — die eine HTML-Allowlist für Rich-Content (nh3-basiert).
+- `metrics` — token-geschützter Prometheus-Endpunkt (`MetricsView` +
+  `Gauges`), aus bis `METRICS_TOKEN` gesetzt ist.
 
 ## Einbinden
 
@@ -36,6 +38,49 @@ from basicbar_integrations.capabilities import capabilities_payload
 def whoami(request):
     return JsonResponse({**whoami_payload(request), **capabilities_payload()})
 ```
+
+## Prometheus-Metriken
+
+`metrics.MetricsView` liefert Gauges im Prometheus-Textformat (0.0.4), ohne
+`prometheus_client`. Das Tool leitet ab, implementiert `collect()` und hängt
+den View selbst ein — das Paket registriert keine URL:
+
+```python
+# lending/metrics.py
+from basicbar_integrations.metrics import Gauges, MetricsView
+
+class ToolMetricsView(MetricsView):
+    def collect(self, gauges: Gauges) -> None:
+        gauges.gauge("tool_items_total", "Anzahl Gegenstände", Item.objects.count())
+        gauges.gauge(
+            "tool_items_by_status",
+            "Gegenstände nach Status",
+            labels=[({"status": s}, n) for s, n in counts_by_status()],
+        )
+
+# config/urls.py — außerhalb von /api/
+path("metrics", ToolMetricsView.as_view()),
+```
+
+- `METRICS_TOKEN` (Env, Default `""`): leer → `404`. Sonst nur mit exakt
+  `Authorization: Bearer <token>` (Vergleich per `hmac.compare_digest`),
+  andernfalls `401` mit `WWW-Authenticate: Bearer`. Nur `GET`/`HEAD`,
+  immer `Cache-Control: no-store`.
+- `Gauges.gauge(name, help_text, value=None, labels=None)`: `value` ergibt
+  ein Sample ohne Labels, `labels` eine Liste von `(label_dict, wert)`.
+  Ungültige Metrik-/Label-Namen und doppelte Familien → `ValueError`.
+  Label-Werte werden escaped; ganzzahlige Werte erscheinen als `int`.
+- Keine personenbezogenen Daten in Labels — nur Aggregate.
+- Caddy: `/metrics` an das Backend durchreichen (vor dem SPA-Fallback):
+
+  ```caddy
+  handle /metrics {
+      reverse_proxy app:8000
+  }
+  ```
+
+- Prometheus: `authorization: { type: Bearer, credentials_file: … }` im
+  Scrape-Job, `metrics_path: /metrics`.
 
 Alle Settings haben Defaults („aus“) — ein Tool ohne Konfiguration startet
 unverändert. Tests: `python runtests.py` (oder über die Repo-CI).
