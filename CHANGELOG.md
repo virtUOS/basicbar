@@ -16,8 +16,10 @@ ab, implementiert `collect(gauges)` und hängt den View selbst ein (außerhalb
 von `/api/`, das Paket registriert keine URL). Neues Setting `METRICS_TOKEN`
 (Default `""`): leer → `404`; sonst nur mit exakt `Authorization: Bearer
 <token>`, sonst `401` mit `WWW-Authenticate: Bearer`. Antworten tragen
-`Cache-Control: no-store`. `Gauges.gauge(...)` escaped Label-Werte und weist
-ungültige Namen sowie doppelte Familien mit `ValueError` ab. Details im
+`Cache-Control: no-store`; `Accept` wird ignoriert (kein `406`), Default-
+Throttles des Projekts greifen nicht. Das Token muss ASCII sein.
+`Gauges.gauge(...)` escaped Label-Werte und weist ungültige Namen sowie
+doppelte Familien und Label-Sets mit `ValueError` ab. Details im
 README („Prometheus-Metriken“).
 
 Migration: nur Version heben; Metriken sind opt-in über `METRICS_TOKEN`.

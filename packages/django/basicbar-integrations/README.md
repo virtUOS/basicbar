@@ -21,7 +21,7 @@ Provider-SDKs.
   (`record_synced`, `stale_map`, `modeltranslation_values`, …).
 - `html_sanitize` — die eine HTML-Allowlist für Rich-Content (nh3-basiert).
 - `metrics` — token-geschützter Prometheus-Endpunkt (`MetricsView` +
-  `Gauges`), aus bis `METRICS_TOKEN` gesetzt ist.
+  `Gauges`); ohne `METRICS_TOKEN` antwortet er mit `404`.
 
 ## Einbinden
 
@@ -64,11 +64,15 @@ path("metrics", ToolMetricsView.as_view()),
 
 - `METRICS_TOKEN` (Env, Default `""`): leer → `404`. Sonst nur mit exakt
   `Authorization: Bearer <token>` (Vergleich per `hmac.compare_digest`),
-  andernfalls `401` mit `WWW-Authenticate: Bearer`. Nur `GET`/`HEAD`,
-  immer `Cache-Control: no-store`.
+  andernfalls `401` mit `WWW-Authenticate: Bearer`. Das Token muss ASCII
+  sein (Django dekodiert Header als Latin-1 — z. B.
+  `python -c "import secrets; print(secrets.token_urlsafe(32))"`). Nur
+  `GET`/`HEAD`, immer `Cache-Control: no-store`; der `Accept`-Header wird
+  ignoriert (immer Textformat), Projekt-Default-Throttles greifen nicht.
 - `Gauges.gauge(name, help_text, value=None, labels=None)`: `value` ergibt
   ein Sample ohne Labels, `labels` eine Liste von `(label_dict, wert)`.
-  Ungültige Metrik-/Label-Namen und doppelte Familien → `ValueError`.
+  Ungültige Metrik-/Label-Namen, doppelte Familien und doppelte Label-Sets
+  innerhalb einer Familie → `ValueError`.
   Label-Werte werden escaped; ganzzahlige Werte erscheinen als `int`.
 - Keine personenbezogenen Daten in Labels — nur Aggregate.
 - Caddy: `/metrics` an das Backend durchreichen (vor dem SPA-Fallback):

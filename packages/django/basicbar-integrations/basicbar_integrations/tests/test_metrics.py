@@ -4,13 +4,7 @@ from django.test import SimpleTestCase, TestCase, override_settings
 
 from basicbar_integrations.metrics import Gauges, MetricsView
 
-
-class _View(MetricsView):
-    """Test subclass mounted at ``/metrics`` in ``tests/urls.py``."""
-
-    def collect(self, gauges):
-        gauges.gauge("demo_total", "Demo", 3)
-        gauges.gauge("demo", "Demo by kind", labels=[({"kind": "a"}, 1)])
+# The view under test is ``tests.views.DemoMetricsView``, mounted at /metrics.
 
 
 class GaugesRenderTests(SimpleTestCase):
@@ -55,6 +49,27 @@ class GaugesRenderTests(SimpleTestCase):
         with self.assertRaises(ValueError):
             g.gauge("demo", "Demo", labels=[({"kind-x": "a"}, 1)])
 
+    def test_trailing_newline_in_names_raises(self):
+        g = Gauges()
+        with self.assertRaises(ValueError):
+            g.gauge("demo\n", "Demo", 1)
+        with self.assertRaises(ValueError):
+            g.gauge("demo", "Demo", labels=[({"k\n": "a"}, 1)])
+
+    def test_duplicate_label_set_raises(self):
+        g = Gauges()
+        with self.assertRaises(ValueError):
+            g.gauge(
+                "demo",
+                "Demo",
+                labels=[({"a": "1", "b": "2"}, 1), ({"b": "2", "a": "1"}, 2)],
+            )
+
+    def test_distinct_label_sets_ok(self):
+        g = Gauges()
+        g.gauge("demo", "Demo", labels=[({"a": "1"}, 1), ({"a": "2"}, 2)])
+        self.assertIn('demo{a="2"} 2\n', g.render())
+
     def test_duplicate_family_raises(self):
         g = Gauges()
         g.gauge("demo", "Demo", 1)
@@ -73,9 +88,50 @@ class GaugesRenderTests(SimpleTestCase):
 
 
 class MetricsViewTests(TestCase):
-    def _get(self, auth=None):
-        headers = {"HTTP_AUTHORIZATION": auth} if auth is not None else {}
+    ACCEPTS = (
+        "text/plain",
+        "text/plain;version=0.0.4",
+        "application/openmetrics-text;version=1.0.0,text/plain;version=0.0.4;q=0.5",
+        "application/json",
+    )
+
+    def _get(self, auth=None, **headers):
+        if auth is not None:
+            headers["HTTP_AUTHORIZATION"] = auth
         return self.client.get("/metrics", **headers)
+
+    def test_accept_header_ignored_without_token(self):
+        for accept in self.ACCEPTS:
+            with self.subTest(accept=accept):
+                self.assertEqual(self._get(HTTP_ACCEPT=accept).status_code, 404)
+
+    @override_settings(METRICS_TOKEN="tok")
+    def test_accept_header_ignored_with_token(self):
+        for accept in self.ACCEPTS:
+            with self.subTest(accept=accept):
+                response = self._get("Bearer tok", HTTP_ACCEPT=accept)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response["Content-Type"], self.CONTENT_TYPE)
+                self.assertIn("demo_total 3", response.content.decode())
+                self.assertEqual(
+                    self._get("Bearer x", HTTP_ACCEPT=accept).status_code, 401
+                )
+
+    @override_settings(METRICS_TOKEN="tok")
+    def test_format_query_param_ignored(self):
+        response = self.client.get(
+            "/metrics?format=json", HTTP_AUTHORIZATION="Bearer tok"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("demo_total 3", response.content.decode())
+
+    def test_consumer_throttles_do_not_apply(self):
+        # DRF binds DEFAULT_THROTTLE_CLASSES at class creation, so a project
+        # default would be inherited; the view must opt out explicitly.
+        self.assertEqual(MetricsView.throttle_classes, ())
+        self.assertEqual(MetricsView().get_throttles(), [])
+
+    CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
     def test_404_without_token(self):
         self.assertEqual(self._get("Bearer ").status_code, 404)

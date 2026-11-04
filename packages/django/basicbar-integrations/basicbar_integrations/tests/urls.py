@@ -3,9 +3,9 @@
 
 from django.urls import include, path
 
-from .test_metrics import _View as MetricsTestView
+from .views import DemoMetricsView
 
 urlpatterns = [
     path("api/", include("basicbar_integrations.urls")),
-    path("metrics", MetricsTestView.as_view()),
+    path("metrics", DemoMetricsView.as_view()),
 ]
