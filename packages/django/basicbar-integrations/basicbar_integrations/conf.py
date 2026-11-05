@@ -23,6 +23,8 @@ DEFAULTS = {
     "CONTENT_TRANSLATION_PROVIDER": "none",  # "none" | "libretranslate"
     "LIBRETRANSLATE_URL": "",
     "LIBRETRANSLATE_API_KEY": "",
+    # Prometheus endpoint (metrics.MetricsView); empty = off (404)
+    "METRICS_TOKEN": "",
 }
 
 
