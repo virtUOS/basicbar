@@ -7,6 +7,24 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### basicbar-pdf (→ wird `pdf/v0.1.0`)
+
+**Neues Paket: gemeinsamer PDF-Rahmen** für herunterladbare Dokumente,
+herausgelöst aus abstimmbar (`common/pdf.py`, Sitzungsprotokoll) und um das
+erweitert, was kalkulierbar für seine Berichte braucht: A4 quer
+(`landscape=True`), Ränder (`margin_mm`), Autor, Tabellen mit
+`col_widths="auto"`, rechtsbündigen Zahlenspalten (`align_right_from`) und
+fetten Summenzeilen (`strong_rows`). Mitgeliefert wird Plus Jakarta Sans
+(OFL). Abhängigkeit: `reportlab>=4.4,<6` (getestet mit 4.4.4 und 5.1.0),
+kein Django.
+
+Migration (abstimmbar): `common/pdf.py` und `common/fonts/` löschen,
+`from basicbar_pdf import PdfDocument`, dazu `page_label=gettext_lazy("Page
+%(page)s of %(pages)s")` und `image_placeholder=gettext_lazy("[Image]")`
+übergeben (die msgids stehen schon im Katalog). Migration (kalkulierbar):
+`report_render.render_pdf` auf `PdfDocument(landscape=True, margin_mm=15)`
+umstellen; die Schrift wechselt dabei von Helvetica zu Plus Jakarta Sans.
+
 ### basicbar-integrations (→ wird `integrations/v0.4.0`)
 
 **Neues Modul `metrics`: token-geschützter Prometheus-Endpunkt.**

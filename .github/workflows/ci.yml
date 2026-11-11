@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [integrations, auth, lti]
+        package: [integrations, auth, lti, pdf]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -35,7 +35,8 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: packages/django/basicbar-${{ matrix.package }}/pyproject.toml
-      - run: pip install --quiet ./packages/django/basicbar-${{ matrix.package }}
+      # `[test]` pulls test-only dependencies where a package declares them (pdf: pypdf).
+      - run: pip install --quiet "./packages/django/basicbar-${{ matrix.package }}[test]"
       - run: cd packages/django/basicbar-${{ matrix.package }} && python runtests.py
 
   ui-build:
