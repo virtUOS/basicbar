@@ -8,5 +8,6 @@ Wiederverwendbare Django-Apps, als pip-Pakete direkt aus Git installierbar
 | `basicbar-integrations` | LibreTranslate-Client, LiteLLM-Client, Translate-Endpunkt, Capabilities-Endpoint | 2 |
 | `basicbar-auth` | OIDC-Backend, Discovery, Silent Login, Back-Channel-Logout, `AbstractBasicUser`, optionale Limits/Retention ([ADR-0003](../../docs/ADR/0003-user-model-bleibt-im-tool.md)) | 4 |
 | `basicbar-lti` | LTI-1.3-App (aus abstimmbar), per Env aktivierbar | 5 |
+| `basicbar-pdf` | PDF-Rahmen (reportlab, mitgelieferte Schrift, Fußzeile, Editor-HTML); ohne Django-Abhängigkeit | – |
 
 Keine Tool-Fachlogik, keine konkreten User-Models.
