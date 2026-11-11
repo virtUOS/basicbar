@@ -47,11 +47,15 @@ updates:
     commit-message:
       prefix: "chore(deps)"
 
-  # Django packages: they declare lower bounds only (libraries), so Dependabot
-  # acts when a new release falls outside a declared range — e.g. reportlab
-  # past basicbar-pdf's "<6" — and CI then tests the widened range.
+  # Django packages are libraries the tools install with their own pins, so
+  # the floors must never move (a raised "Django>=" would force every tool to
+  # upgrade). "widen" only lifts upper bounds: a release outside a declared
+  # range — e.g. reportlab past basicbar-pdf's "<6" — becomes "<7", and CI
+  # tests the widened range. Set explicitly: "auto" guesses app vs. library
+  # and would raise the floors for an app.
   - package-ecosystem: pip
     directories: ["/packages/django/*"]
+    versioning-strategy: widen
     schedule:
       interval: weekly
       day: monday
