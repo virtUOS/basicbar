@@ -9,6 +9,12 @@
 # - The template's Docker base images (python:3.12-slim, node:22-slim) are
 #   runtime decisions for every future tool, not routine bumps, and the
 #   frontend Dockerfile is a .jinja file Dependabot would leave behind.
+# - The Django packages (pip). They are libraries with lower bounds only; the
+#   tools pin the real versions. For pip Dependabot offers no "widen" (only
+#   lockfile-only, auto, increase, increase-if-necessary), and "auto" treats
+#   packages that are not on PyPI as apps — every strategy would raise the
+#   floors (Django>=5.1 → >=6.0) and force each tool to upgrade. Security
+#   updates still run for them via the repo settings.
 version: 2
 
 updates:
@@ -42,25 +48,6 @@ updates:
         patterns: ["@tiptap/*"]
       npm-minor-and-patch:
         update-types: [minor, patch]
-    cooldown:
-      default-days: 7
-    commit-message:
-      prefix: "chore(deps)"
-
-  # Django packages are libraries the tools install with their own pins, so
-  # the floors must never move (a raised "Django>=" would force every tool to
-  # upgrade). "widen" only lifts upper bounds: a release outside a declared
-  # range — e.g. reportlab past basicbar-pdf's "<6" — becomes "<7", and CI
-  # tests the widened range. Set explicitly: "auto" guesses app vs. library
-  # and would raise the floors for an app.
-  - package-ecosystem: pip
-    directories: ["/packages/django/*"]
-    versioning-strategy: widen
-    schedule:
-      interval: weekly
-      day: monday
-      time: "06:00"
-      timezone: Europe/Berlin
     cooldown:
       default-days: 7
     commit-message:
