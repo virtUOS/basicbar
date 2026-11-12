@@ -62,6 +62,14 @@ pipx run copier copy . /tmp/probe --trust --defaults --vcs-ref HEAD --data proje
   [ADR-0004](docs/ADR/0004-umzug-nach-github.md).
 - Nach dem Paket-Release: Konsumenten-PRs in den Tools (Version bumpen,
   Migrationsschritte aus dem Changelog ausführen, Suite + Build grün).
+- **Dependabot** (`.github/dependabot.yml`) öffnet montags gruppierte PRs für
+  GitHub Actions und `packages/ui` (npm); die CI testet sie wie jeden PR,
+  gemerged wird von Hand. Nicht abgedeckt: die Django-Pakete (für pip gibt es
+  kein `widen`, jede Strategie würde die Untergrenzen anheben — Begründung in
+  der Datei) sowie die `.jinja`-Pins und Docker-Images des Templates; die
+  hebt man mit dem Paket-Release. Ein npm-Dependabot-PR ändert meist nur `package-lock.json`;
+  das ist **kein** ui-Release (Version/Tag nur, wenn sich `package.json`
+  oder der Paketcode ändert).
 
 ## Konventionen
 

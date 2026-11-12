@@ -7,6 +7,14 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### Repo
+
+- Dependabot-Version-Updates eingeschaltet (`.github/dependabot.yml`):
+  wöchentlich, gruppiert, für GitHub Actions und `@basicbar/ui` (npm, TipTap
+  immer gemeinsam). Die Django-Pakete bleiben bewusst draußen, damit ihre
+  Untergrenzen nicht steigen. Die CI testet jeden Dependabot-PR. Für die
+  Tools ändert sich nichts.
+
 ### basicbar-pdf (→ wird `pdf/v0.1.0`)
 
 **Neues Paket: gemeinsamer PDF-Rahmen** für herunterladbare Dokumente,

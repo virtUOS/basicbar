@@ -1,0 +1,54 @@
+# Dependabot version updates. Security updates are switched on separately in
+# the repo settings and do not depend on this file. Every Dependabot PR runs
+# the normal CI (ci.yml triggers on pull_request); a human merges, as always.
+#
+# Not covered, on purpose:
+# - The template's pins (requirements.txt.jinja, package.json.jinja) are Jinja
+#   files Dependabot cannot parse; they are bumped by hand with each package
+#   release, and the template-probe CI job catches stale ones.
+# - The template's Docker base images (python:3.12-slim, node:22-slim) are
+#   runtime decisions for every future tool, not routine bumps, and the
+#   frontend Dockerfile is a .jinja file Dependabot would leave behind.
+# - The Django packages (pip). They are libraries with lower bounds only; the
+#   tools pin the real versions. For pip Dependabot offers no "widen" (only
+#   lockfile-only, auto, increase, increase-if-necessary), and "auto" treats
+#   packages that are not on PyPI as apps — every strategy would raise the
+#   floors (Django>=5.1 → >=6.0) and force each tool to upgrade. Security
+#   updates still run for them via the repo settings.
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    groups:
+      github-actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "chore(deps)"
+
+  # @basicbar/ui. In-range updates only refresh package-lock.json (the
+  # published ranges stay as they are for the tools); a new major moves the
+  # range. TipTap packages must stay on one version, so they always travel
+  # together in their own PR.
+  - package-ecosystem: npm
+    directory: /packages/ui
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    versioning-strategy: increase-if-necessary
+    groups:
+      tiptap:
+        patterns: ["@tiptap/*"]
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(deps)"
