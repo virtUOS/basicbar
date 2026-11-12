@@ -47,7 +47,17 @@ pipx run copier copy . /tmp/probe --trust --defaults --vcs-ref HEAD --data proje
 
 ## Workflow & Releases
 
-- **Branch + PR, nie direkt auf main** (main ist geschützt); der Mensch merged.
+- **Branch + PR, nie direkt auf main**; der Mensch merged. main ist per
+  GitHub-Ruleset „main“ geschützt (seit 2026-11-12, ohne Bypass): PR
+  Pflicht (0 Approvals), kein Force-Push, kein Löschen, und diese
+  CI-Jobs müssen grün sein — `spdx-header`, `django-packages (integrations)`,
+  `django-packages (auth)`, `django-packages (lti)`, `django-packages (pdf)`,
+  `ui-build`, `template-probe`. **Kommt ein Paket in die
+  `django-packages`-Matrix oder wird ein Job umbenannt, im selben Zug das
+  Ruleset anpassen** (Settings → Rules), sonst bleibt der neue Job
+  unbewacht bzw. jeder PR hängt auf „Expected“. Der Dependabot-Config-Check
+  ist bewusst nicht Pflicht: er läuft nur, wenn sich `dependabot.yml` ändert.
+  Tags (`<paket>/vX.Y.Z`) betrifft das Ruleset nicht.
 - Release eines Pakets: Version in `pyproject.toml`/`package.json` heben,
   `CHANGELOG.md`-Eintrag **mit Migrationsschritten für die Tools**, PR.
   **Tag `<paket>/vX.Y.Z` erst nach dem Merge** auf den main-Commit setzen
