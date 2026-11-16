@@ -34,6 +34,9 @@ Tools identisch aussehen, übergeben sie dieselbe Ramp.
 - **`TranslatableField` / `TranslationFormProvider` / `TranslationControlsSlot`**
   — Sprach-Tabs pro Feld plus verschiebbare Leiste „alle Felder übersetzen“,
   optional im Formular angedockt (siehe `TranslatableField.tsx`).
+- **`SegmentedControl`** — „eins aus wenigen“ als Pill mit gleitendem
+  Daumen (Klick, Tastatur, Ziehen); `size="md"` für 44-px-Touch-Ziele.
+  Für Ansichts-/Typ-Wahl, nicht für An/Aus-Filter.
 - **`RichText` / `stripHtml` / `isEmptyHtml`** — Rendern und Prüfen des
   gespeicherten Rich-HTML; **`RichTextEditor`** (TipTap) als **eigener Entry**
   `@basicbar/ui/rich-text-editor`, damit TipTap/ProseMirror nur in Bundles
