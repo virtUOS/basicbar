@@ -25,6 +25,9 @@ export type { RenderInputArgs, TranslatableFieldProps } from "./TranslatableFiel
 
 export { AppearanceControl, LanguageOptions, PreferencesMenu } from "./Preferences";
 
+export { SegmentedControl } from "./SegmentedControl";
+export type { SegOption, SegmentedControlProps } from "./SegmentedControl";
+
 // RichTextEditor (TipTap) deliberately lives in its own entry,
 // "@basicbar/ui/rich-text-editor" — see src/rich-text-editor.ts.
 export { RichText, richTextClass } from "./RichText";
