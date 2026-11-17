@@ -29,5 +29,9 @@ docker compose exec backend sh -c "pip install -q ruff && ruff check ."  # Lint 
 - Apache-2.0, SPDX-Header in jeder Quelldatei.
 - Jede App hält mindestens Basis-Tests in ihrer `tests.py`.
 - UI-Texte: Englisch als i18n-Key, Deutsch in `src/locales/de/translation.json`.
+- Kopfzeile, Kontomenü und Startkarte für Gäste wie in allen -bar-Tools: Konvention „Kopfzeile:
+  Anmelden und Kontomenü“ im README von `@basicbar/ui` (`components/UserMenu.tsx` erweitern, nicht
+  neu bauen; Sprache/Erscheinungsbild nur im Kontomenü, Gäste: „Anmelden“-Pille, dann
+  `PreferencesMenu`).
 - Design: Ramps in `tailwind.config.js` sind die Identität dieses Tools;
   Struktur kommt aus dem @basicbar/ui-Preset.
