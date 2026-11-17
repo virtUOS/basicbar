@@ -81,7 +81,7 @@ export function UserMenu({ whoami }: { whoami: Whoami }) {
           role="menu"
           onKeyDown={onMenuKeyDown}
           // Phones: the header may wrap, so span the viewport instead of hanging off the button.
-          className="absolute right-0 z-30 mt-2 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg shadow-slate-900/5 max-sm:fixed max-sm:left-4 max-sm:right-4 max-sm:w-auto dark:border-slate-700 dark:bg-slate-900"
+          className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg shadow-slate-900/5 max-sm:fixed max-sm:left-4 max-sm:right-4 max-sm:w-auto dark:border-slate-700 dark:bg-slate-900"
         >
           <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-300">
             <p className="truncate">

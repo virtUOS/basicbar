@@ -340,7 +340,7 @@ Zeile, Auf/Ab, Pos1/Ende, Escape schließt und fokussiert den Knopf, Klick auße
   darin ein Avatar-Kreis `h-8 w-8 rounded-full bg-brand-400 text-sm font-bold text-slate-900` mit dem
   ersten Buchstaben des Anzeigenamens.
 - Anzeigename: `first_name last_name`, sonst `username` (beides liefert `whoami_payload`).
-- Menü: `absolute right-0 z-30 mt-2 w-60 rounded-xl border border-slate-200 bg-white py-1 shadow-lg
+- Menü: `absolute right-0 z-30 mt-2 w-56 rounded-xl border border-slate-200 bg-white py-1 shadow-lg
   shadow-slate-900/5 dark:border-slate-700 dark:bg-slate-900`; auf Telefonen
   `max-sm:fixed max-sm:left-4 max-sm:right-4 max-sm:w-auto` (die Kopfzeile kann umbrechen).
 - Reihenfolge, getrennt durch `role="separator"` (`my-1 border-t border-slate-100
@@ -363,7 +363,9 @@ dark:border-slate-800` mit dem Tool-Namen (`h1`, `text-3xl font-bold`, gern als 
 Satz, wozu das Tool da ist (`mt-3 text-slate-500 dark:text-slate-400`), und dem Knopf „Sign in“
 (`mt-6 inline-block rounded-full bg-brand-400 px-5 py-2 text-sm font-bold text-slate-900
 hover:bg-brand-500`). Tools, deren Seiten nur Angemeldeten offenstehen, zeigen diese Karte auf jeder
-Route statt eines Fehlers.
+Route statt eines Fehlers. Die Karte ist das Mindestmaß: Tools mit öffentlichem Inhalt (z. B. ausleihbar
+mit Standorten) dürfen stattdessen eine eigene Startseite zeigen; Tool-Name, ein Satz zum Zweck und ein
+gut sichtbarer Anmeldeknopf gehören auch dort nach oben.
 
 Übersetzungs-Keys dieser Konvention liegen im Tool (nicht im Paket): `"Sign in"`, `"Sign out"`,
 `"Signed in as"`, `"User menu"`, ggf. `"Admin"`.
