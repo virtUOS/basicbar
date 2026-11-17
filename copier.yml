@@ -14,6 +14,7 @@ _min_copier_version: "9.0.0"
 _skip_if_exists:
   - frontend/tailwind.config.js
   - frontend/src/App.tsx
+  - frontend/src/components/UserMenu.tsx
   - frontend/src/locales/**
   - README.md
   - CLAUDE.md

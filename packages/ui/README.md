@@ -317,6 +317,59 @@ focuses the first row, Up/Down cycle through the rows, Home/End jump,
 Escape closes and returns focus to the button. Translation keys: see
 "Übersetzungs-Keys" above.
 
+## Kopfzeile: Anmelden und Kontomenü (Konvention)
+
+Damit sich jedes „-bar“-Tool gleich anfühlt, sind Kopfzeile, Kontomenü und Startkarte für Gäste
+festgelegt. Das Gerüst (`template/project`, `App.tsx` + `components/UserMenu.tsx`) setzt das um;
+neue Tools übernehmen es, bestehende gleichen sich bei Gelegenheit an. Abweichungen nur mit Grund im
+Code-Kommentar.
+
+**Kopfzeile, rechts** (`flex items-center gap-1`):
+
+- *Angemeldet:* tooleigene Knöpfe (z. B. Warenkorb, Merkliste) **links** vom Kontomenü, das Kontomenü
+  ganz rechts. Kein eigener Abmelde-Knopf und kein `PreferencesMenu` daneben – Sprache und
+  Erscheinungsbild stehen im Kontomenü.
+- *Gast:* zuerst die Pille „Sign in“, dann `PreferencesMenu`. Pille:
+  `rounded-full bg-brand-400 px-4 py-1.5 text-sm font-semibold text-slate-900 transition-colors
+  hover:bg-brand-500`. Kein Icon-Knopf (LogIn) statt Text.
+
+**Kontomenü** (WAI-ARIA-Menübutton, Tastatur wie bei `PreferencesMenu`: Öffnen fokussiert die erste
+Zeile, Auf/Ab, Pos1/Ende, Escape schließt und fokussiert den Knopf, Klick außerhalb schließt):
+
+- Knopf: `aria-label={t("User menu")}`, `rounded-full p-1 hover:bg-slate-100 dark:hover:bg-slate-800`,
+  darin ein Avatar-Kreis `h-8 w-8 rounded-full bg-brand-400 text-sm font-bold text-slate-900` mit dem
+  ersten Buchstaben des Anzeigenamens.
+- Anzeigename: `first_name last_name`, sonst `username` (beides liefert `whoami_payload`).
+- Menü: `absolute right-0 z-30 mt-2 w-56 rounded-xl border border-slate-200 bg-white py-1 shadow-lg
+  shadow-slate-900/5 dark:border-slate-700 dark:bg-slate-900`; auf Telefonen
+  `max-sm:fixed max-sm:left-4 max-sm:right-4 max-sm:w-auto` (die Kopfzeile kann umbrechen).
+- Reihenfolge, getrennt durch `role="separator"` (`my-1 border-t border-slate-100
+  dark:border-slate-800`):
+  1. Kopf (kein Menüeintrag): „Signed in as **Name**“ (`px-3 py-2 text-xs text-slate-500
+     dark:text-slate-300`, Name `font-medium text-slate-700 dark:text-slate-200`), darunter
+     optional **ein** Rollen-Abzeichen (`rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold
+     text-brand-800 dark:bg-brand-900 dark:text-brand-200`), z. B. „Admin“ oder die Tool-Rolle.
+  2. Tooleigene Einträge (eigene Einstellungen, „Meine …“-Seiten), `role="menuitem"`.
+  3. `<LanguageOptions onChange={…} />` – die Wahl wird für Angemeldete am Konto gespeichert.
+  4. `<AppearanceControl />`.
+  5. „Sign out“ als letzter Eintrag: Link auf die Logout-URL; ein Knopf nur, wenn das Tool vor dem
+     Abmelden etwas tun muss.
+- Einträge: `block w-full px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50
+  dark:text-slate-200 dark:hover:bg-slate-800`.
+
+**Startkarte für Gäste** (der „Login-Screen“ des Tools; die Anmeldemaske selbst ist die von Keycloak):
+eine zentrierte Karte `mx-auto max-w-xl rounded-2xl border border-slate-200 p-8 text-center
+dark:border-slate-800` mit dem Tool-Namen (`h1`, `text-3xl font-bold`, gern als Wortmarke), **einem**
+Satz, wozu das Tool da ist (`mt-3 text-slate-500 dark:text-slate-400`), und dem Knopf „Sign in“
+(`mt-6 inline-block rounded-full bg-brand-400 px-5 py-2 text-sm font-bold text-slate-900
+hover:bg-brand-500`). Tools, deren Seiten nur Angemeldeten offenstehen, zeigen diese Karte auf jeder
+Route statt eines Fehlers. Die Karte ist das Mindestmaß: Tools mit öffentlichem Inhalt (z. B. ausleihbar
+mit Standorten) dürfen stattdessen eine eigene Startseite zeigen; Tool-Name, ein Satz zum Zweck und ein
+gut sichtbarer Anmeldeknopf gehören auch dort nach oben.
+
+Übersetzungs-Keys dieser Konvention liegen im Tool (nicht im Paket): `"Sign in"`, `"Sign out"`,
+`"Signed in as"`, `"User menu"`, ggf. `"Admin"`.
+
 ## CSP
 
 Die Komponenten injizieren zur Laufzeit **keine** Inline-Styles oder

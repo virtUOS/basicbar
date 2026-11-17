@@ -7,6 +7,17 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### Template und @basicbar/ui-README (kein Release)
+
+- Neue Konvention „Kopfzeile: Anmelden und Kontomenü“ im README von `@basicbar/ui`: Reihenfolge und
+  Aussehen der Kopfzeile für Gäste und Angemeldete, Aufbau des Kontomenüs (inkl. Tastatur und
+  Telefon) und der Startkarte für Gäste. Bisher sah das in jedem Tool etwas anders aus.
+- Gerüst: `frontend/src/components/UserMenu.tsx` (neu) und die Kopfzeile in `App.tsx` folgen der
+  Konvention (statt LogIn/LogOut-Icons und dauerhaftem `PreferencesMenu`); `CLAUDE.md` verweist darauf.
+- Migration (bestehende Tools, freiwillig): Kopfzeile und Kontomenü an die Konvention angleichen.
+  `CLAUDE.md` übernimmt `copier update` nicht (`_skip_if_exists`); die Regel bei Bedarf von Hand
+  ergänzen.
+
 ### Repo
 
 - Dependabot-Version-Updates eingeschaltet (`.github/dependabot.yml`):
