@@ -7,6 +7,14 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### Doku für die Tools (kein Release)
+
+- Upgrade-Leitfaden [Vite 8, React 19, Django 6.1 und
+  Tailwind 4](docs/UPGRADE-2026-11-STACK.md): Reihenfolge, Stolperfallen
+  mit Fehlermeldung und Lösung, Prüfschritte (Erfahrungen aus abstimmbar und
+  ausleihbar). Kein Paket-Release nötig: `@basicbar/ui` und die
+  Django-Pakete laufen unverändert unter dem neuen Stack.
+
 ### Template und @basicbar/ui-README (kein Release)
 
 - Neue Konvention „Kopfzeile: Anmelden und Kontomenü“ im README von `@basicbar/ui`: Reihenfolge und
