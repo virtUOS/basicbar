@@ -46,8 +46,17 @@ updates:
     groups:
       tiptap:
         patterns: ["@tiptap/*"]
+      # Without the exclude, Dependabot put the TipTap minor updates into this
+      # group instead of "tiptap" (first run, PR #34), despite the order.
       npm-minor-and-patch:
         update-types: [minor, patch]
+        exclude-patterns: ["@tiptap/*"]
+    ignore:
+      # TypeScript 7 has no compiler API; tsup's .d.ts build (rollup-plugin-dts)
+      # needs it and fails, also with the @typescript/typescript6 fallback
+      # (tested 2026-11-19, tsup 9.0.0). Remove once tsup supports TS 7.
+      - dependency-name: typescript
+        versions: [">=7"]
     cooldown:
       default-days: 7
     commit-message:
