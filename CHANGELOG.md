@@ -48,7 +48,7 @@ Auswahl.
 
 Migration: keine; nur die Version auf `ui/v0.11.1` heben.
 
-### @basicbar/ui (→ wird `ui/v0.11.0`)
+### @basicbar/ui (`ui/v0.11.0`, veröffentlicht 2026-11-19)
 
 **`RichTextEditor` ohne Browser-Dialoge; neuer Hook `onImageInserted`.**
 Alt-Text- und Link-Abfrage laufen über einen eigenen modalen Dialog (natives
