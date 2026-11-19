@@ -42,10 +42,17 @@ export function usePromptDialog(): {
   // way out (OK, Cancel, Esc, unmount) funnels through that one event.
   const result = useRef<string | null>(null);
   const labelId = useId();
+  // prompt() after unmount (e.g. a queued request reaching the front once
+  // the editor is gone) must not wait for a dialog that never opens.
+  const mounted = useRef(false);
 
   const prompt = useCallback(
     (options: PromptOptions) =>
       new Promise<string | null>((resolve) => {
+        if (!mounted.current) {
+          resolve(null);
+          return;
+        }
         const request = { ...options, id: nextId.current++, resolve };
         queue.current.push(request);
         if (queue.current.length === 1) setCurrent(request);
@@ -63,14 +70,15 @@ export function usePromptDialog(): {
   }, [current]);
 
   // Unmount: settle whatever is still pending, so no caller awaits forever.
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
       const pending = queue.current;
       queue.current = [];
       pending.forEach((request) => request.resolve(null));
-    },
-    [],
-  );
+    };
+  }, []);
 
   function finish(value: string | null) {
     result.current = value;
@@ -89,8 +97,16 @@ export function usePromptDialog(): {
   const dialog = (
     <dialog
       ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
       aria-labelledby={labelId}
       onClose={handleClose}
+      // Esc belongs to this dialog alone: the browser still closes it, but
+      // the key must not bubble on to page-level handlers (e.g. a guided
+      // tour that ends on Esc).
+      onKeyDown={(event) => {
+        if (event.key === "Escape") event.stopPropagation();
+      }}
       // Esc: the browser closes the dialog itself; `result` is still null,
       // so the close handler resolves null (= cancelled).
       className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-slate-200 bg-white p-4 text-slate-900 shadow-xl backdrop:bg-slate-950/50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"

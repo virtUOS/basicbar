@@ -222,6 +222,7 @@ export function RichTextEditor({
   /** The new alt text (trimmed), or null for "no change"/cancelled. */
   function askAlt(editor: Editor, image: InsertedImage): Promise<string | null> {
     return serialized(editor, async () => {
+      if (editor.isDestroyed) return null; // queued, but the editor is gone
       const { onImageInserted } = callbacks.current;
       if (onImageInserted) {
         try {
@@ -244,6 +245,9 @@ export function RichTextEditor({
     if (!onUploadImage || !editor.isEditable) return;
     // A drop position must survive edits made while the upload runs.
     const drop = dropPos === undefined ? null : trackPosition(editor, dropPos);
+    // Only a new attempt clears an old failure notice — a parallel upload's
+    // success must not hide another one's failure.
+    setUploadError(null);
     let url: string;
     try {
       url = await onUploadImage(file);
@@ -254,7 +258,6 @@ export function RichTextEditor({
       drop?.stop();
     }
     if (editor.isDestroyed) return;
-    setUploadError(null);
     // Insert first (alt=""), ask afterwards (WCAG 1.1.1): skipping the
     // dialog leaves a decorative image, never a lost upload.
     const token = `${tokenPrefix}-${dialogs.nextToken++}`;
@@ -268,11 +271,16 @@ export function RichTextEditor({
     const alt = await askAlt(editor, { src: url, alt: "", mode: "insert", file });
     if (editor.isDestroyed) return;
     let at: number | null = null;
+    // Fallback: an outside setContent (re-parsed HTML) drops the token; then
+    // the one image with this src and no alt yet is ours — if unambiguous.
+    const bySrc: number[] = [];
     editor.state.doc.descendants((node, pos) => {
-      if (at !== null) return false;
-      if (node.type.name === "image" && node.attrs.uploadToken === token) at = pos;
-      return at === null;
+      if (node.type.name !== "image") return true;
+      if (node.attrs.uploadToken === token) at = pos;
+      else if (node.attrs.src === url && !node.attrs.alt) bySrc.push(pos);
+      return true;
     });
+    if (at === null && bySrc.length === 1) at = bySrc[0];
     if (at === null) return; // removed meanwhile (deleted, undone, replaced)
     const tr = editor.state.tr.setNodeAttribute(at, "uploadToken", null);
     if (alt) tr.setNodeAttribute(at, "alt", alt);
@@ -464,8 +472,8 @@ export function RichTextEditor({
   async function setLink() {
     if (!editor) return;
     const previous = (editor.getAttributes("link").href as string) || "";
-    const answer = await serialized(editor, () =>
-      prompt({ label: t("Enter URL"), defaultValue: previous }),
+    const answer = await serialized(editor, async () =>
+      editor.isDestroyed ? null : prompt({ label: t("Enter URL"), defaultValue: previous }),
     );
     if (answer === null || editor.isDestroyed) return; // cancelled
     const url = answer.trim();
@@ -497,7 +505,9 @@ export function RichTextEditor({
   }
 
   return (
-    <>
+    // One element for the host (`space-y-*`, :last-child, grid children):
+    // `contents` keeps the frame laid out as before, the dialog beside it.
+    <div className="contents">
       <div
         className={`rounded-lg border border-field focus-within:ring-2 focus-within:ring-brand-600 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-slate-950 ${
           editable ? "" : "bg-slate-50 dark:bg-slate-900"
@@ -609,6 +619,6 @@ export function RichTextEditor({
         <EditorContent editor={editor} />
       </div>
       {promptDialog}
-    </>
+    </div>
   );
 }
