@@ -132,8 +132,9 @@ gespeicherten HTMLs ist `RichText` das richtige Werkzeug (kostet kein TipTap).
 
 **Editor mit Bildern** — `onUploadImage` lädt hoch und liefert die relative
 URL als String; scheitert der Upload, zeigt der Editor
-`t("Image upload failed")` (plus die Fehlermeldung, falls vorhanden) per
-`window.alert` und lässt den Inhalt unverändert:
+`t("Image upload failed")` (plus die Fehlermeldung, falls vorhanden) als
+Hinweis unter der Toolbar (`role="alert"`, mit Schließen-Button
+`t("Dismiss")`) und lässt den Inhalt unverändert:
 
 ```tsx
 <RichTextEditor
@@ -150,14 +151,49 @@ URL als String; scheitert der Upload, zeigt der Editor
 ```
 
 **Bildbeschreibung (Alt-Text, WCAG 1.1.1):** direkt nach einem erfolgreichen
-Upload fragt der Editor per `window.prompt` nach einer Beschreibung
-(`t("Image description (alt text)")`) — leere Eingabe oder Abbrechen setzen
-beide `alt=""` (bewusst dekoratives Bild), das Bild wird in jedem Fall
-eingefügt. Ein eigener Toolbar-Button (`t("Image description")`, nur
+Upload fügt der Editor das Bild mit `alt=""` ein und fragt dann in einem
+eigenen modalen Dialog (natives `<dialog>`, kein `window.prompt`) nach einer
+Beschreibung (`t("Image description (alt text)")`, Buttons `t("OK")` /
+`t("Cancel")`, Enter = OK, Esc = Abbrechen; Esc wird nicht an
+seitenweite Tastatur-Handler weitergereicht). Der Dialog sitzt im Rahmen des
+Editors (geschlossen `display: none`, offen in der Top-Layer), das Tool sieht
+also weiterhin ein einziges Element. Leere Eingabe, Abbrechen und Esc
+lassen `alt=""` stehen (bewusst dekoratives Bild) — das Bild bleibt in jedem
+Fall drin. Ein eigener Toolbar-Button (`t("Image description")`, nur
 sichtbar, wenn `onUploadImage` gesetzt ist) ist deaktiviert, solange kein
-Bild markiert ist; bei markiertem Bild öffnet er denselben Prompt,
-vorausgefüllt mit dem aktuellen Alt-Text, und übernimmt die Änderung —
-Abbrechen lässt den bestehenden Alt-Text unangetastet.
+Bild markiert ist; bei markiertem Bild öffnet er denselben Dialog,
+vorausgefüllt mit dem aktuellen Alt-Text — Abbrechen lässt den bestehenden
+Alt-Text unangetastet. Auch der Link-Button fragt per Dialog
+(`t("Enter URL")`, vorausgefüllt; leer = Link entfernen, Abbrechen = keine
+Änderung). Die Dialoge laufen nacheinander: Werden zwei Bilder kurz
+hintereinander hochgeladen, gehört jeder Dialog zu seinem Bild, und die
+Antwort landet genau auf diesem Bild, auch wenn sich das Dokument
+inzwischen geändert hat.
+
+**Eigener Bild-Dialog (`onImageInserted`, ab 0.10.0):** Statt des
+eingebauten Dialogs kann das Tool einen eigenen zeigen (z. B. mit
+KI-Vorschlag oder Bildnachweis-Feldern):
+
+```tsx
+<RichTextEditor
+  value={description}
+  onChange={setDescription}
+  onUploadImage={uploadRichImage}
+  onImageInserted={async ({ src, alt, mode, file }) => {
+    // mode "insert": nach dem Upload, Bild steht schon mit alt="" im Text;
+    // mode "edit": Button „Bildbeschreibung“ auf einem markierten Bild.
+    const answer = await openMyImageDialog({ src, alt, mode, file });
+    return answer ? { alt: answer.alt } : null;
+  }}
+/>
+```
+
+`{ alt }` setzt den Alt-Text (getrimmt) auf genau dieses Bild; `null` (oder
+ein abgelehntes Promise) heißt beim Einfügen „bleibt `alt=""`“, beim
+Bearbeiten „keine Änderung“. Aufrufe überlappen nie — der nächste kommt
+erst, wenn der vorige aufgelöst ist. Der Callback wird pro Aufruf frisch
+gelesen, darf also bei jedem Render eine neue Funktion sein. Danach geht der
+Fokus zurück in den Editor.
 
 **Bilder aus eingefügtem HTML werden gefiltert, nicht nur Datei-Paste/-Drop:**
 Fügt man Rich-HTML aus einer Webseite ein (Browser-Copy&Paste, nicht als
@@ -271,7 +307,7 @@ seinem Katalog bereit. Fehlende Keys fallen auf den englischen Text zurück.
   `"Heading (small)"`, `"Bulleted list"`, `"Numbered list"`, `"Link"`,
   `"Enter URL"`, `"Insert image (or drag and drop)"`,
   `"Image upload failed"`, `"Image description (alt text)"`,
-  `"Image description"`.
+  `"Image description"`, `"Dismiss"`, `"OK"`, `"Cancel"`.
 - TranslatableField: `"translated"`, `"not translated"`,
   `"translation may be outdated"`,
   `"The other language was changed since this translation."`,
