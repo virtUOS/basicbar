@@ -34,6 +34,20 @@ Changelog ist die Upgrade-Anleitung für die Tools.
   Untergrenzen nicht steigen. Die CI testet jeden Dependabot-PR. Für die
   Tools ändert sich nichts.
 
+### @basicbar/ui (→ wird `ui/v0.11.1`)
+
+**Fix: Link-Dialog verlor die Textauswahl.** Seit dem eigenen URL-Dialog
+(0.11.0) war die Auswahl nach dem Schließen des Dialogs in Firefox (und in
+Chromium nach Doppelklick-Auswahl) auf den Textanfang zusammengefallen — der
+Link wurde dann nirgends gesetzt bzw. nicht entfernt. `RichTextEditor` merkt
+sich jetzt die Auswahl vor dem Dialog (und führt sie über zwischenzeitliche
+Änderungen, z. B. einen fertigen Upload, nach) und stellt sie vor
+`setLink`/`unsetLink` wieder her. Die Bildbeschreibung (Bearbeiten-Modus)
+war nicht betroffen: Sie folgt der Position des Bildknotens, nicht der
+Auswahl.
+
+Migration: keine; nur die Version auf `ui/v0.11.1` heben.
+
 ### @basicbar/ui (→ wird `ui/v0.11.0`)
 
 **`RichTextEditor` ohne Browser-Dialoge; neuer Hook `onImageInserted`.**
