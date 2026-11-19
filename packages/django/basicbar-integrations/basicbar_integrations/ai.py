@@ -9,6 +9,7 @@ the stdlib ``urllib`` — no ``litellm``/``openai`` package. Model output is
 always untrusted: callers must re-validate it before using or storing it.
 """
 
+import base64
 import json
 from typing import Any
 from urllib import error, request
@@ -31,10 +32,22 @@ def is_enabled() -> bool:
     )
 
 
-def chat_json(system: str, user: str, *, max_tokens: int | None = None) -> Any:
+def chat_json(
+    system: str,
+    user: str,
+    *,
+    max_tokens: int | None = None,
+    images: list[tuple[bytes, str]] | None = None,
+    model: str | None = None,
+) -> Any:
     """Send a system+user prompt to the chat endpoint and return the parsed
     JSON object from the model's reply. Raises ``AIError`` when the provider is
     off, the call fails, or the reply is empty / not valid JSON.
+
+    ``images`` is an optional list of ``(bytes, mime_type)`` pairs sent as
+    ``image_url`` data-URL parts next to the text (for vision models); callers
+    are responsible for downscaling. ``model`` overrides ``AI_MODEL`` for this
+    call only.
 
     ``max_tokens`` defaults to the ``AI_MAX_TOKENS`` setting. Reasoning is
     disabled when ``AI_DISABLE_THINKING`` is set, so a reasoning model spends
@@ -42,11 +55,20 @@ def chat_json(system: str, user: str, *, max_tokens: int | None = None) -> Any:
     back as empty ``content``)."""
     if not is_enabled():
         raise AIError("AI is not configured.")
+    user_content: Any = user
+    if images:
+        user_content = [{"type": "text", "text": user}] + [
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:{mime};base64,{base64.b64encode(data).decode('ascii')}"},
+            }
+            for data, mime in images
+        ]
     payload = {
-        "model": conf.get("AI_MODEL"),
+        "model": model or conf.get("AI_MODEL"),
         "messages": [
             {"role": "system", "content": system},
-            {"role": "user", "content": user},
+            {"role": "user", "content": user_content},
         ],
         "temperature": 0.2,
         "max_tokens": max_tokens or conf.get("AI_MAX_TOKENS"),

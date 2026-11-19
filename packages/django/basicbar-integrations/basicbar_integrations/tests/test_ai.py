@@ -106,6 +106,53 @@ class AiChatJsonTests(SimpleTestCase):
         body = self._sent_payload()
         self.assertNotIn("chat_template_kwargs", body)
 
+    def _payload_for(self, *args, **kwargs):
+        reply = {"choices": [{"message": {"content": "{}"}}]}
+        fake = MagicMock()
+        fake.read.return_value = json.dumps(reply).encode("utf-8")
+        cm = MagicMock()
+        cm.__enter__.return_value = fake
+        with patch("basicbar_integrations.ai.request.urlopen", return_value=cm) as urlopen:
+            ai.chat_json(*args, **kwargs)
+        return json.loads(urlopen.call_args.args[0].data.decode("utf-8"))
+
+    @override_settings(
+        AI_PROVIDER="litellm", AI_BASE_URL="https://x/v1",
+        AI_API_KEY="k", AI_MODEL="qwen-3.5", AI_TIMEOUT=5,
+    )
+    def test_chat_json_with_images_sends_content_parts(self):
+        body = self._payload_for(
+            "s", "describe", images=[(b"\x89PNG", "image/png"), (b"\xff\xd8", "image/jpeg")]
+        )
+        content = body["messages"][1]["content"]
+        self.assertEqual(content[0], {"type": "text", "text": "describe"})
+        self.assertEqual(
+            content[1],
+            {"type": "image_url", "image_url": {"url": "data:image/png;base64,iVBORw=="}},
+        )
+        self.assertEqual(
+            content[2],
+            {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,/9g="}},
+        )
+        self.assertEqual(len(content), 3)
+
+    @override_settings(
+        AI_PROVIDER="litellm", AI_BASE_URL="https://x/v1",
+        AI_API_KEY="k", AI_MODEL="qwen-3.5", AI_TIMEOUT=5,
+    )
+    def test_chat_json_model_override(self):
+        self.assertEqual(self._payload_for("s", "u", model="vision-1")["model"], "vision-1")
+        self.assertEqual(self._payload_for("s", "u")["model"], "qwen-3.5")
+
+    @override_settings(
+        AI_PROVIDER="litellm", AI_BASE_URL="https://x/v1",
+        AI_API_KEY="k", AI_MODEL="qwen-3.5", AI_TIMEOUT=5,
+    )
+    def test_chat_json_without_images_unchanged(self):
+        for kwargs in ({}, {"images": None}, {"images": []}):
+            body = self._payload_for("s", "u", **kwargs)
+            self.assertEqual(body["messages"][1], {"role": "user", "content": "u"})
+
 
 class AiTransportErrorTests(SimpleTestCase):
     """Every failure mode of the HTTP round trip must surface as AIError, and

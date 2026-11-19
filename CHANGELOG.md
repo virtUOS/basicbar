@@ -69,6 +69,19 @@ Migration (abstimmbar): `common/pdf.py` und `common/fonts/` löschen,
 `report_render.render_pdf` auf `PdfDocument(landscape=True, margin_mm=15)`
 umstellen; die Schrift wechselt dabei von Helvetica zu Plus Jakarta Sans.
 
+### basicbar-integrations (→ wird `integrations/v0.5.0`)
+
+**`ai.chat_json` kann Bilder senden und das Modell überschreiben.** Neue
+optionale Keyword-Argumente: `images=[(bytes, mime), …]` hängt die Bilder als
+`image_url`-Teile (Data-URL, base64) an die User-Nachricht an (für
+Vision-Modelle; das Verkleinern übernimmt der Aufrufer), und `model="…"`
+ersetzt `AI_MODEL` nur für diesen Aufruf (z. B. ein eigenes Vision-Modell).
+Ohne `images` bleibt die Nachricht ein einfacher String, bestehende Aufrufe
+ändern sich nicht.
+
+Migration: keine nötig; Tarball/Tag auf `integrations/v0.5.0` heben, wenn das
+Tool die neuen Argumente nutzen will.
+
 ### basicbar-integrations (→ wird `integrations/v0.4.0`)
 
 **Neues Modul `metrics`: token-geschützter Prometheus-Endpunkt.**
