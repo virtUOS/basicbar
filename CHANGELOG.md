@@ -51,6 +51,25 @@ die eigene Kopie in `components/ui.tsx` löschen und
 (Props unverändert, `size` ist optional). Die Tailwind-`content`-Zeile für
 `node_modules/@basicbar/ui/dist` muss vorhanden sein (ist es in allen Tools).
 
+**`RichTextEditor` ohne Browser-Dialoge; neuer Hook `onImageInserted`.**
+Alt-Text- und Link-Abfrage laufen über einen eigenen modalen Dialog (natives
+`<dialog>`, beschriftetes Eingabefeld, Enter = OK, Esc = Abbrechen, Fokus
+zurück in den Editor) statt `window.prompt`; ein gescheiterter Upload
+erscheint als schließbarer Hinweis unter der Toolbar (`role="alert"`) statt
+per `window.alert`. Ein hochgeladenes Bild wird sofort mit `alt=""`
+eingefügt und erst danach beschrieben — Abbrechen verliert also kein Bild,
+und bei zwei schnell hintereinander hochgeladenen Bildern landet jede
+Beschreibung auf ihrem eigenen Bild (die Dialoge laufen nacheinander). Neue
+optionale Prop `onImageInserted({ src, alt, mode, file })` →
+`Promise<{ alt } | null>`: Damit zeigt das Tool einen eigenen Bild-Dialog,
+nach dem Upload (`mode: "insert"`) und beim Button „Bildbeschreibung“
+(`mode: "edit"`); Details im README („Rich text“).
+
+Migration: neue Übersetzungs-Keys `"OK"`, `"Cancel"` und `"Dismiss"` im
+Katalog des Tools ergänzen (de: „OK“, „Abbrechen“, „Schließen“).
+`onImageInserted` ist optional; ohne die Prop verhält sich der Editor wie
+bisher, nur mit dem eingebauten Dialog statt der Browser-Abfrage.
+
 ### basicbar-pdf (→ wird `pdf/v0.1.0`)
 
 **Neues Paket: gemeinsamer PDF-Rahmen** für herunterladbare Dokumente,

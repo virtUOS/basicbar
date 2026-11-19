@@ -6,4 +6,4 @@
  * entry stays free of it. `RichText` (the renderer) has no such dependency
  * and lives in the main entry. */
 export { RichTextEditor } from "./RichTextEditor";
-export type { RichTextEditorProps } from "./RichTextEditor";
+export type { InsertedImage, RichTextEditorProps } from "./RichTextEditor";
