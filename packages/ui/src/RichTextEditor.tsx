@@ -472,14 +472,26 @@ export function RichTextEditor({
   async function setLink() {
     if (!editor) return;
     const previous = (editor.getAttributes("link").href as string) || "";
-    const answer = await serialized(editor, async () =>
-      editor.isDestroyed ? null : prompt({ label: t("Enter URL"), defaultValue: previous }),
-    );
-    if (answer === null || editor.isDestroyed) return; // cancelled
-    const url = answer.trim();
-    const chain = editor.chain().focus().extendMarkRange("link");
-    if (url === "") chain.unsetLink().run();
-    else chain.setLink({ href: url }).run();
+    // The selection does not survive the modal dialog (Firefox, and Chromium
+    // after a double-click selection, collapse it to the start once the
+    // dialog closes and focus returns), so remember the range — following it
+    // through edits made meanwhile, e.g. an upload finishing — and restore it.
+    const from = trackPosition(editor, editor.state.selection.from);
+    const to = trackPosition(editor, editor.state.selection.to);
+    try {
+      const answer = await serialized(editor, async () =>
+        editor.isDestroyed ? null : prompt({ label: t("Enter URL"), defaultValue: previous }),
+      );
+      if (answer === null || editor.isDestroyed) return; // cancelled
+      const url = answer.trim();
+      const range = { from: Math.min(from.pos, to.pos), to: Math.max(from.pos, to.pos) };
+      const chain = editor.chain().focus().setTextSelection(range).extendMarkRange("link");
+      if (url === "") chain.unsetLink().run();
+      else chain.setLink({ href: url }).run();
+    } finally {
+      from.stop();
+      to.stop();
+    }
   }
 
   async function setImageAlt() {
