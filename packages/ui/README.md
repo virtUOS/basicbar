@@ -155,9 +155,9 @@ Upload fügt der Editor das Bild mit `alt=""` ein und fragt dann in einem
 eigenen modalen Dialog (natives `<dialog>`, kein `window.prompt`) nach einer
 Beschreibung (`t("Image description (alt text)")`, Buttons `t("OK")` /
 `t("Cancel")`, Enter = OK, Esc = Abbrechen; Esc wird nicht an
-seitenweite Tastatur-Handler weitergereicht). Editor und Dialog stecken in
-einem gemeinsamen `<div class="contents">`, das Tool sieht also weiterhin
-ein einziges Element. Leere Eingabe, Abbrechen und Esc
+seitenweite Tastatur-Handler weitergereicht). Der Dialog sitzt im Rahmen des
+Editors (geschlossen `display: none`, offen in der Top-Layer), das Tool sieht
+also weiterhin ein einziges Element. Leere Eingabe, Abbrechen und Esc
 lassen `alt=""` stehen (bewusst dekoratives Bild) — das Bild bleibt in jedem
 Fall drin. Ein eigener Toolbar-Button (`t("Image description")`, nur
 sichtbar, wenn `onUploadImage` gesetzt ist) ist deaktiviert, solange kein

@@ -505,119 +505,118 @@ export function RichTextEditor({
   }
 
   return (
-    // One element for the host (`space-y-*`, :last-child, grid children):
-    // `contents` keeps the frame laid out as before, the dialog beside it.
-    <div className="contents">
-      <div
-        className={`rounded-lg border border-field focus-within:ring-2 focus-within:ring-brand-600 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-slate-950 ${
-          editable ? "" : "bg-slate-50 dark:bg-slate-900"
-        }`}
-      >
-        {editable && (
-          // Wraps onto further rows on narrow screens instead of a horizontal
-          // scroller whose hidden buttons had no affordance.
-          <div className="flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-800 px-2 py-1">
-            <ToolbarButton
-              label={t("Bold")}
-              active={editor.isActive("bold")}
-              onClick={() => editor.chain().focus().toggleBold().run()}
-            >
-              <BoldIcon aria-hidden className="h-4 w-4" />
-            </ToolbarButton>
-            <ToolbarButton
-              label={t("Italic")}
-              active={editor.isActive("italic")}
-              onClick={() => editor.chain().focus().toggleItalic().run()}
-            >
-              <ItalicIcon aria-hidden className="h-4 w-4" />
-            </ToolbarButton>
-            <ToolbarButton
-              label={t("Heading (large)")}
-              active={editor.isActive("heading", { level: 2 })}
-              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            >
-              <Heading2 aria-hidden className="h-4 w-4" />
-            </ToolbarButton>
-            <ToolbarButton
-              label={t("Heading (small)")}
-              active={editor.isActive("heading", { level: 3 })}
-              onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-            >
-              <Heading3 aria-hidden className="h-4 w-4" />
-            </ToolbarButton>
-            <ToolbarButton
-              label={t("Bulleted list")}
-              active={editor.isActive("bulletList")}
-              onClick={() => editor.chain().focus().toggleBulletList().run()}
-            >
-              <List aria-hidden className="h-4 w-4" />
-            </ToolbarButton>
-            <ToolbarButton
-              label={t("Numbered list")}
-              active={editor.isActive("orderedList")}
-              onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            >
-              <ListOrdered aria-hidden className="h-4 w-4" />
-            </ToolbarButton>
-            <ToolbarButton
-              label={t("Link")}
-              active={editor.isActive("link")}
-              onClick={() => void setLink()}
-            >
-              <LinkIcon aria-hidden className="h-4 w-4" />
-            </ToolbarButton>
-            {onUploadImage && (
-              <label
-                className="flex cursor-pointer items-center rounded px-2 py-1 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 focus-within:ring-2 focus-within:ring-brand-600 focus-within:ring-offset-1"
-                title={t("Insert image (or drag and drop)")}
-              >
-                <ImagePlus aria-hidden className="h-4 w-4" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  aria-label={t("Insert image (or drag and drop)")}
-                  className="sr-only"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void insertImageFile(editor, file);
-                    event.target.value = "";
-                  }}
-                />
-              </label>
-            )}
-            {onUploadImage && (
-              <ToolbarButton
-                label={t("Image description")}
-                disabled={!editor.isActive("image")}
-                onClick={() => void setImageAlt()}
-              >
-                <Captions aria-hidden className="h-4 w-4" />
-              </ToolbarButton>
-            )}
-          </div>
-        )}
-        {uploadError !== null && (
-          <div
-            role="alert"
-            className="flex items-start justify-between gap-2 border-b border-slate-200 px-3 py-2 text-sm text-danger dark:border-slate-800"
+    // The frame stays the single root element for the host (`space-y-*`,
+    // :last-child). The prompt <dialog> lives inside it: closed it is
+    // display:none, open it sits in the top layer — no layout impact.
+    <div
+      className={`rounded-lg border border-field focus-within:ring-2 focus-within:ring-brand-600 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-slate-950 ${
+        editable ? "" : "bg-slate-50 dark:bg-slate-900"
+      }`}
+    >
+      {editable && (
+        // Wraps onto further rows on narrow screens instead of a horizontal
+        // scroller whose hidden buttons had no affordance.
+        <div className="flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-800 px-2 py-1">
+          <ToolbarButton
+            label={t("Bold")}
+            active={editor.isActive("bold")}
+            onClick={() => editor.chain().focus().toggleBold().run()}
           >
-            <span>
-              {t("Image upload failed")}
-              {uploadError ? `: ${uploadError}` : ""}
-            </span>
-            <button
-              type="button"
-              title={t("Dismiss")}
-              aria-label={t("Dismiss")}
-              onClick={() => setUploadError(null)}
-              className="rounded p-0.5 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            <BoldIcon aria-hidden className="h-4 w-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            label={t("Italic")}
+            active={editor.isActive("italic")}
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+          >
+            <ItalicIcon aria-hidden className="h-4 w-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            label={t("Heading (large)")}
+            active={editor.isActive("heading", { level: 2 })}
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          >
+            <Heading2 aria-hidden className="h-4 w-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            label={t("Heading (small)")}
+            active={editor.isActive("heading", { level: 3 })}
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          >
+            <Heading3 aria-hidden className="h-4 w-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            label={t("Bulleted list")}
+            active={editor.isActive("bulletList")}
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+          >
+            <List aria-hidden className="h-4 w-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            label={t("Numbered list")}
+            active={editor.isActive("orderedList")}
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          >
+            <ListOrdered aria-hidden className="h-4 w-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            label={t("Link")}
+            active={editor.isActive("link")}
+            onClick={() => void setLink()}
+          >
+            <LinkIcon aria-hidden className="h-4 w-4" />
+          </ToolbarButton>
+          {onUploadImage && (
+            <label
+              className="flex cursor-pointer items-center rounded px-2 py-1 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 focus-within:ring-2 focus-within:ring-brand-600 focus-within:ring-offset-1"
+              title={t("Insert image (or drag and drop)")}
             >
-              <X aria-hidden className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-        <EditorContent editor={editor} />
-      </div>
+              <ImagePlus aria-hidden className="h-4 w-4" />
+              <input
+                type="file"
+                accept="image/*"
+                aria-label={t("Insert image (or drag and drop)")}
+                className="sr-only"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void insertImageFile(editor, file);
+                  event.target.value = "";
+                }}
+              />
+            </label>
+          )}
+          {onUploadImage && (
+            <ToolbarButton
+              label={t("Image description")}
+              disabled={!editor.isActive("image")}
+              onClick={() => void setImageAlt()}
+            >
+              <Captions aria-hidden className="h-4 w-4" />
+            </ToolbarButton>
+          )}
+        </div>
+      )}
+      {uploadError !== null && (
+        <div
+          role="alert"
+          className="flex items-start justify-between gap-2 border-b border-slate-200 px-3 py-2 text-sm text-danger dark:border-slate-800"
+        >
+          <span>
+            {t("Image upload failed")}
+            {uploadError ? `: ${uploadError}` : ""}
+          </span>
+          <button
+            type="button"
+            title={t("Dismiss")}
+            aria-label={t("Dismiss")}
+            onClick={() => setUploadError(null)}
+            className="rounded p-0.5 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            <X aria-hidden className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+      <EditorContent editor={editor} />
       {promptDialog}
     </div>
   );
