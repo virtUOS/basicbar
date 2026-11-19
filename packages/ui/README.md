@@ -170,7 +170,7 @@ hintereinander hochgeladen, gehört jeder Dialog zu seinem Bild, und die
 Antwort landet genau auf diesem Bild, auch wenn sich das Dokument
 inzwischen geändert hat.
 
-**Eigener Bild-Dialog (`onImageInserted`, ab 0.10.0):** Statt des
+**Eigener Bild-Dialog (`onImageInserted`, ab 0.11.0):** Statt des
 eingebauten Dialogs kann das Tool einen eigenen zeigen (z. B. mit
 KI-Vorschlag oder Bildnachweis-Feldern):
 

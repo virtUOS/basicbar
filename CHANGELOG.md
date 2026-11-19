@@ -34,22 +34,7 @@ Changelog ist die Upgrade-Anleitung für die Tools.
   Untergrenzen nicht steigen. Die CI testet jeden Dependabot-PR. Für die
   Tools ändert sich nichts.
 
-### @basicbar/ui (→ wird `ui/v0.10.0`)
-
-**Neu: `SegmentedControl`** — Auswahl „eins aus wenigen“ als Pill mit
-gleich breiten Segmenten und gleitendem Daumen (Klick, Tastatur, Ziehen mit
-Finger/Maus; rastet beim Loslassen ein), herausgelöst aus abstimmbar
-(`components/ui.tsx`). Optisch klar von An/Aus-Filter-Pills unterschieden.
-Neu gegenüber abstimmbar: `role="radiogroup"` statt `group` (die Segmente
-sind `role="radio"`), `size="md"` für 44-px-Touch-Ziele, sichtbarer
-Fokusring, `transition-transform` für den Daumen (abgeschaltet bei
-`prefers-reduced-motion`).
-
-Migration: Tarball auf `ui/v0.10.0`, Vite-Dep-Cache leeren. abstimmbar kann
-die eigene Kopie in `components/ui.tsx` löschen und
-`import { SegmentedControl, type SegOption } from "@basicbar/ui"` nutzen
-(Props unverändert, `size` ist optional). Die Tailwind-`content`-Zeile für
-`node_modules/@basicbar/ui/dist` muss vorhanden sein (ist es in allen Tools).
+### @basicbar/ui (→ wird `ui/v0.11.0`)
 
 **`RichTextEditor` ohne Browser-Dialoge; neuer Hook `onImageInserted`.**
 Alt-Text- und Link-Abfrage laufen über einen eigenen modalen Dialog (natives
@@ -69,6 +54,23 @@ Migration: neue Übersetzungs-Keys `"OK"`, `"Cancel"` und `"Dismiss"` im
 Katalog des Tools ergänzen (de: „OK“, „Abbrechen“, „Schließen“).
 `onImageInserted` ist optional; ohne die Prop verhält sich der Editor wie
 bisher, nur mit dem eingebauten Dialog statt der Browser-Abfrage.
+
+### @basicbar/ui (`ui/v0.10.0`, veröffentlicht 2026-11-16)
+
+**Neu: `SegmentedControl`** — Auswahl „eins aus wenigen“ als Pill mit
+gleich breiten Segmenten und gleitendem Daumen (Klick, Tastatur, Ziehen mit
+Finger/Maus; rastet beim Loslassen ein), herausgelöst aus abstimmbar
+(`components/ui.tsx`). Optisch klar von An/Aus-Filter-Pills unterschieden.
+Neu gegenüber abstimmbar: `role="radiogroup"` statt `group` (die Segmente
+sind `role="radio"`), `size="md"` für 44-px-Touch-Ziele, sichtbarer
+Fokusring, `transition-transform` für den Daumen (abgeschaltet bei
+`prefers-reduced-motion`).
+
+Migration: Tarball auf `ui/v0.10.0`, Vite-Dep-Cache leeren. abstimmbar kann
+die eigene Kopie in `components/ui.tsx` löschen und
+`import { SegmentedControl, type SegOption } from "@basicbar/ui"` nutzen
+(Props unverändert, `size` ist optional). Die Tailwind-`content`-Zeile für
+`node_modules/@basicbar/ui/dist` muss vorhanden sein (ist es in allen Tools).
 
 ### basicbar-pdf (→ wird `pdf/v0.1.0`)
 
