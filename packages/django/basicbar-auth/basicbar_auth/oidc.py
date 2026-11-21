@@ -166,7 +166,9 @@ class OIDCBackend(OIDCAuthenticationBackend):
     def _verify_jws(self, payload, key):
         if _jwt is None:
             return super()._verify_jws(payload, key)
-        # mozilla 5.x's check plus leeway for clock skew between IdP and us.
+        # Mirrors mozilla-django-oidc 5.0.2's ``_verify_jws`` plus leeway for
+        # clock skew between IdP and us; re-check this override whenever
+        # mozilla-django-oidc is upgraded.
         # ``algorithms`` pins the configured algorithm (a missing or different
         # ``alg`` header raises InvalidAlgorithmError); errors are converted
         # in verify_token.
@@ -175,7 +177,7 @@ class OIDCBackend(OIDCAuthenticationBackend):
             key,
             algorithms=[self.OIDC_RP_SIGN_ALGO],
             options={"verify_aud": False},
-            leeway=conf.get("OIDC_TOKEN_LEEWAY"),
+            leeway=float(conf.get("OIDC_TOKEN_LEEWAY")),
         )
 
     def filter_users_by_claims(self, claims):
@@ -392,7 +394,7 @@ def backchannel_logout(request):
     if abs(now - iat) > max_age:
         return HttpResponseBadRequest("logout_token too old")
     exp = payload.get("exp")
-    if _is_timestamp(exp) and exp < now - conf.get("OIDC_TOKEN_LEEWAY"):
+    if _is_timestamp(exp) and exp < now - float(conf.get("OIDC_TOKEN_LEEWAY")):
         return HttpResponseBadRequest("logout_token expired")
 
     deleted = _delete_sessions_for_subject(subject)

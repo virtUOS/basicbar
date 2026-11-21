@@ -257,6 +257,10 @@ class LoginTokenLeewayTests(TestCase):
         with self.assertLogs("basicbar_auth.oidc", level="WARNING"):
             self.assertRejected(self._callback(self._id_token(exp_in=-10)))
 
+    @override_settings(OIDC_TOKEN_LEEWAY="30")
+    def test_leeway_setting_accepts_numeric_string(self):
+        self.assertLoggedIn(self._callback(self._id_token(exp_in=-10)))
+
     def test_login_rejects_token_signed_by_another_key(self):
         with (
             override_settings(OIDC_RP_IDP_SIGN_KEY=public_key_pem("other")),

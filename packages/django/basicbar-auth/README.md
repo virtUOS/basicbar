@@ -68,7 +68,7 @@ Session zu dekodieren (relevant bei vielen anonymen Besucher-Sessions).
 Sessions aus der Zeit vor 0.2 kennt der Index nicht — für sie bleibt der
 Scan als Fallback, bis sie ablaufen. Voraussetzung ist der DB-Session-Store.
 
-**Uhrzeit-Toleranz:** `OIDC_TOKEN_LEEWAY` (Sekunden, Default `30`) gilt
+**Uhrzeit-Toleranz:** `OIDC_TOKEN_LEEWAY` (Zahl in Sekunden, Default `30`) gilt
 für `exp`, `iat` und `nbf` der Tokens beim Login (mit mozilla-django-oidc
 ≥ 5; 4.x prüft diese Claims beim Login nicht) und für `exp` beim
 Back-Channel-Logout. Ein abgelehntes ID-Token führt zum Fehl-Redirect
