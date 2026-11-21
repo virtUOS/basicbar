@@ -24,12 +24,11 @@ umschreibt. Keine gestapelten PRs: jeder PR geht gegen `main`.
 auf dem alten Stand (Django 5.2 LTS). Beim „Merge up“ in `main` bei einem
 Versionskonflikt die Version von `main` behalten.
 
-**basicbar braucht für keinen der vier Schritte ein neues Release.**
-`@basicbar/ui` (Peer `react >=18`, Tailwind-Preset als JS) und die
-Django-Pakete (`Django>=5.1`) laufen unverändert. Ausnahmen: unter
-mozilla-django-oidc 5 braucht `basicbar-auth` ab 0.3.0 (sonst 500 beim Login
-bei Uhrabweichung), unter Tailwind 4 `@basicbar/ui` ab 0.11.2 (Fokus im
-Kontrastmodus).
+**basicbar-Pakete: zwei Mindestversionen.** Unter mozilla-django-oidc 5
+braucht es `basicbar-auth` ab 0.3.0 (sonst 500 beim Login bei
+Uhrabweichung), unter Tailwind 4 `@basicbar/ui` ab 0.11.2 (Fokus im
+Kontrastmodus). Ansonsten laufen `@basicbar/ui` (Peer `react >=18`,
+Tailwind-Preset als JS) und die Django-Pakete (`Django>=5.1`) unverändert.
 
 ---
 

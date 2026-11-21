@@ -12,11 +12,10 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 - Upgrade-Leitfaden [Vite 8, React 19, Django 6.1 und
   Tailwind 4](docs/UPGRADE-2026-11-STACK.md): Reihenfolge, Stolperfallen
   mit Fehlermeldung und Lösung, Prüfschritte (Erfahrungen aus abstimmbar und
-  ausleihbar). Kein Paket-Release nötig: `@basicbar/ui` und die
-  Django-Pakete laufen unverändert unter dem neuen Stack. Ausnahmen:
-  unter mozilla-django-oidc 5 `basicbar-auth` ab 0.3.0 (sonst 500 beim
-  Login bei Uhrabweichung), unter Tailwind 4 `@basicbar/ui` ab 0.11.2
-  (Fokus im Kontrastmodus).
+  ausleihbar). Zwei Mindestversionen: unter mozilla-django-oidc 5
+  `basicbar-auth` ab 0.3.0 (sonst 500 beim Login bei Uhrabweichung),
+  unter Tailwind 4 `@basicbar/ui` ab 0.11.2 (Fokus im Kontrastmodus);
+  sonst laufen `@basicbar/ui` und die Django-Pakete unverändert.
 - Leitfaden korrigiert (Tailwind 4, Issue #49): `base.css` ohne `layer(base)`
   importieren (sonst verliert der Skip-Link gegen den Preflight), Skip-Link
   per Tab prüfen, eigene `.btn-*`-Klassen in `@layer components`; den
