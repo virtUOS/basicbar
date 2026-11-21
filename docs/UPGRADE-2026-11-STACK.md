@@ -209,10 +209,14 @@ bisherige JS-Konfiguration (`tailwind.config.js` mit
 
    ```css
    @import 'tailwindcss';
-   @import '@basicbar/ui/base.css' layer(base);
+   @import '@basicbar/ui/base.css';
    @config '../tailwind.config.js';
    /* danach: Kompat-Block, Tool-Variablen in @layer base, eigene Styles */
    ```
+
+   `base.css` bleibt **ohne** `layer(base)`. Mit `layer()` werden die
+   Ebenen von `base.css` zu Unterebenen von `base` und verlieren gegen den
+   Preflight. Der Skip-Link erscheint dann ohne Abstand, dunkel auf dunkel.
 
 3. Jede **separat importierte** CSS-Datei, die `theme()` oder `@apply`
    nutzt, braucht `@reference "../index.css";`. Das Werkzeug macht das nicht.
@@ -223,7 +227,15 @@ bisherige JS-Konfiguration (`tailwind.config.js` mit
   jedes `@import` vor allen anderen Anweisungen stehen. Bei uns fehlte dadurch
   zunächst das komplette `base.css` (Skip-Link, Fokusring, `::selection`,
   ProseMirror), ohne Fehlermeldung. Prüfen:
-  `grep -c skip-link dist/assets/*.css` muss ≥ 1 ergeben.
+  `grep -c skip-link dist/assets/*.css` muss ≥ 1 ergeben. Das reicht allein
+  nicht (siehe nächster Punkt).
+- **Skip-Link per Tab prüfen.** Die Regel kann im Build stehen und trotzdem
+  gegen den Preflight verlieren. Im Browser einmal Tab drücken: Der Skip-Link
+  hat sichtbaren Innenabstand und hellen Text auf dunklem Grund.
+- **Eigene Komponentenklassen (etwa `.btn-*`) gehören in
+  `@layer components`.** Ungeschichtete Klassen überstimmen in v4 jede
+  Utility am selben Element, auch `hover:`, `disabled:` und `aria-pressed:`.
+  Die Hover- und Disabled-Zustände wirken dann nicht mehr.
 - `Could not resolve value for theme function: theme(colors.white)`
   bedeutet, dass in einer eigenen CSS-Datei das `@reference` fehlt (siehe
   Schritt 3).
@@ -254,11 +266,14 @@ abstimmbar, 12 Seiten × hell/dunkel × 1280/324 px: 44 von 48 Seiten
 pixelgleich, die übrigen vier mit den flacheren Abzeichen von oben. Danach
 die volle e2e-Suite mit Vergleichslauf (siehe React).
 
-**Für ein späteres ui-Release vorgemerkt:** `base.css` nutzt im Fokusstil
+**`outline-none` in `base.css`:** `base.css` nutzte im Fokusstil
 `@apply outline-none`. In v4 bedeutet das `outline-style: none`. In v3 war
 es eine transparente Outline, die im Windows-Kontrastmodus sichtbar wird.
-Auf `outline-hidden` umstellen, sobald alle Tools auf Tailwind 4 sind. Das
-Template (`template/project/frontend`) steht noch auf React 18, Vite 6,
+Behoben in `@basicbar/ui` 0.11.2 mit einer transparenten Outline, die unter
+Tailwind 3 und 4 gleich wirkt. Tools, die selbst eine `forced-colors`-Regel
+dagegen gesetzt haben, können sie nach dem Upgrade entfernen.
+
+Das Template (`template/project/frontend`) steht noch auf React 18, Vite 6,
 Tailwind 3 und Django 5.1. Heben, sobald die ersten Tools umgestellt sind.
 
 ---

@@ -14,6 +14,10 @@ Changelog ist die Upgrade-Anleitung für die Tools.
   mit Fehlermeldung und Lösung, Prüfschritte (Erfahrungen aus abstimmbar und
   ausleihbar). Kein Paket-Release nötig: `@basicbar/ui` und die
   Django-Pakete laufen unverändert unter dem neuen Stack.
+- Leitfaden korrigiert (Tailwind 4, Issue #49): `base.css` ohne `layer(base)`
+  importieren (sonst verliert der Skip-Link gegen den Preflight), Skip-Link
+  per Tab prüfen, eigene `.btn-*`-Klassen in `@layer components`.
+  Migration: `index.css` der Tools prüfen, die schon umgestellt haben.
 
 ### Template und @basicbar/ui-README (kein Release)
 
@@ -30,7 +34,7 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 - Dependabot-Version-Updates eingeschaltet (`.github/dependabot.yml`):
   wöchentlich, gruppiert, für GitHub Actions und `@basicbar/ui` (npm, TipTap
-  immer gemeinsam). Die Django-Pakete bleiben bewusst draußen, damit ihre
+  immer gemeinsam, React und `react-dom` mit ihren Typen ebenso). Die Django-Pakete bleiben bewusst draußen, damit ihre
   Untergrenzen nicht steigen. Die CI testet jeden Dependabot-PR. Für die
   Tools ändert sich nichts.
 
