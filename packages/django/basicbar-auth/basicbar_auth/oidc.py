@@ -357,8 +357,10 @@ def backchannel_logout(request):
     try:
         payload = OIDCBackend().verify_token(logout_token)
     except Exception as exc:  # noqa: BLE001 — any failure means an invalid token
-        logger.warning(
-            "Back-channel logout: token verification failed: %s", type(exc).__name__
+        # verify_token already logged a PyJWT rejection as WARNING.
+        level = logging.DEBUG if isinstance(exc, _TokenRejected) else logging.WARNING
+        logger.log(
+            level, "Back-channel logout: token verification failed: %s", type(exc).__name__
         )
         return HttpResponseBadRequest("invalid logout_token")
 

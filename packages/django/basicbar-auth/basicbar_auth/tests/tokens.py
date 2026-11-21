@@ -53,8 +53,11 @@ def jwks() -> dict:
     return {"keys": [{**jwk, "kid": KID, "alg": "RS256", "use": "sig"}]}
 
 
-def make_token(claims, *, exp_in=300, iat_in=0) -> str:
-    """Sign ``claims`` with RS256; ``exp``/``iat`` are offsets from now."""
+def make_token(claims, *, exp_in=300, iat_in=0, nbf_in=None) -> str:
+    """Sign ``claims`` with RS256; ``exp``/``iat``/``nbf`` are offsets from
+    now (``nbf`` only when given)."""
     now = int(time.time())
     payload = {"iat": now + iat_in, "exp": now + exp_in, **claims}
+    if nbf_in is not None:
+        payload["nbf"] = now + nbf_in
     return jwt.encode(payload, _private_key("idp"), algorithm="RS256", headers={"kid": KID})

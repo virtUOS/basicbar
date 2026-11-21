@@ -166,6 +166,16 @@ class BackChannelLogoutRealTokenTests(TestCase):
         self.assertFalse(Session.objects.filter(session_key=self.session_key).exists())
 
     def test_backchannel_rejects_expired_beyond_leeway(self):
-        with self.assertLogs("basicbar_auth.oidc", level="WARNING"):
+        with self.assertLogs("basicbar_auth.oidc", level="WARNING") as logs:
             self.assertEqual(self._post(exp_in=-120).status_code, 400)
+        self.assertTrue(Session.objects.filter(session_key=self.session_key).exists())
+        # One WARNING per rejected token; the view's own line is DEBUG then.
+        self.assertEqual(
+            logs.output, ["WARNING:basicbar_auth.oidc:OIDC token rejected: ExpiredSignatureError"]
+        )
+
+    @override_settings(OIDC_TOKEN_LEEWAY=0)
+    def test_backchannel_honours_leeway_setting(self):
+        with self.assertLogs("basicbar_auth.oidc", level="WARNING"):
+            self.assertEqual(self._post(exp_in=-10).status_code, 400)
         self.assertTrue(Session.objects.filter(session_key=self.session_key).exists())

@@ -2,14 +2,16 @@
 # Copyright 2026 Universität Osnabrück (virtUOS)
 
 """Claim mapping, account cap, subject handling and token verification."""
+from importlib.metadata import version
 from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from basicbar_auth import oidc
 from basicbar_auth.oidc import OIDCBackend
 from basicbar_auth.tests.tokens import jwks, make_token, public_key_pem, requires_pyjwt
 
@@ -232,9 +234,21 @@ class LoginTokenLeewayTests(TestCase):
     def test_login_accepts_iat_slightly_in_future(self):
         self.assertLoggedIn(self._callback(self._id_token(iat_in=10)))
 
+    def test_login_rejects_iat_beyond_leeway_in_future_without_500(self):
+        with self.assertLogs("basicbar_auth.oidc", level="WARNING") as logs:
+            self.assertRejected(self._callback(self._id_token(iat_in=120)))
+        self.assertEqual(
+            logs.output, ["WARNING:basicbar_auth.oidc:OIDC token rejected: ImmatureSignatureError"]
+        )
+
+    def test_login_accepts_nbf_slightly_in_future(self):
+        self.assertLoggedIn(self._callback(self._id_token(nbf_in=10)))
+
     def test_login_rejects_wrong_nonce(self):
         response = self._callback(self._id_token(nonce="someone-elses"))
-        self.assertEqual(response.status_code, 302)
+        # Deliberately unchanged: mozilla's SuspiciousOperation ends at
+        # SafeOIDCCallbackView's LOGIN_REDIRECT_URL, not the failure URL.
+        self.assertRedirects(response, "http://spa.test/", fetch_redirect_response=False)
         self.assertNotIn("_auth_user_id", self.client.session)
         self.assertFalse(User.objects.filter(subject="abc-123").exists())
 
@@ -261,3 +275,15 @@ class LoginTokenLeewayTests(TestCase):
         with self.assertLogs("basicbar_auth.oidc", level="WARNING") as logs:
             self.assertRejected(self._callback("not-a-jwt"))
         self.assertEqual(logs.output, ["WARNING:basicbar_auth.oidc:OIDC token rejected: DecodeError"])
+
+
+class PyJWTDetectionTests(SimpleTestCase):
+    """``requires_pyjwt`` uses the same detection as production, so a future
+    mozilla >= 5 that stops binding ``jwt`` in its auth module would turn the
+    leeway off and skip the real-token tests silently. This one fails instead."""
+
+    def test_mozilla_5_is_detected_as_pyjwt(self):
+        major = int(version("mozilla-django-oidc").split(".")[0])
+        if major < 5:
+            self.skipTest("mozilla-django-oidc 4.x verifies with josepy")
+        self.assertIsNotNone(oidc._jwt)
