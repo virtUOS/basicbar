@@ -25,6 +25,8 @@ DEFAULTS = {
     "LIBRETRANSLATE_API_KEY": "",
     # Prometheus endpoint (metrics.MetricsView); empty = off (404)
     "METRICS_TOKEN": "",
+    # Fernet key for encryption.encrypt/decrypt; empty = derived from SECRET_KEY
+    "TOKEN_ENCRYPTION_KEY": "",
 }
 
 

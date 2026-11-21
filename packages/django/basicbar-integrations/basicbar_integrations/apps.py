@@ -7,3 +7,10 @@ from django.apps import AppConfig
 class BasicbarIntegrationsConfig(AppConfig):
     name = "basicbar_integrations"
     verbose_name = "Basicbar Integrations"
+
+    def ready(self):
+        from django.core.checks import register
+
+        from .checks import token_encryption_key_check
+
+        register(token_encryption_key_check)
