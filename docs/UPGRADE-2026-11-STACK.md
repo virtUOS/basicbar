@@ -26,7 +26,10 @@ Versionskonflikt die Version von `main` behalten.
 
 **basicbar braucht für keinen der vier Schritte ein neues Release.**
 `@basicbar/ui` (Peer `react >=18`, Tailwind-Preset als JS) und die
-Django-Pakete (`Django>=5.1`) laufen unverändert.
+Django-Pakete (`Django>=5.1`) laufen unverändert. Ausnahmen: unter
+mozilla-django-oidc 5 braucht `basicbar-auth` ab 0.3.0 (sonst 500 beim Login
+bei Uhrabweichung), unter Tailwind 4 `@basicbar/ui` ab 0.11.2 (Fokus im
+Kontrastmodus).
 
 ---
 
@@ -113,7 +116,9 @@ und <https://docs.djangoproject.com/en/6.1/releases/6.1/>
 2. `Django==6.1.x` in `requirements.txt`. Bei uns musste kein anderer Pin
    mitwandern: DRF 3.18, mozilla-django-oidc 5.0.2, django-modeltranslation
    0.20.6, PyLTI1p3 2.0.0, django-cors-headers 4.9 und alle basicbar-Pakete
-   laufen.
+   laufen; mit mozilla-django-oidc 5 aber erst mit `basicbar-auth` ab 0.3.0
+   (sonst 500 beim Login bei Uhrabweichung, Zeitsynchronisation per NTP
+   bleibt trotzdem empfohlen).
 3. Die Suite unter 6.1 mit `PYTHONWARNINGS=always` laufen lassen, dazu
    `check --deploy`, `makemigrations --check` und `pip check`.
 4. Den Dev-Stack mit `docker compose build backend` neu bauen, weil sich
@@ -231,7 +236,8 @@ bisherige JS-Konfiguration (`tailwind.config.js` mit
   nicht (siehe nächster Punkt).
 - **Skip-Link per Tab prüfen.** Die Regel kann im Build stehen und trotzdem
   gegen den Preflight verlieren. Im Browser einmal Tab drücken: Der Skip-Link
-  hat sichtbaren Innenabstand und hellen Text auf dunklem Grund.
+  hat sichtbaren Innenabstand und deutlichen Kontrast (im hellen Theme
+  heller Text auf dunklem Grund, im dunklen umgekehrt).
 - **Eigene Komponentenklassen (etwa `.btn-*`) gehören in
   `@layer components`.** Ungeschichtete Klassen überstimmen in v4 jede
   Utility am selben Element, auch `hover:`, `disabled:` und `aria-pressed:`.
