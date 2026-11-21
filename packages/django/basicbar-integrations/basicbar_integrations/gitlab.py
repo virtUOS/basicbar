@@ -51,7 +51,7 @@ def parse_project_url(url: str, *, allow_http: bool = False) -> tuple[str, str] 
     if parts.username is not None or parts.password is not None or "@" in parts.netloc:
         return None
     project = ("/" + parts.path.strip("/")).split("/-/", 1)[0].strip("/")
-    project = project.removesuffix(".git")
+    project = project.removesuffix(".git").strip("/")
     if not project:
         return None
     netloc = f"[{host}]" if ":" in host else host
@@ -62,6 +62,8 @@ def parse_project_url(url: str, *, allow_http: bool = False) -> tuple[str, str] 
 
 def _origin(url: str) -> tuple[str, str, int | None]:
     parts = urlsplit(url.strip())
+    if "@" in parts.netloc or "\\" in parts.netloc:  # userinfo, or a backslash browsers read as "/"
+        raise ValueError("unusable origin")
     scheme = parts.scheme.lower()
     host = (parts.hostname or "").lower()
     port = parts.port
@@ -91,8 +93,8 @@ def _send(method: str, url: str, token: str, **kwargs) -> httpx.Response:
     try:
         with httpx.Client(transport=_transport, timeout=TIMEOUT_SECONDS, follow_redirects=False) as client:
             response = client.request(method, url, headers={"PRIVATE-TOKEN": token}, **kwargs)
-    except httpx.HTTPError as exc:
-        # Class name only: the message could echo request details.
+    except Exception as exc:  # noqa: BLE001 - httpx/idna/codec errors while building the request, too
+        # Class name only: the message could echo request details (e.g. a token character).
         raise GitLabError(f"GitLab unreachable ({type(exc).__name__})") from None
     if not 200 <= response.status_code < 300:  # a redirect lands here, too
         raise GitLabError(f"GitLab answered HTTP {response.status_code}")
@@ -147,6 +149,8 @@ def create_issue(
     allow_http: bool = False,
 ) -> Issue:
     """Create an issue. With ``confidential=True`` the answer must confirm it, else GitLabError."""
+    if isinstance(labels, str):
+        raise TypeError("labels must be a sequence of strings, not a single string")
     api, token = _target(project_url, token, allow_http)
     fields = {"title": title, "description": description}
     if confidential:
@@ -162,7 +166,10 @@ def create_issue(
     web_url = body.get("web_url")
     if isinstance(web_url, str):
         web_url = web_url.strip()
-        ok = urlsplit(web_url).scheme.lower() in ("http", "https") and same_origin(web_url, project_url)
+        try:
+            ok = urlsplit(web_url).scheme.lower() in ("http", "https") and same_origin(web_url, project_url)
+        except ValueError:
+            ok = False
         web_url = web_url if ok else None
     else:
         web_url = None

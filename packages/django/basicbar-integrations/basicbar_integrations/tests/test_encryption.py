@@ -44,6 +44,16 @@ class EncryptionTests(SimpleTestCase):
                 self.assertEqual(decrypt("gAAAAnot-a-token"), "")
         self.assertEqual(len(logs.output), 1)
 
+    def test_each_kind_warns_once_and_independently(self):
+        with self.assertLogs(LOGGER, "WARNING") as logs:
+            decrypt("gAAAAnot-a-token")
+            with override_settings(TOKEN_ENCRYPTION_KEY="nope-secret-key-value"):
+                decrypt("gAAAA")
+                decrypt("gAAAA")
+            decrypt("gAAAAnot-a-token")
+        self.assertEqual(len(logs.output), 2)
+        self.assertNotEqual(logs.output[0], logs.output[1])
+
     def test_roundtrip_and_empty(self):
         token = encrypt("glpat-abc")
         self.assertNotIn("glpat-abc", token)

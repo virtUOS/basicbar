@@ -48,10 +48,16 @@ class ParseProjectUrlTests(SimpleTestCase):
             "https://git.example.org/",
             "https://git.example.org/-/issues",
             "https://git.example.org:99999999/g/p",
+            "https://git.example.org/.git",
             "not a url",
         ):
             with self.subTest(url=url):
                 self.assertIsNone(gitlab.parse_project_url(url))
+
+    def test_parse_strips_slash_left_by_git_suffix(self):
+        self.assertEqual(
+            gitlab.parse_project_url("https://git.example.org/g/.git"), ("https://git.example.org", "g")
+        )
 
     def test_parse_allows_http_when_asked(self):
         self.assertEqual(
@@ -75,6 +81,8 @@ class SameOriginTests(SimpleTestCase):
             ("http://a.example/x", "https://a.example/y"),
             ("https://a.example/x", "https://b.example/y"),
             ("https://a.example:80/x", "https://a.example/y"),
+            ("https://evil.example\\@a.example/x", "https://a.example/y"),
+            ("https://u@a.example/x", "https://a.example/y"),
         ]
         for a, b in same:
             with self.subTest(a=a, b=b):
@@ -170,6 +178,10 @@ class CreateIssueTests(SimpleTestCase):
             "javascript:alert(1)",
             "http://git.example.org/group/sub/project/-/issues/1",
             "https://git.example.org:8443/x",
+            "https://evil.example\\@git.example.org/x",
+            "https://u@git.example.org/x",
+            "https://[evil/x",
+            "https://[notipv6]/x",
             42,
             None,
             "",
@@ -259,8 +271,33 @@ class ErrorTests(SimpleTestCase):
                 run()
             self.assertNotIn(TOKEN, str(ctx.exception))
             self.assertNotIn(BODY_MARK, str(ctx.exception))
-            self.assertNotIn(TOKEN, repr(ctx.exception.__cause__))
-            self.assertNotIn(BODY_MARK, repr(ctx.exception.__cause__))
+            # No chained original exception (it could carry the token or body).
+            self.assertTrue(ctx.exception.__suppress_context__ or ctx.exception.__context__ is None)
+            self.assertIsNone(ctx.exception.__cause__)
+
+    def test_unsendable_request_raises_gitlab_error_without_token_char(self):
+        calls = []
+
+        def handler(request):
+            calls.append(request)
+            return httpx.Response(200, json={})
+
+        with transport(handler):
+            for url, token in [(URL, "glpat-\u00e4"), ("https://xn--a.org/g/p", "glpat-x")]:
+                with self.subTest(url=url):
+                    for fn in (
+                        lambda: gitlab.create_issue(url, token, title="T", description="D"),
+                        lambda: gitlab.upload_file(url, token, filename="a", data=b"", content_type="x/y"),
+                    ):
+                        with self.assertRaises(GitLabError) as ctx:
+                            fn()
+                        self.assertNotIn("\u00e4", str(ctx.exception))
+                        self.assertNotIn("position", str(ctx.exception))
+                    self.assertFalse(gitlab.check_project(url, token))
+
+    def test_labels_must_not_be_a_plain_string(self):
+        with self.assertRaises(TypeError):
+            gitlab.create_issue(URL, TOKEN, title="T", description="D", labels="bug")
 
     def test_not_configured_sends_nothing(self):
         calls = []

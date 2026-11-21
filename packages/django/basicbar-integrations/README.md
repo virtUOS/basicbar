@@ -130,12 +130,16 @@ issue = gitlab.create_issue(
   import Fernet; print(Fernet.generate_key().decode())"`. Der System-Check
   `basicbar_integrations.E001` prüft ihn, nur wenn er gesetzt ist. Wer den
   Schlüssel wechselt, macht gespeicherte Token unlesbar.
-- **Datenschutz**: Kein Token, Klartext, Chiffrat, Schlüssel, Antwort-Body oder
-  Issue-Inhalt landet in Logs oder Exception-Texten (nur HTTP-Status oder
-  Exception-Klasse). Das Token geht nur im Header `PRIVATE-TOKEN` an den
-  konfigurierten Host; Weiterleitungen werden nie verfolgt. `http://` wird
-  ohne `allow_http=True` abgewiesen, bevor eine Anfrage rausgeht, ebenso URLs
-  mit Benutzerinfo oder ohne Projektpfad.
+- **Datenschutz**: Das Paket selbst loggt nichts, und weder Token, Klartext,
+  Chiffrat, Schlüssel, Antwort-Body noch Issue-Inhalt landen in
+  Exception-Texten (nur HTTP-Status oder Exception-Klasse). Das Token geht nur
+  im Header `PRIVATE-TOKEN` an den konfigurierten Host; Weiterleitungen
+  werden nie verfolgt. `http://` wird ohne `allow_http=True` abgewiesen, bevor
+  eine Anfrage rausgeht, ebenso URLs mit Benutzerinfo oder ohne Projektpfad.
+  Achtung: httpx loggt auf dem eigenen Logger `httpx` bei INFO eine Zeile
+  `HTTP Request: POST <URL>` mit dem Projektpfad (nie mit dem Token). Tools,
+  die Projektpfade nicht im Log haben wollen, setzen den Logger `httpx` auf
+  `WARNING`.
 - **Test-Naht**: `basicbar_integrations.gitlab._transport` nimmt einen
   httpx-Transport; `None` ist das echte Netz.
 
