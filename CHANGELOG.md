@@ -34,6 +34,31 @@ Changelog ist die Upgrade-Anleitung für die Tools.
   Untergrenzen nicht steigen. Die CI testet jeden Dependabot-PR. Für die
   Tools ändert sich nichts.
 
+### basicbar-auth (→ wird `auth/v0.3.0`)
+
+**Toleranz für Token-Zeitangaben mit mozilla-django-oidc 5.** Ab 5.x prüft
+mozilla beim Login mit PyJWT auch `exp`, `iat` und `nbf` — ohne jede
+Toleranz, und es fängt nur `jwt.DecodeError`. Lief die Uhr des Servers ein
+paar Sekunden gegen die des IdP, scheiterte der Login mit einem 500
+(`ExpiredSignatureError`/`ImmatureSignatureError`), und der
+Back-Channel-Logout wies solche Tokens mit 400 ab. Neues Setting
+**`OIDC_TOKEN_LEEWAY`** (Sekunden, Default `30`): Mit mozilla ≥ 5 prüft
+`OIDCBackend` die drei Zeitangaben mit dieser Toleranz. Jedes von PyJWT
+abgelehnte Token (Zeit, Signatur, Format, falscher `alg`) führt zum
+Fehl-Redirect (`LOGIN_REDIRECT_URL_FAILURE`) statt zu 500; geloggt wird nur
+die Fehlerklasse (WARNING `OIDC token rejected: <Klasse>`). Dasselbe Setting
+ersetzt die feste Toleranz von 30 s für `exp` beim Back-Channel-Logout —
+ein Wert für Login und Abmeldung; das Logout-Log nennt ebenfalls nur noch
+die Fehlerklasse. Eine Nonce-Abweichung bleibt eine abgelehnte Anmeldung
+(wie bisher, Redirect auf `LOGIN_REDIRECT_URL` ohne Session). Mit
+mozilla-django-oidc 4.x (josepy) ändert sich nichts; PyJWT wird dort nicht
+gebraucht.
+
+Migration: Tag in `requirements.txt` auf `auth/v0.3.0` heben. Optional
+`OIDC_TOKEN_LEEWAY` setzen (Default 30 s passt für NTP-synchronisierte
+Server). NTP auf den Servern bleibt empfohlen: Die Toleranz fängt kleine
+Abweichungen ab, keine falsch gehende Uhr.
+
 ### @basicbar/ui (→ wird `ui/v0.11.1`)
 
 **Fix: Link-Dialog verlor die Textauswahl.** Seit dem eigenen URL-Dialog

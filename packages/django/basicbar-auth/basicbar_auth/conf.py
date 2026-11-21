@@ -25,6 +25,10 @@ DEFAULTS = {
     # Back-channel logout tokens older than this (seconds, measured from
     # ``iat``) are rejected as replays; also absorbs clock skew.
     "OIDC_BACKCHANNEL_MAX_AGE": 300,
+    # Clock-skew tolerance (seconds) for a token's ``exp``/``iat``/``nbf``,
+    # at login and back-channel logout. mozilla-django-oidc 4.x ignores it at
+    # login (it does not check those claims there).
+    "OIDC_TOKEN_LEEWAY": 30,
     # Opt-in: when the IdP re-issued its subjects (re-imported dev realm,
     # realm/IdP migration), fall back to a username match instead of crashing
     # into the unique-username constraint. Only enable when the IdP never

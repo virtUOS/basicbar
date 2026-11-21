@@ -11,6 +11,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from basicbar_auth.oidc import BACKCHANNEL_LOGOUT_EVENT
+from basicbar_auth.tests.tokens import make_token, public_key_pem, requires_pyjwt
 
 User = get_user_model()
 
@@ -115,8 +116,14 @@ class BackChannelLogoutTests(TestCase):
         side_effect=Exception("bad sig"),
     )
     def test_invalid_signature_is_rejected(self, _mock_verify):
-        res = self.client.post(self.url, {"logout_token": "tok"})
+        with self.assertLogs("basicbar_auth.oidc", level="WARNING") as logs:
+            res = self.client.post(self.url, {"logout_token": "tok"})
         self.assertEqual(res.status_code, 400)
+        # Only the error class is logged, never the message (could echo token data).
+        self.assertEqual(
+            logs.output,
+            ["WARNING:basicbar_auth.oidc:Back-channel logout: token verification failed: Exception"],
+        )
 
     def test_missing_token_is_rejected(self):
         res = self.client.post(self.url, {})
@@ -125,3 +132,40 @@ class BackChannelLogoutTests(TestCase):
     def test_get_not_allowed(self):
         res = self.client.get(self.url)
         self.assertEqual(res.status_code, 405)
+
+
+@requires_pyjwt
+@override_settings(OIDC_RP_CLIENT_ID="test-client", OIDC_OP_ISSUER="")
+class BackChannelLogoutRealTokenTests(TestCase):
+    """Real RS256 logout tokens through mozilla's verification (not mocked)."""
+
+    def setUp(self):
+        signing = override_settings(OIDC_RP_IDP_SIGN_KEY=public_key_pem())
+        signing.enable()
+        self.addCleanup(signing.disable)
+        self.url = reverse("oidc-backchannel-logout")
+        self.user = User.objects.create_user(username="demo", subject="sub-123")
+        client = Client()
+        client.force_login(self.user)
+        self.session_key = client.session.session_key
+
+    def _post(self, **offsets):
+        token = make_token(
+            {
+                "iss": "https://idp.test/realms/x",
+                "aud": "test-client",
+                "sub": "sub-123",
+                "events": {BACKCHANNEL_LOGOUT_EVENT: {}},
+            },
+            **offsets,
+        )
+        return self.client.post(self.url, {"logout_token": token})
+
+    def test_backchannel_accepts_iat_slightly_in_future(self):
+        self.assertEqual(self._post(iat_in=10).status_code, 200)
+        self.assertFalse(Session.objects.filter(session_key=self.session_key).exists())
+
+    def test_backchannel_rejects_expired_beyond_leeway(self):
+        with self.assertLogs("basicbar_auth.oidc", level="WARNING"):
+            self.assertEqual(self._post(exp_in=-120).status_code, 400)
+        self.assertTrue(Session.objects.filter(session_key=self.session_key).exists())

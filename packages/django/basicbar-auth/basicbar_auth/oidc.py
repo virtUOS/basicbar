@@ -21,6 +21,7 @@ from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedire
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from mozilla_django_oidc import auth as mozilla_auth
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 from mozilla_django_oidc.views import (
     OIDCAuthenticationCallbackView,
@@ -36,8 +37,14 @@ logger = logging.getLogger(__name__)
 # Back-Channel Logout 1.0, §2.4).
 BACKCHANNEL_LOGOUT_EVENT = "http://schemas.openid.net/event/backchannel-logout"
 
-# Tolerance when comparing a token's ``exp`` against our clock.
-_CLOCK_SKEW_SECONDS = 30
+# PyJWT as used by mozilla-django-oidc >= 5; None with 4.x (josepy), whose
+# verification stays untouched. Taken from mozilla's module rather than
+# ``import jwt``: PyJWT may be installed next to 4.x for other reasons.
+_jwt = getattr(mozilla_auth, "jwt", None)
+
+
+class _TokenRejected(SuspiciousOperation):
+    """A token PyJWT refused (signature, ``exp``/``iat``/``nbf``, format)."""
 
 
 def _is_timestamp(value) -> bool:
@@ -132,6 +139,44 @@ class OIDCBackend(OIDCAuthenticationBackend):
 
     Just-in-time provisioning: the user record is created on first login.
     """
+
+    def authenticate(self, request, **kwargs):
+        # mozilla lets a token error from verify_token escape authenticate;
+        # without this it would end at SafeOIDCCallbackView's success-URL
+        # redirect. None makes the callback take its LOGIN_REDIRECT_URL_FAILURE
+        # path. Only PyJWT rejections are caught: a nonce mismatch and every
+        # other SuspiciousOperation behave as before (still no login).
+        try:
+            return super().authenticate(request, **kwargs)
+        except _TokenRejected:
+            return None
+
+    def verify_token(self, token, **kwargs):
+        if _jwt is None:
+            return super().verify_token(token, **kwargs)
+        # mozilla 5.x catches only jwt.DecodeError (and none at all where it
+        # reads the header to pick the JWKS key), so expired/immature tokens
+        # escaped as a 500. Log the error class only — never token data.
+        try:
+            return super().verify_token(token, **kwargs)
+        except _jwt.InvalidTokenError as exc:
+            logger.warning("OIDC token rejected: %s", type(exc).__name__)
+            raise _TokenRejected("OIDC token rejected.") from None
+
+    def _verify_jws(self, payload, key):
+        if _jwt is None:
+            return super()._verify_jws(payload, key)
+        # mozilla 5.x's check plus leeway for clock skew between IdP and us.
+        # ``algorithms`` pins the configured algorithm (a missing or different
+        # ``alg`` header raises InvalidAlgorithmError); errors are converted
+        # in verify_token.
+        return _jwt.decode(
+            payload,
+            key,
+            algorithms=[self.OIDC_RP_SIGN_ALGO],
+            options={"verify_aud": False},
+            leeway=conf.get("OIDC_TOKEN_LEEWAY"),
+        )
 
     def filter_users_by_claims(self, claims):
         subject = claims.get("sub")
@@ -306,11 +351,15 @@ def backchannel_logout(request):
         return HttpResponseBadRequest("missing logout_token")
 
     # Verify the JWS signature against the provider's JWKS (reuses the auth
-    # backend); a token carrying a nonce is rejected here, as the spec requires.
+    # backend; with mozilla-django-oidc >= 5 also exp/iat/nbf within
+    # OIDC_TOKEN_LEEWAY); a token carrying a nonce is rejected here, as the
+    # spec requires.
     try:
         payload = OIDCBackend().verify_token(logout_token)
     except Exception as exc:  # noqa: BLE001 — any failure means an invalid token
-        logger.warning("Back-channel logout: token verification failed: %s", exc)
+        logger.warning(
+            "Back-channel logout: token verification failed: %s", type(exc).__name__
+        )
         return HttpResponseBadRequest("invalid logout_token")
 
     # Validate the logout-token claims (OIDC Back-Channel Logout 1.0, §2.4).
@@ -329,9 +378,10 @@ def backchannel_logout(request):
         # We key local sessions on the subject; a sid-only token can't be acted on.
         return HttpResponseBadRequest("missing sub")
 
-    # Freshness (§2.6): the token must carry ``iat`` and be recent — mozilla's
-    # verify_token checks only signature and nonce, so without this a captured
-    # token could be replayed indefinitely to force the user out again.
+    # Freshness (§2.6): the token must carry ``iat`` and be recent. verify_token
+    # checks ``exp``/``iat`` only if present (mozilla 5.x) or not at all (4.x)
+    # and never bounds the age, so without this a captured token could be
+    # replayed indefinitely to force the user out again.
     now = time.time()
     max_age = conf.get("OIDC_BACKCHANNEL_MAX_AGE")
     iat = payload.get("iat")
@@ -340,7 +390,7 @@ def backchannel_logout(request):
     if abs(now - iat) > max_age:
         return HttpResponseBadRequest("logout_token too old")
     exp = payload.get("exp")
-    if _is_timestamp(exp) and exp < now - _CLOCK_SKEW_SECONDS:
+    if _is_timestamp(exp) and exp < now - conf.get("OIDC_TOKEN_LEEWAY"):
         return HttpResponseBadRequest("logout_token expired")
 
     deleted = _delete_sessions_for_subject(subject)
