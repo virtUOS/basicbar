@@ -61,7 +61,7 @@ export interface RenderInputArgs {
 }
 
 const DEFAULT_INPUT_CLASS =
-  "w-full rounded-lg border border-field bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 dark:bg-slate-900 dark:text-slate-100";
+  "w-full rounded-lg border border-field bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-600 focus:[outline:2px_solid_transparent] focus:[outline-offset:2px] focus:ring-1 focus:ring-brand-600 dark:bg-slate-900 dark:text-slate-100";
 
 export interface TranslatableFieldProps {
   /** Visible label above the field; omit for compact inline uses (the

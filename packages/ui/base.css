@@ -65,7 +65,9 @@
   /* One visible, consistent keyboard-focus style everywhere (WCAG 2.4.7).
      Pointer interactions keep their quieter component styles. */
   :focus-visible {
-    @apply outline-none ring-2 ring-brand-600 ring-offset-2 ring-offset-white dark:ring-offset-slate-950;
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    @apply ring-2 ring-brand-600 ring-offset-2 ring-offset-white dark:ring-offset-slate-950;
   }
 
   /* Numbers, counts and times align when digits are tabular. */

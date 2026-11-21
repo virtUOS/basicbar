@@ -68,6 +68,21 @@ Migration: Tag in `requirements.txt` auf `auth/v0.3.0` heben. Optional
 Server). NTP auf den Servern bleibt empfohlen: Die Toleranz fängt kleine
 Abweichungen ab, keine falsch gehende Uhr.
 
+### @basicbar/ui (→ wird `ui/v0.11.2`)
+
+- Fix: Fokusindikator im Windows-Kontrastmodus (`forced-colors`) unter
+  Tailwind 4. Dort ist `outline-none` = `outline-style: none` und nimmt dem
+  Element jeden Fokusrahmen; in v3 war es `outline: 2px solid transparent`.
+  `TranslatableField`, `TranslationForm` (Ziehgriff), `RichTextEditor` und
+  `SegmentedControl` nutzen jetzt `[outline:2px_solid_transparent]
+  [outline-offset:2px]` (mit denselben Varianten wie vorher), `base.css`
+  schreibt `outline: 2px solid transparent; outline-offset: 2px` als
+  normales CSS. Das erzeugt in Tailwind 3 und 4 dasselbe CSS. Gleiche
+  Komponenten-API.
+- Migration: Tarball-URL von `@basicbar/ui` auf `ui/v0.11.2` heben. Tools,
+  die das Problem mit eigenem CSS überbrückt haben (z. B. eine
+  `forced-colors`-Regel für Fokus), können das entfernen.
+
 ### @basicbar/ui (→ wird `ui/v0.11.1`)
 
 **Fix: Link-Dialog verlor die Textauswahl.** Seit dem eigenen URL-Dialog

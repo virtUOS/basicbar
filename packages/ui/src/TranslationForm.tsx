@@ -469,7 +469,7 @@ export function TranslationFormProvider({
             onPointerCancel={endDrag}
             onDoubleClick={resetOffset}
             onKeyDown={onHandleKeyDown}
-            className="cursor-grab touch-none rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 active:cursor-grabbing dark:hover:bg-slate-700 dark:hover:text-slate-200"
+            className="cursor-grab touch-none rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 focus-visible:[outline:2px_solid_transparent] focus-visible:[outline-offset:2px] focus-visible:ring-2 focus-visible:ring-brand-600 active:cursor-grabbing dark:hover:bg-slate-700 dark:hover:text-slate-200"
           >
             <GripVertical aria-hidden="true" className="h-4 w-4" />
           </button>
