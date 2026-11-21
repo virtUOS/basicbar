@@ -7,17 +7,6 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
-### @basicbar/ui (→ wird `ui/v0.11.2`)
-
-- Fix: Fokusindikator im Windows-Kontrastmodus (`forced-colors`) unter Tailwind 4. Dort ist
-  `outline-none` = `outline-style: none` und nimmt dem Element jeden Fokusrahmen; in v3 war es
-  `outline: 2px solid transparent`. `TranslatableField`, `TranslationForm` (Ziehgriff),
-  `RichTextEditor`, `SegmentedControl` und `base.css` nutzen jetzt
-  `[outline:2px_solid_transparent] [outline-offset:2px]` (mit derselben Variante wie vorher), was in
-  Tailwind 3 und 4 dasselbe CSS erzeugt. Gleiche Komponenten-API.
-- Migration: Tarball-URL von `@basicbar/ui` auf `ui/v0.11.2` heben. Tools, die das Problem mit
-  eigenem CSS überbrückt haben (z. B. eine `forced-colors`-Regel für Fokus), können das entfernen.
-
 ### Doku für die Tools (kein Release)
 
 - Upgrade-Leitfaden [Vite 8, React 19, Django 6.1 und
@@ -44,6 +33,21 @@ Changelog ist die Upgrade-Anleitung für die Tools.
   immer gemeinsam). Die Django-Pakete bleiben bewusst draußen, damit ihre
   Untergrenzen nicht steigen. Die CI testet jeden Dependabot-PR. Für die
   Tools ändert sich nichts.
+
+### @basicbar/ui (→ wird `ui/v0.11.2`)
+
+- Fix: Fokusindikator im Windows-Kontrastmodus (`forced-colors`) unter
+  Tailwind 4. Dort ist `outline-none` = `outline-style: none` und nimmt dem
+  Element jeden Fokusrahmen; in v3 war es `outline: 2px solid transparent`.
+  `TranslatableField`, `TranslationForm` (Ziehgriff), `RichTextEditor` und
+  `SegmentedControl` nutzen jetzt `[outline:2px_solid_transparent]
+  [outline-offset:2px]` (mit denselben Varianten wie vorher), `base.css`
+  schreibt `outline: 2px solid transparent; outline-offset: 2px` als
+  normales CSS. Das erzeugt in Tailwind 3 und 4 dasselbe CSS. Gleiche
+  Komponenten-API.
+- Migration: Tarball-URL von `@basicbar/ui` auf `ui/v0.11.2` heben. Tools,
+  die das Problem mit eigenem CSS überbrückt haben (z. B. eine
+  `forced-colors`-Regel für Fokus), können das entfernen.
 
 ### @basicbar/ui (→ wird `ui/v0.11.1`)
 
