@@ -293,6 +293,8 @@ class ErrorTests(SimpleTestCase):
                             fn()
                         self.assertNotIn("\u00e4", str(ctx.exception))
                         self.assertNotIn("position", str(ctx.exception))
+                        self.assertRegex(str(ctx.exception), r"^GitLab request could not be sent \(\w+\)$")
+                        self.assertNotIn("unreachable", str(ctx.exception))
                     self.assertFalse(gitlab.check_project(url, token))
 
     def test_labels_must_not_be_a_plain_string(self):

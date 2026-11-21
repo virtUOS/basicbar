@@ -117,7 +117,8 @@ issue = gitlab.create_issue(
   `same_origin(a, b)`, `check_project(url, token)` (wirft nie),
   `upload_file(url, token, filename=, data=, content_type=)` (liefert das
   Markdown), `create_issue(url, token, title=, description=,
-  confidential=False, labels=())`. Fehler sind `GitLabError`.
+  confidential=False, labels=())` (`labels` ist eine Sequenz von Strings;
+  ein einzelner `str` löst einen `TypeError` aus). Fehler sind `GitLabError`.
   `create_issue(confidential=True)` verlangt, dass die Antwort
   `confidential: true` zeigt. `Issue.iid` ist `None`, wenn GitLab keine
   Nummer liefert (das Tool entscheidet, ob das ein Fehler ist);

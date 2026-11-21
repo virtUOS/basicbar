@@ -93,9 +93,12 @@ def _send(method: str, url: str, token: str, **kwargs) -> httpx.Response:
     try:
         with httpx.Client(transport=_transport, timeout=TIMEOUT_SECONDS, follow_redirects=False) as client:
             response = client.request(method, url, headers={"PRIVATE-TOKEN": token}, **kwargs)
-    except Exception as exc:  # noqa: BLE001 - httpx/idna/codec errors while building the request, too
-        # Class name only: the message could echo request details (e.g. a token character).
+    except httpx.HTTPError as exc:
+        # Class name only: the message could echo request details.
         raise GitLabError(f"GitLab unreachable ({type(exc).__name__})") from None
+    except Exception as exc:  # noqa: BLE001 - httpx/idna/codec errors while building the request
+        # Local input problem (e.g. a non-ASCII token); class name only, it could name a character.
+        raise GitLabError(f"GitLab request could not be sent ({type(exc).__name__})") from None
     if not 200 <= response.status_code < 300:  # a redirect lands here, too
         raise GitLabError(f"GitLab answered HTTP {response.status_code}")
     return response
@@ -148,7 +151,11 @@ def create_issue(
     labels: Sequence[str] = (),
     allow_http: bool = False,
 ) -> Issue:
-    """Create an issue. With ``confidential=True`` the answer must confirm it, else GitLabError."""
+    """Create an issue. With ``confidential=True`` the answer must confirm it, else GitLabError.
+
+    ``labels`` must be a sequence of strings; a plain ``str`` raises ``TypeError`` (it would
+    otherwise be split into single characters).
+    """
     if isinstance(labels, str):
         raise TypeError("labels must be a sequence of strings, not a single string")
     api, token = _target(project_url, token, allow_http)
