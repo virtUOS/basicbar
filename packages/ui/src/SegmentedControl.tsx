@@ -144,7 +144,7 @@ export function SegmentedControl<T extends string>({
           // Too narrow (phones): the label is cut with an ellipsis instead
           // of breaking mid-word; the full text stays in the title.
           title={o.title ?? (typeof o.label === "string" ? o.label : undefined)}
-          className={`relative z-10 inline-flex min-w-0 items-center justify-center gap-1.5 rounded-full text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${segSize} ${
+          className={`relative z-10 inline-flex min-w-0 items-center justify-center gap-1.5 rounded-full text-center transition-colors focus-visible:[outline:2px_solid_transparent] focus-visible:[outline-offset:2px] focus-visible:ring-2 focus-visible:ring-brand-500 ${segSize} ${
             o.value === value ? "text-brand-800 dark:text-brand-200" : "text-slate-500 dark:text-slate-400"
           }`}
         >
