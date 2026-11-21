@@ -24,9 +24,11 @@ umschreibt. Keine gestapelten PRs: jeder PR geht gegen `main`.
 auf dem alten Stand (Django 5.2 LTS). Beim „Merge up“ in `main` bei einem
 Versionskonflikt die Version von `main` behalten.
 
-**basicbar braucht für keinen der vier Schritte ein neues Release.**
-`@basicbar/ui` (Peer `react >=18`, Tailwind-Preset als JS) und die
-Django-Pakete (`Django>=5.1`) laufen unverändert.
+**basicbar-Pakete: zwei Mindestversionen.** Unter mozilla-django-oidc 5
+braucht es `basicbar-auth` ab 0.3.0 (sonst 500 beim Login bei
+Uhrabweichung), unter Tailwind 4 `@basicbar/ui` ab 0.11.2 (Fokus im
+Kontrastmodus). Ansonsten laufen `@basicbar/ui` (Peer `react >=18`,
+Tailwind-Preset als JS) und die Django-Pakete (`Django>=5.1`) unverändert.
 
 ---
 
@@ -113,7 +115,9 @@ und <https://docs.djangoproject.com/en/6.1/releases/6.1/>
 2. `Django==6.1.x` in `requirements.txt`. Bei uns musste kein anderer Pin
    mitwandern: DRF 3.18, mozilla-django-oidc 5.0.2, django-modeltranslation
    0.20.6, PyLTI1p3 2.0.0, django-cors-headers 4.9 und alle basicbar-Pakete
-   laufen.
+   laufen; mit mozilla-django-oidc 5 aber erst mit `basicbar-auth` ab 0.3.0
+   (sonst 500 beim Login bei Uhrabweichung, Zeitsynchronisation per NTP
+   bleibt trotzdem empfohlen).
 3. Die Suite unter 6.1 mit `PYTHONWARNINGS=always` laufen lassen, dazu
    `check --deploy`, `makemigrations --check` und `pip check`.
 4. Den Dev-Stack mit `docker compose build backend` neu bauen, weil sich
@@ -209,10 +213,14 @@ bisherige JS-Konfiguration (`tailwind.config.js` mit
 
    ```css
    @import 'tailwindcss';
-   @import '@basicbar/ui/base.css' layer(base);
+   @import '@basicbar/ui/base.css';
    @config '../tailwind.config.js';
    /* danach: Kompat-Block, Tool-Variablen in @layer base, eigene Styles */
    ```
+
+   `base.css` bleibt **ohne** `layer(base)`. Mit `layer()` werden die
+   Ebenen von `base.css` zu Unterebenen von `base` und verlieren gegen den
+   Preflight. Der Skip-Link erscheint dann ohne Abstand, dunkel auf dunkel.
 
 3. Jede **separat importierte** CSS-Datei, die `theme()` oder `@apply`
    nutzt, braucht `@reference "../index.css";`. Das Werkzeug macht das nicht.
@@ -223,7 +231,16 @@ bisherige JS-Konfiguration (`tailwind.config.js` mit
   jedes `@import` vor allen anderen Anweisungen stehen. Bei uns fehlte dadurch
   zunächst das komplette `base.css` (Skip-Link, Fokusring, `::selection`,
   ProseMirror), ohne Fehlermeldung. Prüfen:
-  `grep -c skip-link dist/assets/*.css` muss ≥ 1 ergeben.
+  `grep -c skip-link dist/assets/*.css` muss ≥ 1 ergeben. Das reicht allein
+  nicht (siehe nächster Punkt).
+- **Skip-Link per Tab prüfen.** Die Regel kann im Build stehen und trotzdem
+  gegen den Preflight verlieren. Im Browser einmal Tab drücken: Der Skip-Link
+  hat sichtbaren Innenabstand und deutlichen Kontrast (im hellen Theme
+  heller Text auf dunklem Grund, im dunklen umgekehrt).
+- **Eigene Komponentenklassen (etwa `.btn-*`) gehören in
+  `@layer components`.** Ungeschichtete Klassen überstimmen in v4 jede
+  Utility am selben Element, auch `hover:`, `disabled:` und `aria-pressed:`.
+  Die Hover- und Disabled-Zustände wirken dann nicht mehr.
 - `Could not resolve value for theme function: theme(colors.white)`
   bedeutet, dass in einer eigenen CSS-Datei das `@reference` fehlt (siehe
   Schritt 3).
@@ -254,11 +271,14 @@ abstimmbar, 12 Seiten × hell/dunkel × 1280/324 px: 44 von 48 Seiten
 pixelgleich, die übrigen vier mit den flacheren Abzeichen von oben. Danach
 die volle e2e-Suite mit Vergleichslauf (siehe React).
 
-**Für ein späteres ui-Release vorgemerkt:** `base.css` nutzt im Fokusstil
+**`outline-none` in `base.css`:** `base.css` nutzte im Fokusstil
 `@apply outline-none`. In v4 bedeutet das `outline-style: none`. In v3 war
 es eine transparente Outline, die im Windows-Kontrastmodus sichtbar wird.
-Auf `outline-hidden` umstellen, sobald alle Tools auf Tailwind 4 sind. Das
-Template (`template/project/frontend`) steht noch auf React 18, Vite 6,
+Behoben in `@basicbar/ui` 0.11.2 mit einer transparenten Outline, die unter
+Tailwind 3 und 4 gleich wirkt. Tools, die selbst eine `forced-colors`-Regel
+dagegen gesetzt haben, können sie nach dem Upgrade entfernen.
+
+Das Template (`template/project/frontend`) steht noch auf React 18, Vite 6,
 Tailwind 3 und Django 5.1. Heben, sobald die ersten Tools umgestellt sind.
 
 ---

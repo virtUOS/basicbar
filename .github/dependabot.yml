@@ -46,11 +46,24 @@ updates:
     groups:
       tiptap:
         patterns: ["@tiptap/*"]
+      # React and its types must move together (react-dom needs the same
+      # version as react; @types/* follow the major). Without the group,
+      # Dependabot split them (see docs/UPGRADE-2026-11-STACK.md, React).
+      # The template's React pins (package.json.jinja) are not covered, see
+      # above; they are raised with the next template release.
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
       # Without the exclude, Dependabot put the TipTap minor updates into this
       # group instead of "tiptap" (first run, PR #34), despite the order.
       npm-minor-and-patch:
         update-types: [minor, patch]
-        exclude-patterns: ["@tiptap/*"]
+        # Same reason as for TipTap: otherwise React minors land here.
+        exclude-patterns:
+          - "@tiptap/*"
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
     ignore:
       # TypeScript 7 has no compiler API; tsup's .d.ts build (rollup-plugin-dts)
       # needs it and fails, also with the @typescript/typescript6 fallback

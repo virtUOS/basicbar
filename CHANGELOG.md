@@ -12,8 +12,16 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 - Upgrade-Leitfaden [Vite 8, React 19, Django 6.1 und
   Tailwind 4](docs/UPGRADE-2026-11-STACK.md): Reihenfolge, Stolperfallen
   mit Fehlermeldung und Lösung, Prüfschritte (Erfahrungen aus abstimmbar und
-  ausleihbar). Kein Paket-Release nötig: `@basicbar/ui` und die
-  Django-Pakete laufen unverändert unter dem neuen Stack.
+  ausleihbar). Zwei Mindestversionen: unter mozilla-django-oidc 5
+  `basicbar-auth` ab 0.3.0 (sonst 500 beim Login bei Uhrabweichung),
+  unter Tailwind 4 `@basicbar/ui` ab 0.11.2 (Fokus im Kontrastmodus);
+  sonst laufen `@basicbar/ui` und die Django-Pakete unverändert.
+- Leitfaden korrigiert (Tailwind 4, Issue #49): `base.css` ohne `layer(base)`
+  importieren (sonst verliert der Skip-Link gegen den Preflight), Skip-Link
+  per Tab prüfen, eigene `.btn-*`-Klassen in `@layer components`; den
+  veralteten Hinweis zur Outline neu geschrieben (Tools können ihre eigene
+  `forced-colors`-Regel nach ui 0.11.2 entfernen).
+  Migration: `index.css` der Tools prüfen, die schon umgestellt haben.
 
 ### Template und @basicbar/ui-README (kein Release)
 
@@ -30,9 +38,10 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 - Dependabot-Version-Updates eingeschaltet (`.github/dependabot.yml`):
   wöchentlich, gruppiert, für GitHub Actions und `@basicbar/ui` (npm, TipTap
-  immer gemeinsam). Die Django-Pakete bleiben bewusst draußen, damit ihre
-  Untergrenzen nicht steigen. Die CI testet jeden Dependabot-PR. Für die
-  Tools ändert sich nichts.
+  immer gemeinsam, React und `react-dom` mit ihren Typen ebenso). Die
+  Django-Pakete bleiben bewusst draußen, damit ihre Untergrenzen nicht
+  steigen. Die CI testet jeden Dependabot-PR. Für die Tools ändert sich
+  nichts.
 
 ### basicbar-auth (→ wird `auth/v0.3.0`)
 
