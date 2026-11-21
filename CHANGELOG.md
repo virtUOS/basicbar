@@ -43,6 +43,46 @@ Changelog ist die Upgrade-Anleitung für die Tools.
   steigen. Die CI testet jeden Dependabot-PR. Für die Tools ändert sich
   nichts.
 
+### basicbar-integrations (→ wird `integrations/v0.6.0`)
+
+**Neue Module `gitlab` und `encryption`** (Regel der Zwei: orientierBAR und
+ansehbar trugen je eine eigene Kopie).
+
+- `gitlab` (Extra `[gitlab]`, httpx): `parse_project_url`, `same_origin`,
+  `check_project`, `upload_file`, `create_issue` mit einfachen Werten
+  (`project_url`, `token`). `http` nur mit `allow_http=True`, `.git` am Ende
+  fällt weg, `create_issue(confidential=True)` verlangt die Bestätigung in der
+  Antwort (sonst `GitLabError`), `Issue.iid` ist `None`, wenn GitLab keine
+  Nummer liefert, `Issue.web_url` nur bei gleichem Schema, Host und Port wie
+  die Projekt-URL. Keine Weiterleitung (3xx) wird verfolgt, das Token geht nur
+  im Header `PRIVATE-TOKEN` an den konfigurierten Host; Fehlertexte nennen nur
+  Status oder Exception-Klasse, das Modul loggt nicht. Test-Naht:
+  `basicbar_integrations.gitlab._transport` (httpx-Transport).
+- `encryption` (Extra `[encryption]`, cryptography): `encrypt`, `decrypt`,
+  `EncryptionKeyError` (zugleich `ImproperlyConfigured` und `ValueError`),
+  `reset_warnings`. Schlüssel aus dem neuen Setting `TOKEN_ENCRYPTION_KEY`
+  (Default `""`), sonst aus `SECRET_KEY` abgeleitet, Byte für Byte wie vorher:
+  **gespeicherte Tokens bleiben lesbar, keine Datenmigration.** Die Warnung
+  beim Entschlüsseln kommt einmal pro Prozess und Art.
+- System-Check `basicbar_integrations.E001`: prüft `TOKEN_ENCRYPTION_KEY`,
+  nur wenn das Setting gesetzt ist.
+- Neue Extras `gitlab`, `encryption` und `test` (beide). Ohne Extras starten
+  App-Setup und `manage.py check` wie bisher; kein Pflicht-Upgrade für Tools,
+  die weder GitLab noch Verschlüsselung brauchen.
+
+Migration (orientierBAR, ansehbar): Tarball auf `integrations/v0.6.0` heben
+und in `requirements.txt` `basicbar-integrations[gitlab,encryption] @ …`
+eintragen. `common/encryption.py` und einen eigenen System-Check für den
+Schlüssel (ansehbar: `common/checks.py`) löschen, Imports auf
+`basicbar_integrations.encryption` und `basicbar_integrations.gitlab`
+umstellen; der Logger heißt jetzt `basicbar_integrations.encryption`, also
+`assertLogs` anpassen. Die eigene GitLab-Kopie ersetzen: Texte (Titel,
+Beschreibung) bleiben im Tool; orientierBAR macht `iid is None` selbst zum
+Fehler und übergibt `confidential=True`, ansehbar übergibt
+`allow_http=settings.DEBUG`. Tests auf die eine Naht
+`gitlab._transport` umstellen (`mock.patch.object`). Tools ohne GitLab oder
+Verschlüsselung: nur Version heben.
+
 ### basicbar-auth (→ wird `auth/v0.3.0`)
 
 **Toleranz für Token-Zeitangaben mit mozilla-django-oidc 5.** Ab 5.x prüft

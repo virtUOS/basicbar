@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "basicbar-integrations"
-version = "0.5.0"
-description = "Optionale Integrationen der virtUOS -bar-Tools: LibreTranslate, LiteLLM, HTML-Allowlist, Übersetzungs-Sync"
+version = "0.6.0"
+description = "Optionale Integrationen der virtUOS -bar-Tools: LibreTranslate, LiteLLM, GitLab-Client, Token-Verschlüsselung, HTML-Allowlist, Übersetzungs-Sync"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Apache-2.0" }
@@ -15,6 +15,11 @@ dependencies = [
     "djangorestframework>=3.15",
     "nh3>=0.2",
 ]
+
+[project.optional-dependencies]
+gitlab = ["httpx>=0.27"]
+encryption = ["cryptography>=42"]
+test = ["httpx>=0.27", "cryptography>=42"]
 
 [tool.setuptools.packages.find]
 include = ["basicbar_integrations*"]

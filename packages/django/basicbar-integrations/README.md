@@ -1,8 +1,9 @@
 # basicbar-integrations
 
 Optionale externe Dienste für die „-bar“-Tools, alle **aus per Default** und
-rein per Umgebungs-Settings aktivierbar. Stdlib-`urllib`-Clients — keine
-Provider-SDKs.
+rein per Umgebungs-Settings aktivierbar. LibreTranslate und LiteLLM laufen
+über Stdlib-`urllib`, keine Provider-SDKs; `gitlab` und `encryption` brauchen
+je ein Extra (siehe unten).
 
 - `translation_service` — LibreTranslate-Client (`CONTENT_TRANSLATION_PROVIDER=libretranslate`
   + `LIBRETRANSLATE_URL`, optional `LIBRETRANSLATE_API_KEY`)
@@ -22,6 +23,10 @@ Provider-SDKs.
 - `html_sanitize` — die eine HTML-Allowlist für Rich-Content (nh3-basiert).
 - `metrics` — token-geschützter Prometheus-Endpunkt (`MetricsView` +
   `Gauges`); ohne `METRICS_TOKEN` antwortet er mit `404`.
+- `gitlab` — GitLab-Client (Extra `[gitlab]`): Projekt prüfen, Datei
+  hochladen, Issue anlegen (siehe „GitLab-Client“)
+- `encryption` — Fernet-Verschlüsselung für gespeicherte Geheimnisse (Extra
+  `[encryption]`, siehe „Token-Verschlüsselung“)
 
 ## Einbinden
 
@@ -85,6 +90,59 @@ path("metrics", ToolMetricsView.as_view()),
 
 - Prometheus: `authorization: { type: Bearer, credentials_file: … }` im
   Scrape-Job, `metrics_path: /metrics`.
+
+## GitLab-Client und Token-Verschlüsselung
+
+Beide Module sind optional: ohne die Extras importiert das Paket weiter, und
+`django.setup()` sowie `manage.py check` laufen. Einbinden mit
+
+```
+basicbar-integrations[gitlab,encryption] @ https://github.com/virtUOS/basicbar/archive/refs/tags/integrations/v0.6.0.tar.gz#subdirectory=packages/django/basicbar-integrations
+```
+
+(`gitlab` = `httpx>=0.27`, `encryption` = `cryptography>=42`, `test` = beide.)
+
+```python
+from basicbar_integrations import gitlab
+from basicbar_integrations.encryption import decrypt, encrypt
+
+stored = encrypt("glpat-…")               # in der Datenbank ablegen
+issue = gitlab.create_issue(
+    "https://git.example.org/group/project", decrypt(stored),
+    title="…", description="…", confidential=True, labels=["tool"],
+)                                          # Issue(iid=17, web_url="https://…/-/issues/17")
+```
+
+- **`gitlab`**: `parse_project_url(url, allow_http=False)`,
+  `same_origin(a, b)`, `check_project(url, token)` (wirft nie),
+  `upload_file(url, token, filename=, data=, content_type=)` (liefert das
+  Markdown), `create_issue(url, token, title=, description=,
+  confidential=False, labels=())`. Fehler sind `GitLabError`.
+  `create_issue(confidential=True)` verlangt, dass die Antwort
+  `confidential: true` zeigt. `Issue.iid` ist `None`, wenn GitLab keine
+  Nummer liefert (das Tool entscheidet, ob das ein Fehler ist);
+  `Issue.web_url` ist nur gesetzt, wenn es zur Projekt-URL passt.
+- **`encryption`**: `encrypt`/`decrypt` (leer bleibt leer; `decrypt` liefert bei
+  falschem Schlüssel `""` und warnt einmal pro Prozess und Art),
+  `EncryptionKeyError`, `reset_warnings()` für Tests.
+- **Settings**: `TOKEN_ENCRYPTION_KEY` (Default `""` = aus `SECRET_KEY`
+  abgeleitet). Einen Schlüssel erzeugen: `python -c "from cryptography.fernet
+  import Fernet; print(Fernet.generate_key().decode())"`. Der System-Check
+  `basicbar_integrations.E001` prüft ihn, nur wenn er gesetzt ist. Wer den
+  Schlüssel wechselt, macht gespeicherte Token unlesbar.
+- **Datenschutz**: Kein Token, Klartext, Chiffrat, Schlüssel, Antwort-Body oder
+  Issue-Inhalt landet in Logs oder Exception-Texten (nur HTTP-Status oder
+  Exception-Klasse). Das Token geht nur im Header `PRIVATE-TOKEN` an den
+  konfigurierten Host; Weiterleitungen werden nie verfolgt. `http://` wird
+  ohne `allow_http=True` abgewiesen, bevor eine Anfrage rausgeht, ebenso URLs
+  mit Benutzerinfo oder ohne Projektpfad.
+- **Test-Naht**: `basicbar_integrations.gitlab._transport` nimmt einen
+  httpx-Transport; `None` ist das echte Netz.
+
+  ```python
+  with mock.patch.object(gitlab, "_transport", httpx.MockTransport(handler)):
+      ...
+  ```
 
 Alle Settings haben Defaults („aus“) — ein Tool ohne Konfiguration startet
 unverändert. Tests: `python runtests.py` (oder über die Repo-CI).
