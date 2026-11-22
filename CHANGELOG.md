@@ -22,6 +22,19 @@ Changelog ist die Upgrade-Anleitung für die Tools.
   veralteten Hinweis zur Outline neu geschrieben (Tools können ihre eigene
   `forced-colors`-Regel nach ui 0.11.2 entfernen).
   Migration: `index.css` der Tools prüfen, die schon umgestellt haben.
+- Nachtrag zu `integrations/v0.6.0` für Tools, die `TOKEN_ENCRYPTION_KEY`
+  setzen, ohne `encryption` aus dem Paket zu nutzen (z. B. ausleihbar mit
+  eigenem `catalog/encryption.py`): Nach dem Heben läuft dort der
+  System-Check `basicbar_integrations.E001`. Mit gültigem Schlüssel und
+  installiertem cryptography ändert sich nichts. Ein ungültiger Schlüssel
+  oder fehlendes cryptography hält jetzt `manage.py check`, `migrate` und
+  `runserver` an; bisher fiel ein ungültiger Schlüssel erst beim Speichern
+  eines Tokens auf. Migration: vor dem Deployment `python manage.py check`
+  laufen lassen. Die eigene Kopie kann auf `basicbar_integrations.encryption`
+  wechseln; die Ableitung aus `SECRET_KEY` ist dieselbe, gespeicherte Tokens
+  bleiben lesbar.
+- README von basicbar-integrations: Die Signaturen von `check_project`,
+  `upload_file` und `create_issue` nennen jetzt `allow_http=False`.
 
 ### Template und @basicbar/ui-README (kein Release)
 
