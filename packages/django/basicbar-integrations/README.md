@@ -114,10 +114,11 @@ issue = gitlab.create_issue(
 ```
 
 - **`gitlab`**: `parse_project_url(url, allow_http=False)`,
-  `same_origin(a, b)`, `check_project(url, token)` (wirft nie),
-  `upload_file(url, token, filename=, data=, content_type=)` (liefert das
-  Markdown), `create_issue(url, token, title=, description=,
-  confidential=False, labels=())` (`labels` ist eine Sequenz von Strings;
+  `same_origin(a, b)`, `check_project(url, token, allow_http=False)` (wirft
+  nie), `upload_file(url, token, filename=, data=, content_type=,
+  allow_http=False)` (liefert das Markdown), `create_issue(url, token,
+  title=, description=, confidential=False, labels=(), allow_http=False)`
+  (alles nach `token` nur als Keyword; `labels` ist eine Sequenz von Strings;
   ein einzelner `str` löst einen `TypeError` aus). Fehler sind `GitLabError`.
   `create_issue(confidential=True)` verlangt, dass die Antwort
   `confidential: true` zeigt. `Issue.iid` ist `None`, wenn GitLab keine
@@ -129,8 +130,11 @@ issue = gitlab.create_issue(
 - **Settings**: `TOKEN_ENCRYPTION_KEY` (Default `""` = aus `SECRET_KEY`
   abgeleitet). Einen Schlüssel erzeugen: `python -c "from cryptography.fernet
   import Fernet; print(Fernet.generate_key().decode())"`. Der System-Check
-  `basicbar_integrations.E001` prüft ihn, nur wenn er gesetzt ist. Wer den
-  Schlüssel wechselt, macht gespeicherte Token unlesbar.
+  `basicbar_integrations.E001` prüft ihn, nur wenn er gesetzt ist – dann
+  aber in jedem Tool mit `basicbar_integrations` in `INSTALLED_APPS`, auch
+  wenn das Tool `encryption` gar nicht nutzt (fehlt cryptography, meldet der
+  Check das fehlende Extra). Wer den Schlüssel wechselt, macht gespeicherte
+  Token unlesbar.
 - **Datenschutz**: Das Paket selbst loggt nichts, und weder Token, Klartext,
   Chiffrat, Schlüssel, Antwort-Body noch Issue-Inhalt landen in
   Exception-Texten (nur HTTP-Status oder Exception-Klasse). Das Token geht nur
