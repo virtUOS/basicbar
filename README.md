@@ -6,7 +6,7 @@ Die gemeinsame Basis der virtUOS „-bar“-Tools ([ausleihBAR](https://gitlab.u
 
 Dieses Repo ist **kein lauffähiges Produkt**, sondern liefert zwei Dinge:
 
-1. **Vier versionierte Pakete** mit den Bausteinen, die alle Tools teilen —
+1. **Sechs versionierte Pakete** mit den Bausteinen, die alle Tools teilen —
    Verbesserungen werden einmal hier gemacht und erreichen jedes Tool über
    einen Versions-Bump.
 2. **Ein Copier-Template**, aus dem ein neues Tool in Minuten als
@@ -25,6 +25,8 @@ Compose · Caddy. Lizenz Apache-2.0.
 | `basicbar-integrations` | Optionale Dienste, aus per Default: LibreTranslate-Client + Übersetzungs-Endpunkt, LiteLLM-Client (OpenAI-kompatibel), `capabilities_payload()` fürs `whoami`, HTML-Allowlist (nh3), Übersetzungs-Sync-Helfer. |
 | `basicbar-lti` | LTI-1.3-Fundament (PyLTI1p3): Plattform-Registrierung + Staff-API, Tool-Keypair, OIDC-Initiation/JWKS, JIT-Nutzer-Provisionierung mit optionaler E-Mail-Unifizierung, iframe-Middleware. Der Launch selbst bleibt Tool-Code (Kurskontext → Fachmodell). |
 | `@basicbar/ui` | Designsystem-Basis: Tailwind-Preset (Font, Dark Mode, Motion — die Farb-Ramps bleiben als Identität im Tool: „ein System, pro Tool ein Akzent“), `base.css` (A11y-Grundausstattung), ThemeProvider, i18n-Bootstrap, `contentLang`, `TranslatableField`/„alle Felder übersetzen“, Preferences-Menü, `RichText`; `RichTextEditor` (TipTap) als eigener Entry. |
+| `basicbar-pdf` | Gemeinsamer PDF-Rahmen für herunterladbare Dokumente (reportlab): mitgelieferte Schrift Plus Jakarta Sans, A4 hoch oder quer, Fußzeile „Seite x von y“. Kein Django nötig. |
+| `@basicbar/embed-theme` | Konfigurierbares Erscheinungsbild der öffentlichen Seiten (Einbettung in Moodle u. ä.): `--theme-*`-Variablen mit Uni-Voreinstellung, Signika-Schrift, Tailwind-3/4-Werte, Vorlage für die Betreiber-Datei und Kontrastprüfung `basicbar-check-theme`. Eine Datei statt Neubau. |
 
 Aktuelle Versionen: die Tags `<paket>/vX.Y.Z` bzw. [CHANGELOG.md](CHANGELOG.md)
 (dort auch die Migrationsschritte je Release). Details und Begründungen:
@@ -81,7 +83,7 @@ sind Paket-Features.
 ## An der Basis mitarbeiten
 
 - Branch + PR (main ist geschützt); CI: SPDX-Header-Check, Testsuiten aller
-  drei Django-Pakete, UI-Build, Tag-Publish.
+  vier Django-Pakete, UI-Build, embed-theme-Tests, Tag-Publish.
 - Paket-Tests lokal: `cd packages/django/<paket> && python runtests.py` ·
   UI: `cd packages/ui && npm install && npm run build && npx tsc --noEmit`.
 - Release: Version heben, CHANGELOG-Eintrag mit Migrationsschritten, PR;

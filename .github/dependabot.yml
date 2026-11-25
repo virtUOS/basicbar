@@ -74,3 +74,29 @@ updates:
       default-days: 7
     commit-message:
       prefix: "chore(deps)"
+
+  # @basicbar/embed-theme. Tailwind 3 and 4 are dev dependencies under npm
+  # aliases (tailwindcss3, tailwindcss4) for the build tests; their majors are
+  # the whole point of having both, so they stay where they are. Minor and
+  # patch updates still come in.
+  - package-ecosystem: npm
+    directory: /packages/embed-theme
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    groups:
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: tailwindcss3
+        update-types: ["version-update:semver-major"]
+      - dependency-name: tailwindcss4
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@tailwindcss/node"
+        update-types: ["version-update:semver-major"]
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(deps)"

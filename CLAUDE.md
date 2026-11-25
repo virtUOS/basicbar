@@ -1,7 +1,7 @@
 # Basicbar — Hinweise für Claude
 
 Gemeinsame Basis der virtUOS „-bar“-Tools (ausleihbar, abstimmbar,
-erkennbar, …): **vier versionierte Pakete + ein Copier-Template**, kein
+erkennbar, …): **sechs versionierte Pakete + ein Copier-Template**, kein
 lauffähiges Produkt. Konsumenten sind die Tool-Repos daneben in `~/dev/<tool>`
 — teils noch auf der Uni-GitLab (`virtuos/digitale-dienste/<tool>`), teils
 öffentlich auf GitHub (z. B. `virtUOS/abstimmbar`). basicbar selbst liegt seit
@@ -22,9 +22,17 @@ GitHub-Actions-Runner öffentlicher „-bar“-Tools die Pakete erreichen könne
   Plattform-Registrierung, Tool-Key, Provisionierung, Middleware,
   Dynamic Registration per Einmal-Link (`lti_register`, Token-API).
   Launch/Deep-Linking bleiben Tool-Code.
+- `packages/django/basicbar-pdf` — gemeinsamer PDF-Rahmen (reportlab) mit
+  mitgelieferter Plus Jakarta Sans (OFL) für herunterladbare Dokumente.
 - `packages/ui` — `@basicbar/ui`: Tailwind-Preset (`createPreset`),
   `base.css`, ThemeProvider, `initI18n`, `contentLang`,
   `TranslatableField`/`TranslationForm`. Build: tsup.
+- `packages/embed-theme` — `@basicbar/embed-theme`: Theme-Variablen
+  (`--theme-*`, Uni-Voreinstellung) und Signika für die öffentlichen Seiten
+  eingebetteter Tools, Tailwind-Werte für v3 und v4, Betreiber-Vorlage und
+  Kontrastprüfung `basicbar-check-theme`. Keine Laufzeit-Abhängigkeiten.
+  Tests: `cd packages/embed-theme && npm ci && npm test`. Release per Tag
+  `embed-theme/v*` (eigener Workflow, Draft-Release).
 - `template/project` + `copier.yml` (Repo-Root) — Projektgerüst neuer Tools.
 - `docs/EXTRAKTIONSPLAN.md` (Phasen + Entscheidungen), `docs/ADR/`,
   `CHANGELOG.md` (= Upgrade-Anleitung der Tools).
@@ -53,7 +61,9 @@ pipx run copier copy . /tmp/probe --trust --defaults --vcs-ref HEAD --data proje
   Pflicht (0 Approvals), kein Force-Push, kein Löschen, und diese
   CI-Jobs müssen grün sein — `spdx-header`, `django-packages (integrations)`,
   `django-packages (auth)`, `django-packages (lti)`, `django-packages (pdf)`,
-  `ui-build`, `template-probe`. **Kommt ein Paket in die
+  `ui-build`, `embed-theme`, `template-probe`. **Der Job `embed-theme` ist
+  neu: Ein Mensch muss ihn im Ruleset „main“ als Pflicht-Check ergänzen**
+  (Settings → Rules; ein Agent darf das nicht), sonst bleibt er unbewacht. **Kommt ein Paket in die
   `django-packages`-Matrix oder wird ein Job umbenannt, im selben Zug das
   Ruleset anpassen** (Settings → Rules), sonst bleibt der neue Job
   unbewacht bzw. jeder PR hängt auf „Expected“. Der Dependabot-Config-Check
@@ -74,7 +84,8 @@ pipx run copier copy . /tmp/probe --trust --defaults --vcs-ref HEAD --data proje
 - Nach dem Paket-Release: Konsumenten-PRs in den Tools (Version bumpen,
   Migrationsschritte aus dem Changelog ausführen, Suite + Build grün).
 - **Dependabot** (`.github/dependabot.yml`) öffnet montags gruppierte PRs für
-  GitHub Actions und `packages/ui` (npm); die CI testet sie wie jeden PR,
+  GitHub Actions, `packages/ui` und `packages/embed-theme` (npm; dort bleiben
+  die Hauptversionen der Tailwind-Aliasse `tailwindcss3`/`tailwindcss4` stehen); die CI testet sie wie jeden PR,
   gemerged wird von Hand. Nicht abgedeckt: die Django-Pakete (für pip gibt es
   kein `widen`, jede Strategie würde die Untergrenzen anheben — Begründung in
   der Datei) sowie die `.jinja`-Pins und Docker-Images des Templates; die
@@ -84,7 +95,8 @@ pipx run copier copy . /tmp/probe --trust --defaults --vcs-ref HEAD --data proje
 
 ## Konventionen
 
-- Apache-2.0, SPDX-Header in jeder Quelldatei (CI prüft packages/ + template/).
+- Apache-2.0, SPDX-Header in jeder Quelldatei (`.py`, `.ts`, `.tsx`, `.css`,
+  `.js`, `.mjs`; CI prüft packages/ + template/).
 - **Rule of Two:** In die Basis wandert nur, was zwei Tools brauchen und
   eines erprobt hat. Keine Fachlogik, keine konkreten User-Models (ADR-0003).
 - Paket-Apps: Constraint-/Index-Namen mit Paket-Präfix (Postgres hat einen

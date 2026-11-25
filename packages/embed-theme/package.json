@@ -1,0 +1,35 @@
+{
+  "name": "@basicbar/embed-theme",
+  "version": "0.1.0",
+  "description": "Theme-Variablen, Signika-Schrift und Tailwind-Werte für öffentliche Seiten der virtUOS -bar-Tools",
+  "license": "Apache-2.0 AND OFL-1.1",
+  "author": "Universität Osnabrück (virtUOS)",
+  "type": "module",
+  "files": [
+    "theme.css",
+    "tailwind.js",
+    "lib",
+    "bin",
+    "template",
+    "fonts",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    "./theme.css": "./theme.css",
+    "./tailwind": "./tailwind.js",
+    "./template/theme.css": "./template/theme.css"
+  },
+  "bin": {
+    "basicbar-check-theme": "./bin/check-theme.mjs"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "devDependencies": {
+    "@tailwindcss/node": "^4.1",
+    "postcss": "^8",
+    "tailwindcss3": "npm:tailwindcss@^3.4.17",
+    "tailwindcss4": "npm:tailwindcss@^4.1"
+  }
+}
