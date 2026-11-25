@@ -19,7 +19,8 @@ GitHub-Actions-Runner öffentlicher „-bar“-Tools die Pakete erreichen könne
   (`views.whoami_payload`/`logout_view`/`set_language`, `urls`), optionale
   Limits (`MAX_USERS`, Drift-Fallback). Betreiber-Doku im README.
 - `packages/django/basicbar-lti` — LTI-1.3-Fundament (PyLTI1p3):
-  Plattform-Registrierung, Tool-Key, Provisionierung, Middleware.
+  Plattform-Registrierung, Tool-Key, Provisionierung, Middleware,
+  Dynamic Registration per Einmal-Link (`lti_register`, Token-API).
   Launch/Deep-Linking bleiben Tool-Code.
 - `packages/ui` — `@basicbar/ui`: Tailwind-Preset (`createPreset`),
   `base.css`, ThemeProvider, `initI18n`, `contentLang`,

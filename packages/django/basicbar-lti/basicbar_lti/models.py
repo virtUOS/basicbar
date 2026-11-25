@@ -10,10 +10,16 @@ tool logic — a tool defines its own context-link model with a FK onto
 A tool that carried these models itself adopts the package with a
 data-move migration (abstimmbar's ``lti/0003`` is the template).
 """
+import hashlib
+import secrets
+
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
+
+from . import conf
 
 
 class TimeStampedModel(models.Model):
@@ -123,3 +129,69 @@ class LtiUserLink(TimeStampedModel):
 
     def __str__(self):
         return f"{self.platform.name}:{self.sub} → {self.user}"
+
+
+class LtiRegistrationToken(models.Model):
+    """One-time token authorising a platform's Dynamic Registration.
+
+    Only the SHA-256 hash is stored; the plaintext is shown exactly once
+    when the token is issued.
+    """
+
+    token_hash = models.CharField(max_length=64, unique=True)
+    note = models.CharField(max_length=200, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+    platform = models.ForeignKey(
+        LtiPlatform,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="registration_tokens",
+    )
+
+    @staticmethod
+    def hash(raw: str) -> str:
+        return hashlib.sha256(raw.encode()).hexdigest()
+
+    @classmethod
+    def issue(cls, *, note: str = "", created_by=None):
+        """Create a token; returns ``(instance, plaintext)``."""
+        raw = secrets.token_urlsafe(32)
+        obj = cls.objects.create(
+            token_hash=cls.hash(raw),
+            note=note,
+            created_by=created_by,
+            expires_at=timezone.now() + conf.get("LTI_REGISTRATION_TOKEN_TTL"),
+        )
+        return obj, raw
+
+    @classmethod
+    def find_valid(cls, raw: str):
+        """The unused, unexpired token for ``raw``, else ``None``."""
+        if not raw:
+            return None
+        return cls.objects.filter(
+            token_hash=cls.hash(raw),
+            used_at__isnull=True,
+            expires_at__gt=timezone.now(),
+        ).first()
+
+    @property
+    def status(self) -> str:
+        if self.used_at is not None:
+            return "used"
+        if self.expires_at <= timezone.now():
+            return "expired"
+        return "open"
+
+    def __str__(self):
+        return f"Registration token ({self.note or self.pk})"

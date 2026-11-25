@@ -404,7 +404,9 @@ class LtiPlatformApiTests(TestCase):
         self.assertTrue(info["login_url"].endswith("/lti/login/"))
         self.assertTrue(info["launch_url"].endswith("/lti/launch/"))
         self.assertTrue(info["jwks_url"].endswith("/lti/jwks/"))
-        self.assertTrue(info["icon_url"].endswith("/lti/icon.svg"))
+        self.assertTrue(info["register_url"].endswith("/lti/register/"))
+        # icon_url comes from LTI_TOOL_REGISTRATION["logo_path"] (empty here)
+        self.assertEqual(info["icon_url"], "")
 
     def test_created_platform_appears_in_jwks(self):
         from basicbar_lti.tool_conf import build_tool_conf

@@ -8,3 +8,6 @@ class BasicbarLtiConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "basicbar_lti"
     verbose_name = "Basicbar LTI"
+
+    def ready(self):
+        from . import checks  # noqa: F401  (registers the system checks)

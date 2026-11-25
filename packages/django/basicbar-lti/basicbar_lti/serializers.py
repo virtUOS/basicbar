@@ -5,7 +5,7 @@
 (private_key / key_set); those stay Django-admin-only."""
 from rest_framework import serializers
 
-from .models import LtiPlatform
+from .models import LtiPlatform, LtiRegistrationToken
 
 
 class LtiPlatformSerializer(serializers.ModelSerializer):
@@ -38,3 +38,23 @@ class LtiPlatformSerializer(serializers.ModelSerializer):
                 "existiert bereits."
             )
         return attrs
+
+
+class LtiRegistrationTokenSerializer(serializers.ModelSerializer):
+    """One-time Dynamic-Registration links. The plaintext token (``url``) is
+    added by the viewset to the create response only — it is never stored."""
+
+    created_by = serializers.SlugRelatedField(slug_field="username", read_only=True)
+    status = serializers.CharField(read_only=True)
+    platform_name = serializers.CharField(source="platform.name", read_only=True, default="")
+
+    class Meta:
+        model = LtiRegistrationToken
+        fields = [
+            "id", "note", "created_by", "created_at", "expires_at",
+            "used_at", "status", "platform", "platform_name",
+        ]
+        read_only_fields = [
+            "id", "created_by", "created_at", "expires_at", "used_at",
+            "status", "platform", "platform_name",
+        ]

@@ -3,7 +3,7 @@
 
 from django.contrib import admin
 
-from .models import LtiPlatform, LtiToolKey, LtiUserLink
+from .models import LtiPlatform, LtiRegistrationToken, LtiToolKey, LtiUserLink
 
 
 @admin.register(LtiPlatform)
@@ -23,3 +23,16 @@ class LtiToolKeyAdmin(admin.ModelAdmin):
     list_display = ("__str__", "created_at")
     readonly_fields = ("public_key", "created_at")
     exclude = ("private_key",)
+
+
+@admin.register(LtiRegistrationToken)
+class LtiRegistrationTokenAdmin(admin.ModelAdmin):
+    """Read-only overview; deleting a token revokes it."""
+
+    list_display = ("note", "created_by", "created_at", "expires_at", "status", "platform")
+
+    def get_readonly_fields(self, request, obj=None):
+        return [f.name for f in self.model._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
