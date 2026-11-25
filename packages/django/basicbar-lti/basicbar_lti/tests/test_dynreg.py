@@ -11,12 +11,12 @@ import urllib.request
 from datetime import timedelta
 from unittest import mock
 
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 
-from basicbar_lti import conf, dynreg_http
+from basicbar_lti import conf, dynreg, dynreg_http
 from basicbar_lti.dynreg_http import RegistrationError, request_json
-from basicbar_lti.models import LtiRegistrationToken
+from basicbar_lti.models import LtiPlatform, LtiRegistrationToken
 
 
 class RegistrationTokenTests(TestCase):
@@ -263,3 +263,242 @@ class HttpClientTests(SimpleTestCase):
             with self.assertRaises(RegistrationError):
                 request_json("https://u:p@moodle.example.org/x")
         opened.assert_not_called()
+
+
+ISSUER = "https://moodle.example.org"
+CONFIG_URL = ISSUER + "/mod/lti/openid-configuration.php"
+LTI_TOOL = "https://purl.imsglobal.org/spec/lti-tool-configuration"
+LTI_PLATFORM = "https://purl.imsglobal.org/spec/lti-platform-configuration"
+
+
+def moodle_config(**overrides):
+    config = {
+        "issuer": ISSUER,
+        "authorization_endpoint": ISSUER + "/mod/lti/auth.php",
+        "token_endpoint": ISSUER + "/mod/lti/token.php",
+        "jwks_uri": ISSUER + "/mod/lti/certs.php",
+        "registration_endpoint": ISSUER + "/mod/lti/openid-registration.php",
+        LTI_PLATFORM: {"product_family_code": "moodle"},
+    }
+    config.update(overrides)
+    return config
+
+
+def platform_config(**overrides):
+    return dynreg.PlatformConfig(
+        **{
+            "issuer": ISSUER,
+            "authorization_endpoint": ISSUER + "/mod/lti/auth.php",
+            "token_endpoint": ISSUER + "/mod/lti/token.php",
+            "jwks_uri": ISSUER + "/mod/lti/certs.php",
+            "registration_endpoint": ISSUER + "/mod/lti/openid-registration.php",
+            "product_family_code": "moodle",
+            **overrides,
+        }
+    )
+
+
+def secure_request():
+    return RequestFactory().get("/", secure=True)
+
+
+class PlatformConfigTests(SimpleTestCase):
+    def load(self, config, url=CONFIG_URL, token="reg"):
+        with mock.patch("basicbar_lti.dynreg.request_json", return_value=config) as m:
+            result = dynreg.load_platform_config(url, token)
+        m.assert_called_once_with(url, bearer=token)
+        return result
+
+    def test_config_ok(self):
+        cfg = self.load(moodle_config())
+        self.assertEqual(cfg, platform_config())
+
+    def test_config_without_product_family(self):
+        config = moodle_config()
+        del config[LTI_PLATFORM]
+        self.assertEqual(self.load(config).product_family_code, "")
+
+    def test_config_issuer_not_prefix(self):
+        with self.assertRaises(RegistrationError):
+            self.load(moodle_config(), url="https://evil.example/mod/lti/x.php")
+
+    def test_config_issuer_host_lookalike(self):
+        with self.assertRaises(RegistrationError):
+            self.load(
+                moodle_config(),
+                url="https://moodle.example.org.evil.com/mod/lti/x.php",
+            )
+
+    def test_config_issuer_path_prefix(self):
+        issuer = "https://example.org/moodle"
+        config = moodle_config(issuer=issuer)
+        for key in (
+            "authorization_endpoint",
+            "token_endpoint",
+            "jwks_uri",
+            "registration_endpoint",
+        ):
+            config[key] = "https://example.org/moodle/x.php"
+        self.load(config, url="https://example.org/moodle/openid-configuration.php")
+        with self.assertRaises(RegistrationError):
+            self.load(config, url="https://example.org/other/openid-configuration.php")
+
+    def test_config_endpoint_other_host(self):
+        with self.assertRaises(RegistrationError):
+            self.load(moodle_config(jwks_uri="https://cdn.example.org/certs.php"))
+
+    def test_config_missing_registration_endpoint(self):
+        config = moodle_config()
+        del config["registration_endpoint"]
+        with self.assertRaises(RegistrationError):
+            self.load(config)
+
+    def test_config_non_string_field(self):
+        with self.assertRaises(RegistrationError):
+            self.load(moodle_config(token_endpoint=5))
+
+
+class PayloadTests(SimpleTestCase):
+    def test_payload_shape(self):
+        p = dynreg.tool_registration_payload(secure_request())
+        self.assertEqual(p["application_type"], "web")
+        self.assertEqual(p["response_types"], ["id_token"])
+        self.assertEqual(p["grant_types"], ["implicit", "client_credentials"])
+        self.assertEqual(p["token_endpoint_auth_method"], "private_key_jwt")
+        self.assertEqual(p["initiate_login_uri"], "https://testserver/lti/login/")
+        self.assertEqual(p["redirect_uris"], ["https://testserver/lti/launch/"])
+        self.assertEqual(p["jwks_uri"], "https://testserver/lti/jwks/")
+        self.assertNotIn("logo_uri", p)
+        block = p[LTI_TOOL]
+        self.assertEqual(block["domain"], "testserver")
+        self.assertEqual(block["target_link_uri"], "https://testserver/lti/launch/")
+        self.assertEqual(
+            block["messages"],
+            [
+                {
+                    "type": "LtiResourceLinkRequest",
+                    "target_link_uri": "https://testserver/lti/launch/",
+                }
+            ],
+        )
+        self.assertEqual(block["claims"], conf.tool_registration()["claims"])
+
+    @override_settings(
+        LTI_TOOL_REGISTRATION={
+            "client_name": "abstimmbar",
+            "logo_path": "/lti/icon.svg",
+            "messages": [
+                {"type": "LtiResourceLinkRequest"},
+                {"type": "LtiDeepLinkingRequest", "label": "Raum wählen"},
+            ],
+        }
+    )
+    def test_payload_tool_settings(self):
+        p = dynreg.tool_registration_payload(secure_request())
+        self.assertEqual(p["client_name"], "abstimmbar")
+        self.assertEqual(p["logo_uri"], "https://testserver/lti/icon.svg")
+        second = p[LTI_TOOL]["messages"][1]
+        self.assertEqual(second["target_link_uri"], "https://testserver/lti/launch/")
+        self.assertEqual(second["label"], "Raum wählen")
+
+    def test_payload_refuses_http_tool_urls(self):
+        with self.assertRaises(RegistrationError) as cm:
+            dynreg.tool_registration_payload(RequestFactory().get("/"))
+        self.assertIn("SECURE_PROXY_SSL_HEADER", str(cm.exception))
+
+    @override_settings(LTI_REGISTRATION_ALLOW_HTTP=True)
+    def test_payload_allow_http(self):
+        p = dynreg.tool_registration_payload(RequestFactory().get("/"))
+        self.assertEqual(p["redirect_uris"], ["http://testserver/lti/launch/"])
+
+
+class RegisterTests(TestCase):
+    RESPONSE = {"client_id": "abc", LTI_TOOL: {"deployment_id": "7"}}
+
+    def register(self, token, response=None, **kw):
+        with mock.patch(
+            "basicbar_lti.dynreg.request_json",
+            return_value=self.RESPONSE if response is None else response,
+            **kw,
+        ) as m:
+            platform = dynreg.register_platform(
+                secure_request(), token, platform_config(), "reg"
+            )
+        return platform, m
+
+    def test_register_creates_platform_and_consumes_token(self):
+        token, _ = LtiRegistrationToken.issue(note="Moodle Test")
+        platform, m = self.register(token)
+        self.assertEqual(platform.issuer, ISSUER)
+        self.assertEqual(platform.client_id, "abc")
+        self.assertEqual(platform.deployment_ids, ["7"])
+        self.assertEqual(platform.auth_login_url, ISSUER + "/mod/lti/auth.php")
+        self.assertEqual(platform.auth_token_url, ISSUER + "/mod/lti/token.php")
+        self.assertEqual(platform.key_set_url, ISSUER + "/mod/lti/certs.php")
+        self.assertTrue(platform.is_active)
+        self.assertFalse(platform.link_by_email)
+        self.assertEqual(platform.name, "Moodle Test")
+        token.refresh_from_db()
+        self.assertEqual(token.status, "used")
+        self.assertEqual(token.platform, platform)
+        args, kwargs = m.call_args
+        self.assertEqual(args[0], ISSUER + "/mod/lti/openid-registration.php")
+        self.assertEqual(kwargs["bearer"], "reg")
+        self.assertEqual(kwargs["payload"]["application_type"], "web")
+
+    def test_register_name_fallback(self):
+        token, _ = LtiRegistrationToken.issue()
+        platform, _ = self.register(token)
+        self.assertEqual(platform.name, "moodle (moodle.example.org)")
+
+    def test_register_without_deployment_id(self):
+        token, _ = LtiRegistrationToken.issue()
+        platform, _ = self.register(token, response={"client_id": "abc"})
+        self.assertEqual(platform.deployment_ids, [])
+
+    def test_register_lms_error_keeps_token_open(self):
+        token, _ = LtiRegistrationToken.issue()
+        with self.assertRaises(RegistrationError):
+            self.register(token, side_effect=RegistrationError("nope"))
+        self.assertEqual(LtiPlatform.objects.count(), 0)
+        token.refresh_from_db()
+        self.assertEqual(token.status, "open")
+
+    def test_register_missing_client_id_keeps_token_open(self):
+        token, _ = LtiRegistrationToken.issue()
+        with self.assertRaises(RegistrationError):
+            self.register(token, response={LTI_TOOL: {"deployment_id": "7"}})
+        self.assertEqual(LtiPlatform.objects.count(), 0)
+        token.refresh_from_db()
+        self.assertEqual(token.status, "open")
+
+    def test_register_used_token_refused(self):
+        token, _ = LtiRegistrationToken.issue()
+        LtiRegistrationToken.objects.filter(pk=token.pk).update(
+            used_at=timezone.now()
+        )
+        with self.assertRaises(RegistrationError):
+            self.register(token)
+        # request_json must not have been called
+        with mock.patch("basicbar_lti.dynreg.request_json") as m:
+            with self.assertRaises(RegistrationError):
+                dynreg.register_platform(
+                    secure_request(), token, platform_config(), "reg"
+                )
+        m.assert_not_called()
+
+    def test_known_issuer(self):
+        cfg = platform_config()
+        self.assertFalse(dynreg.known_issuer(cfg))
+        platform = LtiPlatform.objects.create(
+            name="x",
+            issuer=ISSUER + "/",
+            client_id="c",
+            auth_login_url=ISSUER + "/a",
+            auth_token_url=ISSUER + "/t",
+            is_active=False,
+        )
+        self.assertFalse(dynreg.known_issuer(cfg))
+        platform.is_active = True
+        platform.save()
+        self.assertTrue(dynreg.known_issuer(cfg))

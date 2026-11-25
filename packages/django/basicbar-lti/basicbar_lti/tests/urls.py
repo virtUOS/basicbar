@@ -35,6 +35,11 @@ def test_launch(request):
     return JsonResponse({"instructor": False})
 
 
+def lti_register(request):
+    """Placeholder; the real registration view arrives with Dynamic Registration."""
+    return HttpResponse("register")
+
+
 def embeddable_page(request):
     return HttpResponse("<html><body>embed me</body></html>")
 
@@ -46,6 +51,7 @@ urlpatterns = [
     path("lti/login/", lti_login, name="lti-login"),
     path("lti/launch/", test_launch, name="lti-launch"),
     path("lti/jwks/", lti_jwks, name="lti-jwks"),
+    path("lti/register/", lti_register, name="lti-register"),
     path("lti/page/", embeddable_page, name="lti-test-page"),
     path("api/lti/tool-info/", LtiToolInfoView.as_view(), name="lti-tool-info"),
     path("api/lti/", include(router.urls)),
