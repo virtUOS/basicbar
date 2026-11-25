@@ -8,9 +8,12 @@ The message-launch endpoint itself is tool code — what a launch lands on
 primitives in :mod:`basicbar_lti.provisioning` and :mod:`.tool_conf`.
 """
 import logging
+from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 from pylti1p3.contrib.django import DjangoOIDCLogin
 from pylti1p3.exception import LtiException, OIDCException
@@ -19,7 +22,11 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import LtiPlatform
+from . import dynreg
+from .dynreg_http import RegistrationError
+from .dynreg_pages import CANCEL_SCRIPT, page
+from .middleware import _ORIGIN_RE
+from .models import LtiPlatform, LtiRegistrationToken
 from .provisioning import launch_storage
 from .serializers import LtiPlatformSerializer
 from .tool_conf import build_tool_conf
@@ -134,3 +141,131 @@ class LtiToolInfoView(APIView):
             "jwks_url": f"{base}/lti/jwks/",
             "icon_url": f"{base}/lti/icon.svg",
         })
+
+
+def _register_param(request, key):
+    return request.POST.get(key, request.GET.get(key, ""))
+
+
+def _config_origin(url):
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return None
+    origin = f"{parts.scheme}://{parts.netloc}"
+    return origin if _ORIGIN_RE.match(origin) else None
+
+
+def _register_response(status, title_de, title_en, body, origin, **kw):
+    response = HttpResponse(page(title_de, title_en, body, **kw), status=status)
+    if origin:
+        response["Content-Security-Policy"] = f"frame-ancestors 'self' {origin}"
+    return response
+
+
+def _error_page(status, de, en, origin):
+    body = format_html("<p>{}</p><p class=\"en\">{}</p>", de, en)
+    return _register_response(status, "Registrierung", "Registration", body, origin)
+
+
+@csrf_exempt
+def lti_register(request):
+    """Dynamic Registration endpoint the LMS admin's browser opens.
+
+    Parameter parsing, branching and page rendering only; the registration
+    itself lives in :mod:`basicbar_lti.dynreg`.
+    """
+    raw = _register_param(request, "token")
+    config_url = _register_param(request, "openid_configuration")
+    registration_token = _register_param(request, "registration_token")
+    confirm = bool(_register_param(request, "confirm"))
+
+    token = LtiRegistrationToken.find_valid(raw)
+    if token is None:
+        return _error_page(
+            403,
+            "Link ungültig, bereits verwendet oder abgelaufen — "
+            "neuen Link beim Tool-Admin anfordern.",
+            "Link invalid, already used or expired — request a new link "
+            "from the tool admin.",
+            None,
+        )
+    origin = _config_origin(config_url)
+    if not config_url:
+        return _error_page(
+            400,
+            "Diese Adresse in Moodle als Tool-URL eintragen "
+            "(Externe Tools → Tools verwalten).",
+            "Enter this address in Moodle as the tool URL "
+            "(External tools → Manage tools).",
+            origin,
+        )
+
+    try:
+        config = dynreg.load_platform_config(config_url, registration_token)
+        if dynreg.known_issuer(config) and not confirm:
+            return _confirm_page(raw, config_url, registration_token, origin)
+        platform = dynreg.register_platform(request, token, config, registration_token)
+    except RegistrationError as exc:
+        logger.warning(
+            "LTI registration failed (config=%r): %s %s", config_url, exc, exc.detail
+        )
+        return _error_page(502, str(exc), "Registration failed.", origin)
+
+    body = format_html(
+        "<p>Registrierung abgeschlossen ({}). Nächste Schritte in Moodle: "
+        "Tool aktivieren; Tool bearbeiten → Standard-Startcontainer "
+        "„Neues Fenster“.</p>"
+        "<p class=\"en\">Registration complete. Next steps in Moodle: "
+        "activate the tool; edit the tool → default launch container "
+        "“New window”.</p>",
+        platform.name,
+    )
+    if not platform.deployment_ids:
+        body += mark_safe(  # noqa: S308 — static text, no dynamic values
+            "<p>Das LMS hat keine Deployment-ID geliefert — im Tool-Admin "
+            "nachtragen.</p>"
+            "<p class=\"en\">The LMS did not provide a deployment ID — add "
+            "it in the tool admin.</p>"
+        )
+    return _register_response(
+        200, "Registrierung abgeschlossen", "Registration complete", body,
+        origin, close=True,
+    )
+
+
+def _confirm_page(raw, config_url, registration_token, origin):
+    body = format_html(
+        "<p>Für {} gibt es bereits eine aktive Verknüpfung. Eine neue "
+        "Registrierung legt eine zweite an; die bestehende Verknüpfung wird "
+        "nicht übernommen (Kursverknüpfungen und Konten hängen an der "
+        "alten).</p>"
+        "<p class=\"en\">An active registration already exists for this "
+        "platform. A new registration creates a second one; the existing "
+        "registration is not taken over (course links and accounts stay "
+        "attached to the old one).</p>"
+        "<form method=\"post\">"
+        "<input type=\"hidden\" name=\"token\" value=\"{}\">"
+        "<input type=\"hidden\" name=\"openid_configuration\" value=\"{}\">"
+        "<input type=\"hidden\" name=\"registration_token\" value=\"{}\">"
+        "<input type=\"hidden\" name=\"confirm\" value=\"1\">"
+        "<button type=\"submit\">Trotzdem neu registrieren / Register anyway"
+        "</button>"
+        "<button type=\"button\" id=\"cancel\">Abbrechen / Cancel</button>"
+        "</form>{}",
+        _origin_label(config_url),
+        raw,
+        config_url,
+        registration_token,
+        CANCEL_SCRIPT,
+    )
+    return _register_response(
+        200, "Registrierung bestätigen", "Confirm registration", body, origin
+    )
+
+
+def _origin_label(config_url):
+    try:
+        return urlsplit(config_url).netloc or config_url
+    except ValueError:
+        return config_url

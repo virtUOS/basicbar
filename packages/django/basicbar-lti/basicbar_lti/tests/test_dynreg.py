@@ -546,3 +546,238 @@ class RegisterTests(TestCase):
         platform.is_active = True
         platform.save()
         self.assertTrue(dynreg.known_issuer(cfg))
+
+
+class RegisterViewTests(TestCase):
+    RESPONSE = {"client_id": "abc", LTI_TOOL: {"deployment_id": "7"}}
+
+    def setUp(self):
+        self.token, self.raw = LtiRegistrationToken.issue(note="Moodle Test")
+
+    def params(self, **overrides):
+        params = {
+            "token": self.raw,
+            "openid_configuration": CONFIG_URL,
+            "registration_token": "rt",
+        }
+        params.update(overrides)
+        return {k: v for k, v in params.items() if v is not None}
+
+    def get(self, **overrides):
+        return self.client.get("/lti/register/", self.params(**overrides), secure=True)
+
+    def post(self, **overrides):
+        return self.client.post(
+            "/lti/register/", self.params(**overrides), secure=True
+        )
+
+    def patched(self, *side_effect):
+        return mock.patch(
+            "basicbar_lti.dynreg.request_json", side_effect=list(side_effect)
+        )
+
+    def test_invalid_token_403_no_request(self):
+        with self.patched() as m:
+            response = self.get(token="nope")
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("Link ungültig", response.content.decode())
+        m.assert_not_called()
+
+    def test_used_token_403_no_request(self):
+        self.token.used_at = timezone.now()
+        self.token.save()
+        with self.patched() as m:
+            response = self.get()
+        self.assertEqual(response.status_code, 403)
+        m.assert_not_called()
+
+    def test_missing_openid_configuration_400(self):
+        with self.patched() as m:
+            response = self.get(openid_configuration=None)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Tool-URL", response.content.decode())
+        m.assert_not_called()
+
+    def test_success_creates_platform_and_closes(self):
+        with self.patched(moodle_config(), self.RESPONSE) as m:
+            response = self.get()
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        self.assertIn("org.imsglobal.lti.close", body)
+        self.assertIn("Neues Fenster", body)
+        self.assertEqual(m.call_count, 2)
+        self.assertTrue(LtiPlatform.objects.filter(issuer=ISSUER).exists())
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.status, "used")
+
+    def test_success_without_deployment_warns(self):
+        with self.patched(moodle_config(), {"client_id": "abc"}):
+            response = self.get()
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Deployment-ID", response.content.decode())
+
+    def test_success_with_deployment_has_no_warning(self):
+        with self.patched(moodle_config(), self.RESPONSE):
+            response = self.get()
+        self.assertNotIn("Deployment-ID", response.content.decode())
+
+    def test_config_error_502(self):
+        with self.patched(RegistrationError("Konfig kaputt")) as m:
+            response = self.get()
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("Konfig kaputt", response.content.decode())
+        self.assertEqual(m.call_count, 1)
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.status, "open")
+
+    def test_lms_error_502_token_open(self):
+        with self.patched(moodle_config(), RegistrationError("LMS sagt nein")):
+            response = self.get()
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("LMS sagt nein", response.content.decode())
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.status, "open")
+        self.assertFalse(LtiPlatform.objects.exists())
+
+    def _known(self):
+        LtiPlatform.objects.create(
+            name="alt",
+            issuer=ISSUER,
+            client_id="old",
+            auth_login_url=ISSUER + "/a",
+            auth_token_url=ISSUER + "/t",
+        )
+
+    def test_known_issuer_asks_first(self):
+        self._known()
+        with self.patched(moodle_config()) as m:
+            response = self.get()
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        self.assertIn('name="confirm"', body)
+        self.assertIn("bestehende Verknüpfung", body)
+        self.assertEqual(m.call_count, 1)
+        self.assertEqual(LtiPlatform.objects.count(), 1)
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.status, "open")
+        with self.patched(moodle_config(), self.RESPONSE):
+            response = self.post(confirm="1")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(LtiPlatform.objects.count(), 2)
+
+    def test_post_without_confirm_asks_first(self):
+        self._known()
+        with self.patched(moodle_config()):
+            response = self.post()
+        self.assertIn('name="confirm"', response.content.decode())
+        self.assertEqual(LtiPlatform.objects.count(), 1)
+
+    def test_cancel_does_not_consume(self):
+        self._known()
+        with self.patched(moodle_config()):
+            response = self.get()
+        body = response.content.decode()
+        self.assertIn("org.imsglobal.lti.close", body)
+        self.assertIn('type="button"', body)
+        self.assertNotIn(" onclick", body)
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.status, "open")
+
+    def test_values_are_escaped(self):
+        evil = "<script>x</script>"
+        self.token.note = evil
+        self.token.save()
+        with self.patched(moodle_config(), self.RESPONSE):
+            ok = self.get()
+        self.assertNotIn(evil, ok.content.decode())
+        self.assertIn("&lt;script&gt;x&lt;/script&gt;", ok.content.decode())
+        # confirm page: hidden fields and URLs
+        self._known()
+        with self.patched(moodle_config()):
+            asks = self.get(registration_token='"><script>x</script>')
+        self.assertNotIn(evil, asks.content.decode())
+        # error page (the first token was consumed by the success above)
+        _, self.raw = LtiRegistrationToken.issue()
+        with self.patched(RegistrationError(evil)):
+            err = self.get()
+        self.assertNotIn(evil, err.content.decode())
+        self.assertIn("&lt;script&gt;", err.content.decode())
+
+    def test_error_is_logged(self):
+        with self.patched(RegistrationError("kaputt", "detail-xyz")):
+            with self.assertLogs("basicbar_lti.views", "WARNING") as logs:
+                self.get()
+        self.assertIn("detail-xyz", logs.output[0])
+
+
+class FrameAncestorsRegisterTests(TestCase):
+    def setUp(self):
+        self.token, self.raw = LtiRegistrationToken.issue()
+
+    def get(self, **overrides):
+        params = {"token": self.raw, "openid_configuration": CONFIG_URL}
+        params.update(overrides)
+        with mock.patch(
+            "basicbar_lti.dynreg.request_json",
+            side_effect=[
+                moodle_config(),
+                {"client_id": "abc", LTI_TOOL: {"deployment_id": "7"}},
+            ],
+        ):
+            return self.client.get("/lti/register/", params, secure=True)
+
+    def test_valid_token_allows_config_origin(self):
+        response = self.get()
+        self.assertEqual(
+            response["Content-Security-Policy"],
+            "frame-ancestors 'self' https://moodle.example.org",
+        )
+        self.assertNotIn("X-Frame-Options", response)
+
+    def test_error_page_also_allows_origin(self):
+        with mock.patch(
+            "basicbar_lti.dynreg.request_json", side_effect=RegistrationError("x")
+        ):
+            response = self.client.get(
+                "/lti/register/",
+                {"token": self.raw, "openid_configuration": CONFIG_URL},
+                secure=True,
+            )
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("moodle.example.org", response["Content-Security-Policy"])
+
+    def test_invalid_token_keeps_default_policy(self):
+        response = self.get(token="nope")
+        self.assertNotIn("moodle.example.org", response["Content-Security-Policy"])
+        self.assertNotIn("X-Frame-Options", response)
+
+    def test_invalid_origin_keeps_default_policy(self):
+        response = self.get(openid_configuration="https://evil.example; x/y")
+        self.assertNotIn("evil", response["Content-Security-Policy"])
+        self.assertNotIn(";x", response["Content-Security-Policy"])
+
+    def test_other_lti_pages_unchanged(self):
+        response = self.client.get("/lti/page/")
+        self.assertEqual(response["Content-Security-Policy"], "frame-ancestors 'self'")
+        self.assertNotIn("X-Frame-Options", response)
+
+
+class CheckTests(SimpleTestCase):
+    def run_checks(self):
+        from basicbar_lti.checks import check_registration_settings
+
+        return check_registration_settings(None)
+
+    @override_settings(LTI_REGISTRATION_ALLOW_HTTP=True, DEBUG=False)
+    def test_w001(self):
+        messages = self.run_checks()
+        self.assertEqual([m.id for m in messages], ["basicbar_lti.W001"])
+        self.assertIn("LTI_REGISTRATION_ALLOW_HTTP", messages[0].hint)
+
+    @override_settings(LTI_REGISTRATION_ALLOW_HTTP=True, DEBUG=True)
+    def test_no_warning_in_debug(self):
+        self.assertEqual(self.run_checks(), [])
+
+    @override_settings(LTI_REGISTRATION_ALLOW_HTTP=False, DEBUG=False)
+    def test_no_warning_by_default(self):
+        self.assertEqual(self.run_checks(), [])

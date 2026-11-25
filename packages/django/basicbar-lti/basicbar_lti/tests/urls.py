@@ -16,7 +16,7 @@ from basicbar_lti.provisioning import (
     provision_user,
 )
 from basicbar_lti.tool_conf import build_tool_conf
-from basicbar_lti.views import LtiPlatformViewSet, LtiToolInfoView, lti_jwks, lti_login
+from basicbar_lti.views import LtiPlatformViewSet, LtiToolInfoView, lti_jwks, lti_login, lti_register
 
 
 @csrf_exempt
@@ -33,11 +33,6 @@ def test_launch(request):
         user = provision_user(platform, launch_data)
         return JsonResponse({"instructor": True, "user": user.pk})
     return JsonResponse({"instructor": False})
-
-
-def lti_register(request):
-    """Placeholder; the real registration view arrives with Dynamic Registration."""
-    return HttpResponse("register")
 
 
 def embeddable_page(request):
