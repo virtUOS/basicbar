@@ -190,6 +190,12 @@ Ein leerer oder fehlender Host-Ordner ist unkritisch: dann greift
 npx basicbar-check-theme --strict node_modules/@basicbar/embed-theme/template/theme.css
 ```
 
+Die Kurzform `npx basicbar-check-theme` setzt voraus, dass
+`@basicbar/embed-theme` im Projekt installiert ist (`npm ci` vorher). **Rufen
+Sie `npx basicbar-check-theme` nie ohne installiertes Paket auf:** `npx`
+würde sonst ein unbeteiligtes Paket gleichen Namens aus der npm-Registry
+suchen und ausführen.
+
 Aufruf: `basicbar-check-theme [--strict] [datei]`. Ohne Datei prüft es die
 Voreinstellung. Exit 0: in Ordnung. Exit 1: ein Paar liegt unter der
 Schwelle (mit `--strict` auch: Wert nicht lesbar). Exit 2: Datei nicht
@@ -263,8 +269,14 @@ Ausweichschriften bei.
 ## Prüfen
 
 ```bash
-npx basicbar-check-theme theme.css
+npx --yes --package=https://github.com/virtUOS/basicbar/releases/download/embed-theme/v0.1.0/basicbar-embed-theme-0.1.0.tgz basicbar-check-theme --strict theme.css
 ```
+
+Die Version in der Adresse (hier 0.1.0) muss zu der des Tools passen; sie
+steht in der `package.json` des Tools. Rufen Sie `npx basicbar-check-theme`
+**nie** ohne diese `--package`-Angabe auf, wenn das Paket nicht installiert
+ist: `npx` würde ein fremdes Paket gleichen Namens aus der npm-Registry
+laden und ausführen.
 
 Das Skript nennt jedes Farbpaar mit zu geringem Kontrast, mit Ist- und
 Sollwert. Beheben Sie diese Meldungen, bevor Sie die Datei einsetzen. Der

@@ -28,8 +28,11 @@
      Besucher würden sonst Anfragen an Dritte senden. Schriftdateien legen
      Sie ins selbe Volume und binden sie per @font-face ein, siehe README.
    - Prüfen Sie die Datei vor dem Einsatz mit
-       npx basicbar-check-theme theme.css
-     Das Skript meldet jedes Farbpaar, dessen Kontrast zu niedrig ist.
+       npx --yes --package=https://github.com/virtUOS/basicbar/releases/download/embed-theme/v0.1.0/basicbar-embed-theme-0.1.0.tgz basicbar-check-theme --strict theme.css
+     Die Version in der Adresse muss zu der des Tools passen. Rufen Sie
+     niemals nur "npx basicbar-check-theme" ohne --package auf: Ohne
+     installiertes Paket würde npx ein fremdes Paket aus der Registry
+     ausführen. Das Skript meldet jedes Farbpaar, dessen Kontrast zu niedrig ist.
      Texte brauchen mindestens 4,5:1, Rahmen von Eingabefeldern 3:1. */
 
 :root {
