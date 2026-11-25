@@ -56,6 +56,49 @@ Changelog ist die Upgrade-Anleitung für die Tools.
   steigen. Die CI testet jeden Dependabot-PR. Für die Tools ändert sich
   nichts.
 
+### @basicbar/embed-theme (→ wird `embed-theme/v0.1.0`)
+
+Neues Paket für die **öffentlichen Seiten** der Tools: Theme-Variablen
+(`--theme-primary`, `-text`, `-radius`, `-font`, …) mit Uni-Voreinstellung,
+Signika (variabel, lateinisch, OFL-1.1), Tailwind-Werte für Version 3 und 4,
+eine kommentierte Vorlage für Betreiber und das Kommando
+`basicbar-check-theme [--strict] [datei]` (Kontrast: 4,5:1 für Texte, 3:1 für
+Feldrahmen). Der Betreiber ändert Farben, Radius und Schrift in einer Datei
+im Volume, ohne Neubau. Ohne Verdrahtung im Tool ändert sich nichts. Details
+und Betreiberanleitung im README des Pakets.
+
+Migration (Tools, die es einbinden):
+
+1. `@basicbar/embed-theme` aus der Release-URL
+   (`…/releases/download/embed-theme/v0.1.0/basicbar-embed-theme-0.1.0.tgz`)
+   in die `package.json` des Frontends aufnehmen.
+2. `@import "@basicbar/embed-theme/theme.css";` in den öffentlichen
+   Einstiegen.
+3. Tailwind 3: `themeColorsV3`, `themeBorderRadius`, `themeFontFamily` unter
+   dem Namen `theme` in die Konfiguration der öffentlichen Seiten. Tailwind 4:
+   dasselbe mit `themeColorsV4` per `@config`.
+4. Vorlage nach `public/theme/theme.css` kopieren und in den öffentlichen
+   HTML-Einstiegen `<link rel="stylesheet" href="/theme/theme.css">` setzen.
+5. Caddy: Block `handle_path /theme/*` vor dem SPA-`handle` (erst
+   `/srv/theme`, sonst `/srv/www/theme`, echtes 404, kurze Cache-Dauer) und
+   ein optionales Volume `/srv/theme` am Caddy-Dienst. Wortlaut im README.
+6. Komponenten der öffentlichen Seiten auf `theme`-Farben, `rounded-theme` und
+   `font-theme` umstellen, keine festen Farbwerte.
+7. Tool-CI: `npx basicbar-check-theme --strict
+   node_modules/@basicbar/embed-theme/template/theme.css`.
+
+Im Repo:
+
+- CI-Job `embed-theme` (Tests, `npm pack`-Prüfung), Workflow
+  `publish-embed-theme.yml` für Tags `embed-theme/v*` (Draft-Release),
+  Dependabot-Eintrag (Tailwind-Hauptversionen ausgenommen).
+- Der Job `spdx-header` prüft jetzt auch `*.js` und `*.mjs`; die
+  `postcss.config.js` des Template-Gerüsts hat dafür einen Header bekommen.
+- **Von Hand (Mensch, vor dem Merge):** im GitHub-Ruleset „main“ den Job
+  `embed-theme` als Pflicht-Check ergänzen (Settings → Rules), sonst bleibt
+  der Job unbewacht. Nach dem Merge: Tag `embed-theme/v0.1.0` setzen, Release
+  veröffentlichen (`gh release edit embed-theme/v0.1.0 --draft=false`).
+
 ### basicbar-lti (→ wird `lti/v0.2.0`)
 
 **Dynamic Registration:** Der LMS-Admin trägt einen Einmal-Link des Tools in

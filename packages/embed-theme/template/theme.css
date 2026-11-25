@@ -1,0 +1,88 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2026 Universität Osnabrück (virtUOS) */
+
+/* Theme-Datei für die öffentlichen Seiten dieses Tools
+   =====================================================
+
+   Was ist das?
+   Mit dieser Datei passen Sie Farben, Eckenradius und Schrift der
+   öffentlichen Seiten an Ihre Einrichtung an. Jede Zeile unten ist
+   auskommentiert und zeigt die Voreinstellung der Universität Osnabrück.
+   Entfernen Sie bei einer Zeile die Kommentarzeichen und ändern Sie den
+   Wert, um sie zu überschreiben. Zeilen, die auskommentiert bleiben,
+   behalten die Voreinstellung.
+
+   Wo legen Sie die Datei ab?
+   Als theme.css in dem Ordner, den Ihr Betreiber als Volume am Caddy-Dienst
+   eingebunden hat (im Container: /srv/theme). Das Tool liefert sie unter
+   /theme/theme.css aus. Fehlt die Datei, gilt die Voreinstellung.
+
+   Was Sie beachten müssen:
+   - Nur einfache Werte in :root. Kein @media, kein Dunkelmodus und kein
+     @layer: Die Datei muss ungeschichtet bleiben, damit sie die
+     Voreinstellung unabhängig von der Ladereihenfolge überschreibt, und das
+     Prüfskript liest sie Zeile für Zeile, ohne Blöcke auszuwerten.
+   - Farben als Hex-Wert (#rgb oder #rrggbb), sonst kann der Kontrast nicht
+     geprüft werden.
+   - Keine externen Adressen (kein @import, keine Google-Fonts-URL): Die
+     Besucher würden sonst Anfragen an Dritte senden. Schriftdateien legen
+     Sie ins selbe Volume und binden sie per @font-face ein, siehe README.
+   - Prüfen Sie die Datei vor dem Einsatz mit
+       npx basicbar-check-theme theme.css
+     Das Skript meldet jedes Farbpaar, dessen Kontrast zu niedrig ist.
+     Texte brauchen mindestens 4,5:1, Rahmen von Eingabefeldern 3:1. */
+
+:root {
+  /* Hauptfarbe: Schaltflächen, Links, Fokusrahmen.
+     Kontrast: mindestens 4,5:1 auf Weiß und auf surface, 3:1 für den
+     Fokusrahmen auf Weiß, 4,5:1 auf dem getönten Hintergrund
+     (8 % Primärfarbe auf Weiß). */
+  /* --theme-primary: #ad1034; */
+
+  /* Hauptfarbe beim Darüberfahren mit der Maus.
+     Kontrast: mindestens 4,5:1 auf Weiß und auf surface. */
+  /* --theme-primary-hover: #8a0d2a; */
+
+  /* Schrift auf Flächen in der Hauptfarbe (etwa Beschriftung von Schaltflächen).
+     Kontrast: mindestens 4,5:1 auf primary und auf primary-hover. */
+  /* --theme-on-primary: #ffffff; */
+
+  /* Akzentfarbe für Hervorhebungen, nur als Fläche oder Zierde.
+     Kein Kontrastwert nötig, setzen Sie darauf keinen Text in dieser Farbe. */
+  /* --theme-accent: #fbb800; */
+
+  /* Fließtext.
+     Kontrast: mindestens 4,5:1 auf Weiß und auf surface. */
+  /* --theme-text: #3e3e3f; */
+
+  /* Nebentext (Hinweise, Beschriftungen).
+     Kontrast: mindestens 4,5:1 auf Weiß und auf surface. */
+  /* --theme-muted: #5e5e5e; */
+
+  /* Heller Hintergrund für Kästen und Kopfzeilen. */
+  /* --theme-surface: #f3f3f3; */
+
+  /* Dekorative Trennlinien und Rahmen von Kästen.
+     Kein Kontrastwert nötig; Eingabefelder nutzen field-border. */
+  /* --theme-border: #d0d0d0; */
+
+  /* Rahmen von Eingabefeldern und Schaltflächen ohne Füllung.
+     Kontrast: mindestens 3:1 auf Weiß. */
+  /* --theme-field-border: #767676; */
+
+  /* Fehlermeldungen und Warnhinweise.
+     Kontrast: mindestens 4,5:1 auf Weiß und auf surface. */
+  /* --theme-danger: #c8102e; */
+
+  /* Eckenradius von Schaltflächen und Kästen. Eine Länge, etwa 0, 4px
+     oder 0.5rem. Punkte und Avatare bleiben rund. */
+  /* --theme-radius: 0; */
+
+  /* Schriftfamilie, mit Ausweichschriften am Ende der Liste. Namen mit
+     Leerzeichen setzen Sie in Anführungszeichen. */
+  /* --theme-font: "Signika Variable", system-ui, sans-serif; */
+
+  /* Standard-Schriftgewicht des Fließtexts, eine Zahl von 100 bis 900.
+     Signika gibt es in den Gewichten 300 bis 700. */
+  /* --theme-font-weight: 300; */
+}
