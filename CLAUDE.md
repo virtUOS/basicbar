@@ -22,6 +22,8 @@ GitHub-Actions-Runner öffentlicher „-bar“-Tools die Pakete erreichen könne
   Plattform-Registrierung, Tool-Key, Provisionierung, Middleware,
   Dynamic Registration per Einmal-Link (`lti_register`, Token-API).
   Launch/Deep-Linking bleiben Tool-Code.
+- `packages/django/basicbar-pdf` — gemeinsamer PDF-Rahmen (reportlab) mit
+  mitgelieferter Plus Jakarta Sans (OFL) für herunterladbare Dokumente.
 - `packages/ui` — `@basicbar/ui`: Tailwind-Preset (`createPreset`),
   `base.css`, ThemeProvider, `initI18n`, `contentLang`,
   `TranslatableField`/`TranslationForm`. Build: tsup.

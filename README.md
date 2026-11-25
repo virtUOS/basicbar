@@ -83,7 +83,7 @@ sind Paket-Features.
 ## An der Basis mitarbeiten
 
 - Branch + PR (main ist geschützt); CI: SPDX-Header-Check, Testsuiten aller
-  drei Django-Pakete, UI-Build, Tag-Publish.
+  vier Django-Pakete, UI-Build, embed-theme-Tests, Tag-Publish.
 - Paket-Tests lokal: `cd packages/django/<paket> && python runtests.py` ·
   UI: `cd packages/ui && npm install && npm run build && npx tsc --noEmit`.
 - Release: Version heben, CHANGELOG-Eintrag mit Migrationsschritten, PR;
