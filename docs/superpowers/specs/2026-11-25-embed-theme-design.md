@@ -134,6 +134,14 @@ Der Auftraggeber möchte zweierlei (2026-11-25):
 2. **Erprobung in beiden Stacks vor dem PR:**
    - **Tailwind 3:** Wegwerf-Probe in einem eigenen Worktree von ticketBAR (sauberer Stand, nichts committen). Das gepackte Tarball wird eingebunden, eine Seite nutzt `bg-theme-primary/10`, die Theme-Datei wird überschrieben, der Build wird geprüft.
    - **orientierBAR (Tailwind 4):** Das gepackte Tarball wird lokal in orientierBAR eingebunden (Design `orientierbar/docs/superpowers/specs/2026-11-25-orientierbar-embed-theme-design.md`), Tests und Ansicht werden geprüft. Erst dann geht der PR auf GitHub, nach ausdrücklicher Freigabe durch den Auftraggeber.
+   - **Ergebnis der Erprobung mit Tailwind 3 (2026-11-25):**
+     - Aufbau: ticketBAR (HEAD von main am 2026-11-25) in einem Wegwerf-Worktree, React 18, Tailwind 3.4, Vite 6, Paket als lokales Tarball.
+     - Build: `bg-theme-primary/10` ergibt `color-mix(in srgb,var(--theme-primary) 10%,transparent)`, und Signika wird als woff2 gebündelt.
+     - Im Dev-Server mit Theme-Datei `--theme-primary: #005f87` hat der Knopf rgb(0, 95, 135) mit weißer Schrift. Der Ton bei 10 % stimmt, die Rundung ist 0, Signika ist geladen, und es gibt keinen Abruf bei Dritten.
+     - Ohne Theme-Datei ist der Knopf #ad1034.
+     - Mit `--theme-primary: notacolor; --theme-radius: banana` bleibt er #ad1034 und eckig.
+     - Hinweis: Der Vite-Dev-Server beantwortet eine fehlende `/theme/theme.css` mit 500 statt 404. Das ist harmlos, die Voreinstellung greift. In Produktion liefert Caddy ein echtes 404.
+     - Danach wurde der Worktree entfernt; in ticketBAR ist nichts geblieben.
 3. **Release:** Merge durch den Auftraggeber, Ruleset um `embed-theme` ergänzen, Tag `embed-theme/v0.1.0`, Release veröffentlichen.
 4. **Konsumenten:** orientierBAR stellt auf die Release-URL um. ticketBAR folgt als eigenes Vorhaben.
 
