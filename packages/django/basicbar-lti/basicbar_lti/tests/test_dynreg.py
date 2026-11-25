@@ -621,19 +621,19 @@ class RegisterViewTests(TestCase):
             response = self.get()
         self.assertNotIn("Deployment-ID", response.content.decode())
 
-    def test_config_error_502(self):
+    def test_config_error_400(self):
         with self.patched(RegistrationError("Konfig kaputt")) as m:
             response = self.get()
-        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.status_code, 400)
         self.assertIn("Konfig kaputt", response.content.decode())
         self.assertEqual(m.call_count, 1)
         self.token.refresh_from_db()
         self.assertEqual(self.token.status, "open")
 
-    def test_lms_error_502_token_open(self):
+    def test_lms_error_400_token_open(self):
         with self.patched(moodle_config(), RegistrationError("LMS sagt nein")):
             response = self.get()
-        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.status_code, 400)
         self.assertIn("LMS sagt nein", response.content.decode())
         self.token.refresh_from_db()
         self.assertEqual(self.token.status, "open")
@@ -693,9 +693,17 @@ class RegisterViewTests(TestCase):
         self.assertIn("&lt;script&gt;x&lt;/script&gt;", ok.content.decode())
         # confirm page: hidden fields and URLs
         self._known()
+        _, self.raw = LtiRegistrationToken.issue()
         with self.patched(moodle_config()):
-            asks = self.get(registration_token='"><script>x</script>')
-        self.assertNotIn(evil, asks.content.decode())
+            asks = self.get(
+                registration_token='"><script>x</script>',
+                openid_configuration=CONFIG_URL + '?a="><script>x</script>',
+            )
+        asks_body = asks.content.decode()
+        self.assertEqual(asks.status_code, 200)
+        self.assertIn('name="confirm"', asks_body)
+        self.assertNotIn(evil, asks_body)
+        self.assertIn("&quot;&gt;&lt;script&gt;", asks_body)
         # error page (the first token was consumed by the success above)
         _, self.raw = LtiRegistrationToken.issue()
         with self.patched(RegistrationError(evil)):
@@ -743,7 +751,7 @@ class FrameAncestorsRegisterTests(TestCase):
                 {"token": self.raw, "openid_configuration": CONFIG_URL},
                 secure=True,
             )
-        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.status_code, 400)
         self.assertIn("moodle.example.org", response["Content-Security-Policy"])
 
     def test_invalid_token_keeps_default_policy(self):

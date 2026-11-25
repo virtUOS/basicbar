@@ -210,7 +210,7 @@ def lti_register(request):
         logger.warning(
             "LTI registration failed (config=%r): %s %s", config_url, exc, exc.detail
         )
-        return _error_page(502, str(exc), "Registration failed.", origin)
+        return _error_page(400, str(exc), "Registration failed.", origin)
 
     body = format_html(
         "<p>Registrierung abgeschlossen ({}). Nächste Schritte in Moodle: "
