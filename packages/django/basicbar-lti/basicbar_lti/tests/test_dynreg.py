@@ -3,6 +3,7 @@
 
 """Tests for LTI Dynamic Registration (token model, settings, ...)."""
 import hashlib
+import http.client
 import io
 import json
 import urllib.error
@@ -233,3 +234,32 @@ class HttpClientTests(SimpleTestCase):
         )
         self.assertIsInstance(new, urllib.request.Request)
         self.assertEqual(new.full_url, "https://moodle.example.org/b")
+
+    def test_http_exception_becomes_registration_error(self):
+        with mock.patch(
+            "socket.getaddrinfo", side_effect=_addrinfo("93.184.216.34")
+        ), mock.patch.object(
+            dynreg_http, "_open", side_effect=http.client.BadStatusLine("x")
+        ):
+            with self.assertRaises(RegistrationError):
+                request_json("https://moodle.example.org/x")
+
+    def test_deeply_nested_json(self):
+        gai, op = self._patch(body=b"[" * 100000)
+        with gai, op:
+            with self.assertRaises(RegistrationError):
+                request_json("https://moodle.example.org/x")
+
+    def test_bad_port_rejected(self):
+        gai, op = self._patch()
+        with gai, op as opened:
+            with self.assertRaises(RegistrationError):
+                request_json("https://h:abc/")
+        opened.assert_not_called()
+
+    def test_userinfo_rejected(self):
+        gai, op = self._patch()
+        with gai, op as opened:
+            with self.assertRaises(RegistrationError):
+                request_json("https://u:p@moodle.example.org/x")
+        opened.assert_not_called()

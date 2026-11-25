@@ -11,6 +11,7 @@ unspecified target addresses, same-origin redirects only, bounded time and
 size, JSON objects only. Private networks stay allowed (on-prem Moodle).
 """
 
+import http.client
 import ipaddress
 import json
 import socket
@@ -115,6 +116,17 @@ def request_json(
         )
     if not host:
         raise RegistrationError("Die Adresse ist ungültig.", detail=url)
+    try:
+        parts = urlsplit(url)
+        parts.port  # noqa: B018 - raises ValueError on a bad port
+    except ValueError as exc:
+        raise RegistrationError(
+            "Die Adresse ist ungültig.", detail=url
+        ) from exc
+    if parts.username is not None or parts.password is not None:
+        raise RegistrationError(
+            "Die Adresse darf keine Zugangsdaten enthalten.", detail=url
+        )
     if not allow_http:
         _check_address(host, port or _default_port(scheme))
 
@@ -143,7 +155,12 @@ def request_json(
             f"Die Plattform hat die Anfrage abgelehnt (HTTP {exc.code}).",
             detail=f"{exc.code} {url}: {excerpt[:_DETAIL_CHARS]}",
         ) from exc
-    except (urllib.error.URLError, OSError, ValueError) as exc:
+    except (
+        urllib.error.URLError,
+        http.client.HTTPException,
+        OSError,
+        ValueError,
+    ) as exc:
         raise RegistrationError(
             "Die Plattform ist nicht erreichbar.", detail=f"{url}: {exc}"
         ) from exc
@@ -154,7 +171,7 @@ def request_json(
         )
     try:
         result = json.loads(body.decode("utf-8"))
-    except (UnicodeDecodeError, ValueError) as exc:
+    except (UnicodeDecodeError, ValueError, RecursionError) as exc:
         raise RegistrationError(
             "Die Plattform hat keine gültige JSON-Antwort geliefert.",
             detail=body[:_DETAIL_CHARS].decode("utf-8", "replace"),
