@@ -56,8 +56,9 @@ class LtiFrameAncestorsMiddleware:
         ct = response.get("Content-Type", "")
         prefixes = tuple(conf.get("LTI_FRAME_PATH_PREFIXES"))
         if ct.startswith("text/html") and request.path.startswith(prefixes):
-            # A view may already have set a narrower policy (the Dynamic
-            # Registration page); keep it, only drop X-Frame-Options.
+            # A view may already have set its own frame-ancestors (the
+            # Dynamic Registration page); keep it as is, only drop
+            # X-Frame-Options.
             if "frame-ancestors" not in response.get("Content-Security-Policy", ""):
                 ancestors = " ".join(["'self'", *_lms_origins()])
                 response["Content-Security-Policy"] = f"frame-ancestors {ancestors}"

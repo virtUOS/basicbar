@@ -36,7 +36,12 @@ class RegistrationError(Exception):
 
 
 def _origin(url: str) -> tuple[str, str, int | None]:
-    parts = urlsplit(url)
+    try:
+        parts = urlsplit(url)
+    except ValueError as exc:
+        raise RegistrationError(
+            "Die Adresse ist ungültig.", detail=url
+        ) from exc
     try:
         port = parts.port
     except ValueError:

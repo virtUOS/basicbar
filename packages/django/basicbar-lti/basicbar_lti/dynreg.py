@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from urllib.parse import urlsplit
 
 from django.db import IntegrityError, transaction
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 
 from . import conf
@@ -57,8 +57,15 @@ class PlatformConfig:
     product_family_code: str = ""
 
 
+def _split(url: str):
+    try:
+        return urlsplit(url)
+    except ValueError as exc:
+        raise RegistrationError("Die Adresse ist ungültig.", detail=url) from exc
+
+
 def _netloc(url: str) -> str:
-    return urlsplit(url).netloc.lower()
+    return _split(url).netloc.lower()
 
 
 def load_platform_config(
@@ -80,7 +87,7 @@ def load_platform_config(
                 f"{key} longer than {_max_len(column)} characters",
             )
     issuer = data["issuer"]
-    iss, cfg = urlsplit(issuer), urlsplit(config_url)
+    iss, cfg = _split(issuer), _split(config_url)
     if (
         iss.scheme.lower() != cfg.scheme.lower()
         or iss.netloc.lower() != cfg.netloc.lower()
@@ -109,16 +116,24 @@ def load_platform_config(
     )
 
 
-def tool_urls(request) -> dict:
-    return {
-        key: request.build_absolute_uri(reverse(name))
-        for key, name in (
-            ("login", "lti-login"),
-            ("launch", "lti-launch"),
-            ("jwks", "lti-jwks"),
-            ("register", "lti-register"),
-        )
-    }
+def tool_urls(request, *, require_register: bool = True) -> dict:
+    """Absolute URLs of the tool's LTI endpoints. With
+    ``require_register=False`` a missing ``lti-register`` wiring yields
+    ``""`` for ``register`` instead of ``NoReverseMatch``."""
+    urls = {}
+    for key, name in (
+        ("login", "lti-login"),
+        ("launch", "lti-launch"),
+        ("jwks", "lti-jwks"),
+        ("register", "lti-register"),
+    ):
+        try:
+            urls[key] = request.build_absolute_uri(reverse(name))
+        except NoReverseMatch:
+            if key != "register" or require_register:
+                raise
+            urls[key] = ""
+    return urls
 
 
 def tool_registration_payload(request) -> dict:
@@ -195,7 +210,15 @@ def register_platform(
 
 def _register(request, token, config, registration_token) -> LtiPlatform:
     with transaction.atomic():
-        locked = LtiRegistrationToken.objects.select_for_update().get(pk=token.pk)
+        try:
+            locked = LtiRegistrationToken.objects.select_for_update().get(
+                pk=token.pk
+            )
+        except LtiRegistrationToken.DoesNotExist:
+            # revoked between find_valid and the lock
+            raise RegistrationError(
+                "Link bereits verwendet oder abgelaufen."
+            ) from None
         if locked.used_at is not None or locked.expires_at <= timezone.now():
             raise RegistrationError("Link bereits verwendet oder abgelaufen.")
         response = request_json(
@@ -217,7 +240,7 @@ def _register(request, token, config, registration_token) -> LtiPlatform:
         block = response.get(LTI_TOOL_CONFIG)
         deployment_id = block.get("deployment_id") if isinstance(block, dict) else None
         deployment_ids = [str(deployment_id)] if deployment_id not in (None, "") else []
-        host = urlsplit(config.issuer).hostname or config.issuer
+        host = _split(config.issuer).hostname or config.issuer
         platform = LtiPlatform.objects.create(
             name=(
                 locked.note or f"{config.product_family_code or 'LMS'} ({host})"

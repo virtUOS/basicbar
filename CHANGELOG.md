@@ -70,7 +70,12 @@ Registrierung bleibt. Ohne Verdrahtung ändert sich nichts.
   `LTI_TOOL_REGISTRATION`, System-Check `basicbar_lti.W001`.
 - Geändert: `LtiToolInfoView` baut die Adressen per `reverse()` +
   `build_absolute_uri` (URL-Namen `lti-login`, `lti-launch`, `lti-jwks`),
-  braucht kein `FRONTEND_BASE_URL` mehr, liefert zusätzlich `register_url`;
+  also aus Schema und Host der Anfrage statt aus `FRONTEND_BASE_URL`
+  (hinter einem Proxy `SECURE_PROXY_SSL_HEADER` und ggf.
+  `USE_X_FORWARDED_HOST` setzen, sonst stimmen die Adressen für die manuelle
+  Registrierung nicht), liefert zusätzlich `register_url` (leer, solange
+  `lti/register/` nicht verdrahtet ist — Tool-Info läuft dann unverändert
+  weiter);
   `icon_url` kommt aus `LTI_TOOL_REGISTRATION["logo_path"]` (leer, wenn
   nicht gesetzt — bisher fest `/lti/icon.svg`).
 - Geändert: `LtiFrameAncestorsMiddleware` behält ein von einer View
@@ -86,15 +91,16 @@ Registrierung bleibt. Ohne Verdrahtung ändert sich nichts.
      `logo_path`, bei Deep Linking `messages` um `LtiDeepLinkingRequest`
      ergänzen). Wer sich bisher auf `icon_url` = `/lti/icon.svg` verlassen
      hat, setzt `logo_path`.
-  5. Hinter einem Reverse-Proxy `SECURE_PROXY_SSL_HEADER` prüfen (sonst
-     lehnt die Registrierung `http://`-Tool-URLs ab). Eigene
-     `frame-ancestors` auf `/lti/`-Seiten dürfen nicht breiter sein als nötig:
-     die Middleware überschreibt sie nicht mehr.
+  5. Hinter einem Reverse-Proxy `SECURE_PROXY_SSL_HEADER` (und ggf.
+     `USE_X_FORWARDED_HOST`) prüfen: Die Registrierung lehnt `http://`-Tool-URLs
+     ab, und die Adressen der Tool-Info (manuelle Registrierung) kommen aus
+     derselben Anfrage. Ein eigenes `frame-ancestors` einer View auf
+     `/lti/`-Seiten behält die Middleware unverändert, sie überschreibt es
+     nicht mehr — es darf nicht breiter sein als nötig.
   6. Admin-UI: Button „Registrierungs-Link erzeugen“, Liste der Links,
      Widerrufen; im Dialog die Nachschritte nennen („Neues Fenster“ als
      Startcontainer, nur für neue Verknüpfungen) — die Erfolgsseite
      schließt sich sofort.
-  7. `LtiToolInfoView` braucht kein `FRONTEND_BASE_URL` mehr.
 
 ### basicbar-integrations (→ wird `integrations/v0.6.0`)
 

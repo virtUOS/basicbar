@@ -211,10 +211,12 @@ class HttpClientTests(SimpleTestCase):
                 request_json("https://moodle.example.org/x")
 
     def test_too_large(self):
-        gai, op = self._patch(body=b" " * (dynreg_http.MAX_BYTES + 1))
+        body = b'{"a":"' + b"x" * dynreg_http.MAX_BYTES + b'"}'
+        gai, op = self._patch(body=body)
         with gai, op:
-            with self.assertRaises(RegistrationError):
+            with self.assertRaises(RegistrationError) as cm:
                 request_json("https://moodle.example.org/x")
+        self.assertIn("zu groß", str(cm.exception))
 
     def test_cross_host_redirect_refused(self):
         handler = dynreg_http._SameOriginRedirectHandler()
@@ -256,6 +258,14 @@ class HttpClientTests(SimpleTestCase):
         with gai, op as opened:
             with self.assertRaises(RegistrationError):
                 request_json("https://h:abc/")
+        opened.assert_not_called()
+
+    def test_bad_bracket_url_rejected(self):
+        gai, op = self._patch()
+        with gai, op as opened:
+            with self.assertRaises(RegistrationError) as cm:
+                request_json("https://[::1")
+        self.assertIn("ungültig", str(cm.exception))
         opened.assert_not_called()
 
     def test_userinfo_rejected(self):
@@ -365,6 +375,22 @@ class PlatformConfigTests(SimpleTestCase):
     def test_config_non_string_field(self):
         with self.assertRaises(RegistrationError):
             self.load(moodle_config(token_endpoint=5))
+
+
+class PlatformConfigInvalidUrlTests(SimpleTestCase):
+    def test_issuer_with_bad_bracket(self):
+        data = moodle_config(issuer="https://[x")
+        with mock.patch("basicbar_lti.dynreg.request_json", return_value=data):
+            with self.assertRaises(RegistrationError) as cm:
+                dynreg.load_platform_config(CONFIG_URL, None)
+        self.assertIn("ungültig", str(cm.exception))
+
+    def test_endpoint_with_bad_bracket(self):
+        data = moodle_config(token_endpoint="https://[x/token")
+        with mock.patch("basicbar_lti.dynreg.request_json", return_value=data):
+            with self.assertRaises(RegistrationError) as cm:
+                dynreg.load_platform_config(CONFIG_URL, None)
+        self.assertIn("ungültig", str(cm.exception))
 
 
 class PayloadTests(SimpleTestCase):
@@ -517,6 +543,14 @@ class RegisterTests(TestCase):
         token.refresh_from_db()
         self.assertEqual(token.status, "open")
 
+    def test_register_token_deleted_meanwhile(self):
+        token, _ = LtiRegistrationToken.issue(note="x")
+        LtiRegistrationToken.objects.filter(pk=token.pk).delete()
+        with self.assertRaises(RegistrationError) as cm:
+            self.register(token)
+        self.assertIn("Link bereits verwendet", str(cm.exception))
+        self.assertFalse(LtiPlatform.objects.exists())
+
     def test_register_used_token_refused(self):
         token, _ = LtiRegistrationToken.issue()
         LtiRegistrationToken.objects.filter(pk=token.pk).update(
@@ -639,6 +673,52 @@ class RegisterViewTests(TestCase):
         self.token.refresh_from_db()
         self.assertEqual(self.token.status, "open")
         self.assertFalse(LtiPlatform.objects.exists())
+
+    def test_bad_openid_configuration_400_token_open(self):
+        with mock.patch.object(dynreg_http, "_open") as opened:
+            response = self.get(openid_configuration="https://[::1")
+        self.assertEqual(response.status_code, 400)
+        opened.assert_not_called()
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.status, "open")
+
+    def test_unexpected_error_400_token_open_no_secrets_logged(self):
+        with self.patched(moodle_config()), mock.patch(
+            "basicbar_lti.dynreg.register_platform",
+            side_effect=RuntimeError("boom"),
+        ):
+            with self.assertLogs("basicbar_lti.views", level="ERROR") as logs:
+                response = self.get()
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Registration failed.", response.content.decode())
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.status, "open")
+        logged = "\n".join(logs.output)
+        self.assertNotIn(self.raw, logged)
+        self.assertIn(CONFIG_URL, logged)
+
+    def test_confirm_zero_still_asks(self):
+        self._known()
+        with self.patched(moodle_config()):
+            response = self.get(confirm="0")
+        self.assertIn('name="confirm"', response.content.decode())
+        self.assertEqual(LtiPlatform.objects.count(), 1)
+
+    def test_pages_are_not_cached_or_referred(self):
+        self._known()
+        cases = [
+            (self.get(token="nope"), None),
+            (self.get(openid_configuration=None), None),
+        ]
+        with self.patched(moodle_config()):
+            cases.append((self.get(), None))
+        with self.patched(RegistrationError("x")):
+            cases.append((self.get(), None))
+        with self.patched(moodle_config(), self.RESPONSE):
+            cases.append((self.post(confirm="1"), None))
+        for response, _ in cases:
+            self.assertEqual(response["Cache-Control"], "no-store")
+            self.assertEqual(response["Referrer-Policy"], "no-referrer")
 
     def _known(self):
         LtiPlatform.objects.create(
@@ -864,6 +944,15 @@ class RegistrationTokenApiTests(TestCase):
         self.client.force_login(self.admin)
         info = self.client.get("/api/lti/tool-info/").json()
         self.assertEqual(info["icon_url"], "http://testserver/static/logo.svg")
+
+    @override_settings(ROOT_URLCONF="basicbar_lti.tests.urls_no_register")
+    def test_tool_info_without_register_wiring(self):
+        self.client.force_login(self.admin)
+        resp = self.client.get("/api/lti/tool-info/")
+        self.assertEqual(resp.status_code, 200)
+        info = resp.json()
+        self.assertEqual(info["register_url"], "")
+        self.assertEqual(info["login_url"], "http://testserver/lti/login/")
 
     def test_tool_info_without_frontend_base_url(self):
         from django.conf import settings

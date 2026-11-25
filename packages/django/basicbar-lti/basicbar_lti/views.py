@@ -169,12 +169,13 @@ class LtiToolInfoView(APIView):
     """The tool's own LTI endpoints, for pasting into the LMS registration.
 
     Built from the URL names ``lti-login`` / ``lti-launch`` / ``lti-jwks`` /
-    ``lti-register`` (see :func:`basicbar_lti.dynreg.tool_urls`)."""
+    ``lti-register`` (see :func:`basicbar_lti.dynreg.tool_urls`); a missing
+    ``lti-register`` only yields ``register_url == ""``."""
 
     permission_classes = [IsAdminUser]
 
     def get(self, request):
-        urls = dynreg.tool_urls(request)
+        urls = dynreg.tool_urls(request, require_register=False)
         logo = conf.tool_registration()["logo_path"]
         return Response({
             "login_url": urls["login"],
@@ -202,6 +203,9 @@ def _register_response(status, title_de, title_en, body, origin, **kw):
     response = HttpResponse(page(title_de, title_en, body, **kw), status=status)
     if origin:
         response["Content-Security-Policy"] = f"frame-ancestors 'self' {origin}"
+    # the token is in the URL and the form
+    response["Cache-Control"] = "no-store"
+    response["Referrer-Policy"] = "no-referrer"
     return response
 
 
@@ -220,7 +224,7 @@ def lti_register(request):
     raw = _register_param(request, "token")
     config_url = _register_param(request, "openid_configuration")
     registration_token = _register_param(request, "registration_token")
-    confirm = bool(_register_param(request, "confirm"))
+    confirm = _register_param(request, "confirm") == "1"
 
     token = LtiRegistrationToken.find_valid(raw)
     if token is None:
@@ -253,6 +257,21 @@ def lti_register(request):
             "LTI registration failed (config=%r): %s %s", config_url, exc, exc.detail
         )
         return _error_page(400, str(exc), "Registration failed.", origin)
+    except Exception as exc:  # noqa: BLE001 - last resort, never a 5xx
+        # Deliberately no exc_info and no request: a traceback or a 5xx
+        # request log would carry the token / registration_token.
+        logger.error(
+            "LTI registration failed unexpectedly (config=%r): %s",
+            config_url,
+            type(exc).__name__,
+        )
+        return _error_page(
+            400,
+            "Die Registrierung ist unerwartet fehlgeschlagen. Bitte den "
+            "Betreiber informieren.",
+            "Registration failed.",
+            origin,
+        )
 
     body = format_html(
         "<p>Registrierung abgeschlossen ({}). Nächste Schritte in Moodle: "

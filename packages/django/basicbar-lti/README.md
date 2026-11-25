@@ -34,8 +34,10 @@ LTI_FRAME_PATH_PREFIXES = ("/lti/", "/p/")    # einbettbare HTML-Pfade
 
 # urls.py
 from basicbar_lti.views import lti_login, lti_jwks
-path("lti/login/", lti_login), path("lti/jwks/", lti_jwks),
-# + Tool-eigener /lti/launch/ aus den provisioning-Primitiven
+path("lti/login/", lti_login, name="lti-login"),
+path("lti/jwks/", lti_jwks, name="lti-jwks"),
+# + Tool-eigener /lti/launch/ aus den provisioning-Primitiven; die View muss
+#   `lti-launch` heißen (für Dynamic Registration zusätzlich `lti-register`)
 ```
 
 ## Dynamic Registration (ab 0.2.0)
