@@ -7,7 +7,7 @@ build the tool registration payload, register and create the platform."""
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.urls import reverse
 from django.utils import timezone
 
@@ -31,6 +31,20 @@ _ENDPOINTS = (
     "jwks_uri",
     "registration_endpoint",
 )
+
+
+# config field -> LtiPlatform column it is stored in (length limits come
+# from the model, SQLite would not enforce them).
+_COLUMNS = {
+    "issuer": "issuer",
+    "authorization_endpoint": "auth_login_url",
+    "token_endpoint": "auth_token_url",
+    "jwks_uri": "key_set_url",
+}
+
+
+def _max_len(column: str) -> int:
+    return LtiPlatform._meta.get_field(column).max_length
 
 
 @dataclass(frozen=True)
@@ -58,6 +72,12 @@ def load_platform_config(
             raise RegistrationError(
                 "Die Konfiguration der Plattform ist unvollständig.",
                 f"missing or invalid field {key!r}",
+            )
+    for key, column in _COLUMNS.items():
+        if len(data[key]) > _max_len(column):
+            raise RegistrationError(
+                "Die Konfiguration der Plattform enthält zu lange Werte.",
+                f"{key} longer than {_max_len(column)} characters",
             )
     issuer = data["issuer"]
     iss, cfg = urlsplit(issuer), urlsplit(config_url)
@@ -164,6 +184,16 @@ def register_platform(
 ) -> LtiPlatform:
     """Register at the platform, create the ``LtiPlatform`` and consume the
     token in one transaction; any failure leaves the token open."""
+    try:
+        return _register(request, token, config, registration_token)
+    except IntegrityError as exc:
+        raise RegistrationError(
+            "Diese Plattform ist bereits mit diesem Tool registriert.",
+            f"IntegrityError: {exc}",
+        ) from exc
+
+
+def _register(request, token, config, registration_token) -> LtiPlatform:
     with transaction.atomic():
         locked = LtiRegistrationToken.objects.select_for_update().get(pk=token.pk)
         if locked.used_at is not None or locked.expires_at <= timezone.now():
@@ -179,12 +209,19 @@ def register_platform(
                 "Die Plattform hat keine client_id geliefert.",
                 f"response keys: {sorted(response)}",
             )
+        if len(client_id) > _max_len("client_id"):
+            raise RegistrationError(
+                "Die Plattform hat eine zu lange client_id geliefert.",
+                f"client_id longer than {_max_len('client_id')} characters",
+            )
         block = response.get(LTI_TOOL_CONFIG)
         deployment_id = block.get("deployment_id") if isinstance(block, dict) else None
         deployment_ids = [str(deployment_id)] if deployment_id not in (None, "") else []
         host = urlsplit(config.issuer).hostname or config.issuer
         platform = LtiPlatform.objects.create(
-            name=locked.note or f"{config.product_family_code or 'LMS'} ({host})",
+            name=(
+                locked.note or f"{config.product_family_code or 'LMS'} ({host})"
+            )[: _max_len("name")],
             issuer=config.issuer,
             client_id=client_id,
             auth_login_url=config.authorization_endpoint,

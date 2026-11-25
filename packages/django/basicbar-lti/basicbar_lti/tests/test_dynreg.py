@@ -353,6 +353,14 @@ class PlatformConfigTests(SimpleTestCase):
         with self.assertRaises(RegistrationError):
             self.load(config)
 
+    def test_config_overlong_values(self):
+        long = ISSUER + "/" + "x" * 600
+        for key in ("authorization_endpoint", "token_endpoint", "jwks_uri"):
+            with self.assertRaises(RegistrationError):
+                self.load(moodle_config(**{key: long}))
+        with self.assertRaises(RegistrationError):
+            self.load(moodle_config(issuer=ISSUER + "/" + "x" * 600))
+
     def test_config_non_string_field(self):
         with self.assertRaises(RegistrationError):
             self.load(moodle_config(token_endpoint=5))
@@ -469,6 +477,42 @@ class RegisterTests(TestCase):
         with self.assertRaises(RegistrationError):
             self.register(token, response={LTI_TOOL: {"deployment_id": "7"}})
         self.assertEqual(LtiPlatform.objects.count(), 0)
+        token.refresh_from_db()
+        self.assertEqual(token.status, "open")
+
+    def test_register_overlong_client_id_keeps_token_open(self):
+        token, _ = LtiRegistrationToken.issue()
+        with self.assertRaises(RegistrationError):
+            self.register(token, response={"client_id": "x" * 300})
+        self.assertEqual(LtiPlatform.objects.count(), 0)
+        token.refresh_from_db()
+        self.assertEqual(token.status, "open")
+
+    def test_register_long_fallback_name_fits(self):
+        token, _ = LtiRegistrationToken.issue()
+        with mock.patch(
+            "basicbar_lti.dynreg.request_json", return_value=self.RESPONSE
+        ):
+            platform = dynreg.register_platform(
+                secure_request(),
+                token,
+                platform_config(product_family_code="m" * 400),
+                "reg",
+            )
+        self.assertLessEqual(len(platform.name), 200)
+
+    def test_register_duplicate_platform_keeps_token_open(self):
+        LtiPlatform.objects.create(
+            name="x",
+            issuer=ISSUER,
+            client_id="abc",
+            auth_login_url=ISSUER + "/a",
+            auth_token_url=ISSUER + "/t",
+        )
+        token, _ = LtiRegistrationToken.issue()
+        with self.assertRaises(RegistrationError):
+            self.register(token)
+        self.assertEqual(LtiPlatform.objects.count(), 1)
         token.refresh_from_db()
         self.assertEqual(token.status, "open")
 
