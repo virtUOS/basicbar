@@ -1,0 +1,51 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2026 Universität Osnabrück (virtUOS) */
+
+/* @property-Registrierung: ein zur Berechnungszeit ungültiger Wert fällt auf
+   initial-value zurück. Muss außerhalb von @layer stehen. */
+@property --theme-primary { syntax: "<color>"; inherits: true; initial-value: #ad1034; }
+@property --theme-primary-hover { syntax: "<color>"; inherits: true; initial-value: #8a0d2a; }
+@property --theme-on-primary { syntax: "<color>"; inherits: true; initial-value: #ffffff; }
+@property --theme-accent { syntax: "<color>"; inherits: true; initial-value: #fbb800; }
+@property --theme-text { syntax: "<color>"; inherits: true; initial-value: #3e3e3f; }
+@property --theme-muted { syntax: "<color>"; inherits: true; initial-value: #5e5e5e; }
+@property --theme-surface { syntax: "<color>"; inherits: true; initial-value: #f3f3f3; }
+@property --theme-border { syntax: "<color>"; inherits: true; initial-value: #d0d0d0; }
+@property --theme-field-border { syntax: "<color>"; inherits: true; initial-value: #767676; }
+@property --theme-danger { syntax: "<color>"; inherits: true; initial-value: #c8102e; }
+@property --theme-radius { syntax: "<length-percentage>"; inherits: true; initial-value: 0px; }
+@property --theme-font-weight { syntax: "<number>"; inherits: true; initial-value: 300; }
+
+/* Uni-Voreinstellung, geschichtet: die ungeschichtete Theme-Datei des
+   Betreibers gewinnt unabhängig von der Ladereihenfolge. */
+@layer basicbar-theme {
+  :root {
+    --theme-primary: #ad1034;
+    --theme-primary-hover: #8a0d2a;
+    --theme-on-primary: #ffffff;
+    --theme-accent: #fbb800;
+    --theme-text: #3e3e3f;
+    --theme-muted: #5e5e5e;
+    --theme-surface: #f3f3f3;
+    --theme-border: #d0d0d0;
+    --theme-field-border: #767676;
+    --theme-danger: #c8102e;
+    --theme-radius: 0;
+    --theme-font: "Signika Variable", system-ui, sans-serif;
+    --theme-font-weight: 300;
+
+    /* Abgeleitet, nicht konfigurierbar. */
+    --theme-primary-tint: color-mix(in srgb, var(--theme-primary) 8%, #fff);
+    --theme-hover-surface: color-mix(in srgb, var(--theme-primary) 4%, #fff);
+  }
+}
+
+/* Signika, variabel, nur lateinische Teilmenge (Fontsource, OFL-1.1). */
+@font-face {
+  font-family: "Signika Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300 700;
+  src: url("./fonts/signika-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}

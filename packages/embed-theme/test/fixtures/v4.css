@@ -1,0 +1,5 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2026 Universität Osnabrück (virtUOS) */
+@import "tailwindcss4/theme.css" layer(theme);
+@import "tailwindcss4/utilities.css" layer(utilities) source(none);
+@config "./v4.config.js";
