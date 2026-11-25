@@ -62,3 +62,36 @@ test("checkTheme: field-border braucht 3:1", () => {
   const { failures } = checkTheme({ "field-border": "#cccccc" });
   assert.ok(failures.some((x) => x.pair === "field-border/white" && x.min === 3));
 });
+
+const pairs = (vars) => checkTheme(vars).failures.map((f) => f.pair);
+
+test("checkTheme: on-primary auf primary", () => {
+  assert.ok(pairs({ primary: "#ff9999" }).includes("on-primary/primary"));
+});
+
+test("checkTheme: on-primary auf primary-hover", () => {
+  const p = pairs({ "primary-hover": "#ff9999" });
+  assert.ok(p.includes("on-primary/primary-hover"));
+  assert.ok(!p.includes("on-primary/primary"));
+});
+
+test("checkTheme: primary-hover auf white und auf surface", () => {
+  const p = pairs({ "primary-hover": "#ff9999" });
+  assert.ok(p.includes("primary-hover/white"));
+  assert.ok(p.includes("primary-hover/surface"));
+});
+
+test("checkTheme: surface-Hintergrund ist entscheidend", () => {
+  // #767676 hat auf Weiß 4,54:1, auf #f3f3f3 weniger als 4,5:1.
+  const p = pairs({ muted: "#767676" });
+  assert.ok(p.includes("muted/surface"));
+  assert.ok(!p.includes("muted/white"));
+  assert.ok(pairs({ text: "#767676" }).includes("text/surface"));
+  assert.ok(pairs({ danger: "#767676" }).includes("danger/surface"));
+  assert.ok(pairs({ primary: "#767676" }).includes("primary/surface"));
+});
+
+test("checkTheme: primary-tint (8 % primary auf Weiß) ist entscheidend", () => {
+  // #0067f0 besteht 4,5:1 auf Weiß und surface, aber nicht auf dem Tint.
+  assert.deepEqual(pairs({ primary: "#0067f0" }), ["primary/primary-tint"]);
+});
