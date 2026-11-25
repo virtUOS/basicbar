@@ -94,6 +94,8 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: tailwindcss4
         update-types: ["version-update:semver-major"]
+      - dependency-name: "@tailwindcss/node"
+        update-types: ["version-update:semver-major"]
     cooldown:
       default-days: 7
     commit-message:

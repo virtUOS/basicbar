@@ -2,7 +2,7 @@
   "name": "@basicbar/embed-theme",
   "version": "0.1.0",
   "description": "Theme-Variablen, Signika-Schrift und Tailwind-Werte für öffentliche Seiten der virtUOS -bar-Tools",
-  "license": "Apache-2.0",
+  "license": "Apache-2.0 AND OFL-1.1",
   "author": "Universität Osnabrück (virtUOS)",
   "type": "module",
   "files": [
@@ -24,7 +24,7 @@
     "basicbar-check-theme": "./bin/check-theme.mjs"
   },
   "scripts": {
-    "test": "node --test test/"
+    "test": "node --test \"test/*.test.mjs\""
   },
   "devDependencies": {
     "@tailwindcss/node": "^4.1",

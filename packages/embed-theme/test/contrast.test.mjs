@@ -95,3 +95,40 @@ test("checkTheme: primary-tint (8 % primary auf Weiß) ist entscheidend", () => 
   // #0067f0 besteht 4,5:1 auf Weiß und surface, aber nicht auf dem Tint.
   assert.deepEqual(pairs({ primary: "#0067f0" }), ["primary/primary-tint"]);
 });
+
+test("checkTheme: unbekannter Schlüssel (Tippfehler) warnt, mit strict Fehler", () => {
+  const a = checkTheme({ primay: "#000000" });
+  assert.equal(a.failures.length, 0);
+  assert.equal(a.warnings.length, 1);
+  assert.match(a.warnings[0], /--theme-primay/);
+  const b = checkTheme({ primay: "#000000" }, { strict: true });
+  assert.equal(b.failures.length, 1);
+  assert.match(b.failures[0].reason, /--theme-primay/);
+});
+
+test("checkTheme: radius muss Länge, Prozent oder 0 sein", () => {
+  for (const ok of ["0", "0px", "6px", "0.5rem", ".5em", "50%"]) {
+    assert.deepEqual(checkTheme({ radius: ok }, { strict: true }), { failures: [], warnings: [] }, ok);
+  }
+  for (const bad of ["round", "6", "px", "6 px", "-1px", "calc(1px"]) {
+    assert.equal(checkTheme({ radius: bad }).warnings.length, 1, bad);
+    assert.equal(checkTheme({ radius: bad }, { strict: true }).failures.length, 1, bad);
+  }
+});
+
+test("checkTheme: font-weight muss Zahl 1 bis 1000 sein", () => {
+  for (const ok of ["1", "300", "450.5", "1000"]) {
+    assert.deepEqual(checkTheme({ "font-weight": ok }, { strict: true }), { failures: [], warnings: [] }, ok);
+  }
+  for (const bad of ["bold", "0", "1001", "-5", "3 00", ""]) {
+    assert.equal(checkTheme({ "font-weight": bad }).warnings.length, 1, bad);
+    assert.equal(checkTheme({ "font-weight": bad }, { strict: true }).failures.length, 1, bad);
+  }
+});
+
+test("checkTheme: font und font-weight/radius-Defaults sind bekannte Schlüssel", () => {
+  assert.deepEqual(
+    checkTheme({ font: "Arial, sans-serif", radius: "4px", "font-weight": "400" }, { strict: true }),
+    { failures: [], warnings: [] },
+  );
+});

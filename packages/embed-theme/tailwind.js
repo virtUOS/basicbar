@@ -12,6 +12,7 @@ const KEYS = [
   "text",
   "muted",
   "surface",
+  "hover-surface",
   "border",
   "field-border",
   "danger",

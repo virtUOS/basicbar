@@ -61,3 +61,8 @@ test("Farbwerte: gleiche Schlüssel in V3 und V4, inkl. primary-tint", () => {
   assert.equal(themeBorderRadius.theme, "var(--theme-radius)");
   assert.deepEqual(themeFontFamily.theme, ["var(--theme-font)"]);
 });
+
+test("Farbwerte: hover-surface ist enthalten (V3 und V4)", () => {
+  assert.equal(themeColorsV4["hover-surface"], "var(--theme-hover-surface)");
+  assert.match(themeColorsV3["hover-surface"], /var\(--theme-hover-surface\)/);
+});

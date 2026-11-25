@@ -49,3 +49,25 @@ test("template/theme.css: keine @media, @layer oder externen URLs", () => {
   const code = template.replace(/\/\*[\s\S]*?\*\//g, "");
   assert.doesNotMatch(code, /@media|@layer|https?:/);
 });
+
+test("Version in README und Vorlage stimmt mit package.json überein", () => {
+  const { version, license } = JSON.parse(read("package.json"));
+  let n = 0;
+  for (const f of ["README.md", "template/theme.css"]) {
+    const text = read(f);
+    for (const m of text.matchAll(/embed-theme\/v(\d+\.\d+\.\d+)\b/g)) {
+      n++;
+      assert.equal(m[1], version, `${f}: ${m[0]}`);
+    }
+    for (const m of text.matchAll(/basicbar-embed-theme-(\d+\.\d+\.\d+)\.tgz/g)) {
+      n++;
+      assert.equal(m[1], version, `${f}: ${m[0]}`);
+    }
+  }
+  assert.ok(n >= 4, "keine Versionsangaben gefunden");
+  assert.equal(license, "Apache-2.0 AND OFL-1.1");
+});
+
+test("Vorlage: Betreiber werden gesiezt", () => {
+  assert.doesNotMatch(template, /Ihr Betreiber/);
+});

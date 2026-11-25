@@ -1,7 +1,7 @@
 # Basicbar — Hinweise für Claude
 
 Gemeinsame Basis der virtUOS „-bar“-Tools (ausleihbar, abstimmbar,
-erkennbar, …): **fünf versionierte Pakete + ein Copier-Template**, kein
+erkennbar, …): **sechs versionierte Pakete + ein Copier-Template**, kein
 lauffähiges Produkt. Konsumenten sind die Tool-Repos daneben in `~/dev/<tool>`
 — teils noch auf der Uni-GitLab (`virtuos/digitale-dienste/<tool>`), teils
 öffentlich auf GitHub (z. B. `virtUOS/abstimmbar`). basicbar selbst liegt seit

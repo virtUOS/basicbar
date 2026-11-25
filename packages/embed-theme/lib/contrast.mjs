@@ -18,6 +18,23 @@ export const DEFAULTS = {
 
 const WHITE = [255, 255, 255];
 
+// Weitere erlaubte Schlüssel neben den Farben.
+const OTHER_KEYS = ["radius", "font", "font-weight"];
+const LENGTH = /^(0|[+]?(\d+\.?\d*|\.\d+)(px|rem|em|%|ch|ex|cm|mm|in|pt|pc|vw|vh|vmin|vmax))$/i;
+
+function syntaxProblem(name, value) {
+  if (name === "radius" && !LENGTH.test(value)) {
+    return `--theme-radius: "${value}" ist keine Länge (etwa 0, 6px, 0.5rem) oder Prozentangabe`;
+  }
+  if (name === "font-weight") {
+    const n = Number(value);
+    if (!/^[+]?(\d+\.?\d*|\.\d+)$/.test(value) || !(n >= 1 && n <= 1000)) {
+      return `--theme-font-weight: "${value}" ist keine Zahl zwischen 1 und 1000`;
+    }
+  }
+  return null;
+}
+
 export function parseHex(value) {
   const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(value).trim());
   if (!m) return null;
@@ -71,6 +88,23 @@ export function checkTheme(vars, opts = {}) {
   const warnings = [];
   const colors = { white: WHITE };
   const unreadable = new Set();
+  const report = (msg, pair) => {
+    if (opts.strict) failures.push({ pair, ratio: 0, min: 0, reason: msg });
+    else warnings.push(msg);
+  };
+
+  const known = new Set([...Object.keys(DEFAULTS), ...OTHER_KEYS]);
+  for (const name of Object.keys(vars)) {
+    if (!known.has(name)) {
+      report(`--theme-${name} ist unbekannt (Tippfehler?) und wird ignoriert`, `${name} (unbekannt)`);
+    }
+  }
+  for (const name of OTHER_KEYS) {
+    if (name in vars) {
+      const msg = syntaxProblem(name, String(vars[name]).trim());
+      if (msg) report(msg, `${name} (ungültig)`);
+    }
+  }
 
   for (const name of Object.keys(DEFAULTS)) {
     const rgb = parseHex(merged[name]);

@@ -13,8 +13,8 @@
    behalten die Voreinstellung.
 
    Wo legen Sie die Datei ab?
-   Als theme.css in dem Ordner, den Ihr Betreiber als Volume am Caddy-Dienst
-   eingebunden hat (im Container: /srv/theme). Das Tool liefert sie unter
+   Als theme.css in dem Ordner, den Sie als Volume am Caddy-Dienst
+   eingebunden haben (im Container: /srv/theme). Das Tool liefert sie unter
    /theme/theme.css aus. Fehlt die Datei, gilt die Voreinstellung.
 
    Was Sie beachten müssen:

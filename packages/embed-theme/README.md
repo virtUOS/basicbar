@@ -93,6 +93,17 @@ cp node_modules/@basicbar/embed-theme/template/theme.css public/theme/theme.css
 Die Komponenten der öffentlichen Seiten verwenden nur die `theme`-Farben,
 `--theme-radius` und `--theme-font`, keine festen Farbwerte.
 
+Schrift und Gewicht setzen Sie selbst, damit die Betreiber-Einstellungen
+`--theme-font` und `--theme-font-weight` wirken (oder Sie nutzen die Klasse
+`font-theme` und setzen das Gewicht zusätzlich):
+
+```css
+body {
+  font-family: var(--theme-font);
+  font-weight: var(--theme-font-weight);
+}
+```
+
 ## Tailwind 3
 
 ```js
@@ -200,7 +211,11 @@ Aufruf: `basicbar-check-theme [--strict] [datei]`. Ohne Datei prüft es die
 Voreinstellung. Exit 0: in Ordnung. Exit 1: ein Paar liegt unter der
 Schwelle (mit `--strict` auch: Wert nicht lesbar). Exit 2: Datei nicht
 lesbar. Ohne `--strict` erzeugt ein Wert, der keine Hex-Farbe ist, nur eine
-Warnung, und das Paar wird übersprungen.
+Warnung, und das Paar wird übersprungen. Ebenso unbekannte `--theme-*`-Namen (etwa ein Tippfehler wie
+`--theme-primay`) und ungültige Werte für `--theme-radius` (Länge, Prozent
+oder 0) und `--theme-font-weight` (Zahl 1 bis 1000); mit `--strict` sind sie
+Fehler (Exit 1). `--help` zeigt die Hilfe (Exit 0); unbekannte Optionen oder
+mehr als eine Datei ergeben Exit 2.
 
 Ob eine Theme-Datei die Voreinstellung im Browser überschreibt, ungültige
 Werte zurückfallen und ein 404 nicht stört, prüfen die Tools mit einem
