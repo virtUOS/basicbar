@@ -11,6 +11,7 @@ import urllib.request
 from datetime import timedelta
 from unittest import mock
 
+from django.contrib.auth import get_user_model
 from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 
@@ -789,3 +790,86 @@ class CheckTests(SimpleTestCase):
     @override_settings(LTI_REGISTRATION_ALLOW_HTTP=False, DEBUG=False)
     def test_no_warning_by_default(self):
         self.assertEqual(self.run_checks(), [])
+
+
+class RegistrationTokenApiTests(TestCase):
+    url = "/api/lti/registration-links/"
+
+    def setUp(self):
+        User = get_user_model()
+        self.admin = User.objects.create_user(username="chef", is_staff=True)
+        self.user = User.objects.create_user(username="teacher")
+
+    def test_requires_admin(self):
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+        resp = self.client.post(
+            self.url, {"note": "x"}, content_type="application/json"
+        )
+        self.assertEqual(resp.status_code, 403)
+
+    def test_create_returns_url_once(self):
+        self.client.force_login(self.admin)
+        resp = self.client.post(
+            self.url, {"note": "Moodle"}, content_type="application/json"
+        )
+        self.assertEqual(resp.status_code, 201)
+        data = resp.json()
+        prefix = "http://testserver/lti/register/?token="
+        self.assertTrue(data["url"].startswith(prefix))
+        raw = data["url"][len(prefix):]
+        obj = LtiRegistrationToken.find_valid(raw)
+        self.assertIsNotNone(obj)
+        self.assertEqual(obj.pk, data["id"])
+        self.assertEqual(data["created_by"], "chef")
+        self.assertEqual(data["status"], "open")
+        listing = self.client.get(self.url)
+        self.assertEqual(listing.status_code, 200)
+        self.assertNotIn("url", listing.json()[0] if isinstance(listing.json(), list) else listing.json()["results"][0])
+        self.assertNotIn(raw, listing.content.decode())
+
+    def test_destroy_open_only(self):
+        self.client.force_login(self.admin)
+        open_obj, _ = LtiRegistrationToken.issue()
+        used_obj, _ = LtiRegistrationToken.issue()
+        used_obj.used_at = timezone.now()
+        used_obj.save()
+        resp = self.client.delete(f"{self.url}{open_obj.pk}/")
+        self.assertEqual(resp.status_code, 204)
+        self.assertFalse(LtiRegistrationToken.objects.filter(pk=open_obj.pk).exists())
+        resp = self.client.delete(f"{self.url}{used_obj.pk}/")
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(
+            resp.json(), {"detail": "Nur offene Links können widerrufen werden."}
+        )
+        self.assertTrue(LtiRegistrationToken.objects.filter(pk=used_obj.pk).exists())
+
+    def test_destroy_expired_rejected(self):
+        self.client.force_login(self.admin)
+        obj, _ = LtiRegistrationToken.issue()
+        obj.expires_at = timezone.now() - timedelta(hours=1)
+        obj.save()
+        self.assertEqual(self.client.delete(f"{self.url}{obj.pk}/").status_code, 400)
+
+    def test_tool_info_uses_reverse(self):
+        self.client.force_login(self.admin)
+        info = self.client.get("/api/lti/tool-info/").json()
+        self.assertEqual(info["register_url"], "http://testserver/lti/register/")
+        self.assertEqual(info["login_url"], "http://testserver/lti/login/")
+        self.assertEqual(info["icon_url"], "")
+
+    @override_settings(LTI_TOOL_REGISTRATION={"logo_path": "/static/logo.svg"})
+    def test_tool_info_icon_from_logo_path(self):
+        self.client.force_login(self.admin)
+        info = self.client.get("/api/lti/tool-info/").json()
+        self.assertEqual(info["icon_url"], "http://testserver/static/logo.svg")
+
+    def test_tool_info_without_frontend_base_url(self):
+        from django.conf import settings
+
+        with override_settings():
+            del settings.FRONTEND_BASE_URL
+            self.client.force_login(self.admin)
+            resp = self.client.get("/api/lti/tool-info/")
+        self.assertEqual(resp.status_code, 200)

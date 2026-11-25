@@ -56,6 +56,46 @@ Changelog ist die Upgrade-Anleitung für die Tools.
   steigen. Die CI testet jeden Dependabot-PR. Für die Tools ändert sich
   nichts.
 
+### basicbar-lti (→ wird `lti/v0.2.0`)
+
+**Dynamic Registration:** Der LMS-Admin trägt einen Einmal-Link des Tools in
+Moodle ein, Tool und Moodle tauschen alle Werte selbst aus (Details und
+Sicherheitsmodell im README). Nur für neue Verknüpfungen; die manuelle
+Registrierung bleibt. Ohne Verdrahtung ändert sich nichts.
+
+- Neu: Model `LtiRegistrationToken` (Migration `0002`, nur SHA-256-Hash),
+  View `lti_register`, `LtiRegistrationTokenViewSet` (Create liefert die URL
+  einmal, `list` ohne Token, `destroy` nur für offene Links),
+  Settings `LTI_REGISTRATION_TOKEN_TTL`, `LTI_REGISTRATION_ALLOW_HTTP`,
+  `LTI_TOOL_REGISTRATION`, System-Check `basicbar_lti.W001`.
+- Geändert: `LtiToolInfoView` baut die Adressen per `reverse()` +
+  `build_absolute_uri` (URL-Namen `lti-login`, `lti-launch`, `lti-jwks`),
+  braucht kein `FRONTEND_BASE_URL` mehr, liefert zusätzlich `register_url`;
+  `icon_url` kommt aus `LTI_TOOL_REGISTRATION["logo_path"]` (leer, wenn
+  nicht gesetzt — bisher fest `/lti/icon.svg`).
+- Geändert: `LtiFrameAncestorsMiddleware` behält ein von einer View
+  gesetztes `frame-ancestors` auf `/lti/`-Seiten.
+- Migration:
+  1. `python manage.py migrate` (neue Tabelle `basicbar_lti_ltiregistrationtoken`).
+  2. `path("lti/register/", lti_register, name="lti-register")` verdrahten
+     (Name ohne Namespace; `lti-login`, `lti-launch`, `lti-jwks` müssen
+     ebenfalls so heißen).
+  3. `LtiRegistrationTokenViewSet` im Router registrieren, mit der
+     Berechtigung des Tools (`permission_classes` überschreiben).
+  4. `LTI_TOOL_REGISTRATION` setzen (`client_name`, `description`,
+     `logo_path`, bei Deep Linking `messages` um `LtiDeepLinkingRequest`
+     ergänzen). Wer sich bisher auf `icon_url` = `/lti/icon.svg` verlassen
+     hat, setzt `logo_path`.
+  5. Hinter einem Reverse-Proxy `SECURE_PROXY_SSL_HEADER` prüfen (sonst
+     lehnt die Registrierung `http://`-Tool-URLs ab). Eigene
+     `frame-ancestors` auf `/lti/`-Seiten dürfen nicht breiter sein als nötig:
+     die Middleware überschreibt sie nicht mehr.
+  6. Admin-UI: Button „Registrierungs-Link erzeugen“, Liste der Links,
+     Widerrufen; im Dialog die Nachschritte nennen („Neues Fenster“ als
+     Startcontainer, nur für neue Verknüpfungen) — die Erfolgsseite
+     schließt sich sofort.
+  7. `LtiToolInfoView` braucht kein `FRONTEND_BASE_URL` mehr.
+
 ### basicbar-integrations (→ wird `integrations/v0.6.0`)
 
 **Neue Module `gitlab` und `encryption`** (Regel der Zwei: orientierBAR und

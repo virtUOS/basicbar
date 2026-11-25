@@ -10,25 +10,24 @@ primitives in :mod:`basicbar_lti.provisioning` and :mod:`.tool_conf`.
 import logging
 from urllib.parse import urlsplit
 
-from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 from pylti1p3.contrib.django import DjangoOIDCLogin
 from pylti1p3.exception import LtiException, OIDCException
-from rest_framework import viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from . import dynreg
+from . import conf, dynreg
 from .dynreg_http import RegistrationError
 from .dynreg_pages import CANCEL_SCRIPT, page
 from .middleware import _ORIGIN_RE
 from .models import LtiPlatform, LtiRegistrationToken
 from .provisioning import launch_storage
-from .serializers import LtiPlatformSerializer
+from .serializers import LtiPlatformSerializer, LtiRegistrationTokenSerializer
 from .tool_conf import build_tool_conf
 
 logger = logging.getLogger(__name__)
@@ -126,20 +125,63 @@ class LtiPlatformViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUser]
 
 
+class LtiRegistrationTokenViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Staff-only one-time registration links for Dynamic Registration.
+
+    The create response carries the link (``url``) exactly once; only a hash
+    is stored. Only open links can be revoked (= deleted). Tools override
+    ``permission_classes`` (default: Django staff)."""
+
+    queryset = LtiRegistrationToken.objects.select_related(
+        "created_by", "platform"
+    ).order_by("-created_at", "-id")
+    serializer_class = LtiRegistrationTokenSerializer
+    permission_classes = [IsAdminUser]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        obj, raw = LtiRegistrationToken.issue(
+            note=serializer.validated_data.get("note", ""),
+            created_by=request.user,
+        )
+        data = dict(self.get_serializer(obj).data)
+        data["url"] = f"{dynreg.tool_urls(request)['register']}?token={raw}"
+        return Response(data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if obj.status != "open":
+            return Response(
+                {"detail": "Nur offene Links können widerrufen werden."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class LtiToolInfoView(APIView):
     """The tool's own LTI endpoints, for pasting into the LMS registration.
 
-    Assumes the conventional ``/lti/…`` paths under ``FRONTEND_BASE_URL``."""
+    Built from the URL names ``lti-login`` / ``lti-launch`` / ``lti-jwks`` /
+    ``lti-register`` (see :func:`basicbar_lti.dynreg.tool_urls`)."""
 
     permission_classes = [IsAdminUser]
 
     def get(self, request):
-        base = settings.FRONTEND_BASE_URL.rstrip("/")
+        urls = dynreg.tool_urls(request)
+        logo = conf.tool_registration()["logo_path"]
         return Response({
-            "login_url": f"{base}/lti/login/",
-            "launch_url": f"{base}/lti/launch/",
-            "jwks_url": f"{base}/lti/jwks/",
-            "icon_url": f"{base}/lti/icon.svg",
+            "login_url": urls["login"],
+            "launch_url": urls["launch"],
+            "jwks_url": urls["jwks"],
+            "register_url": urls["register"],
+            "icon_url": request.build_absolute_uri(logo) if logo else "",
         })
 
 

@@ -16,7 +16,14 @@ from basicbar_lti.provisioning import (
     provision_user,
 )
 from basicbar_lti.tool_conf import build_tool_conf
-from basicbar_lti.views import LtiPlatformViewSet, LtiToolInfoView, lti_jwks, lti_login, lti_register
+from basicbar_lti.views import (
+    LtiPlatformViewSet,
+    LtiRegistrationTokenViewSet,
+    LtiToolInfoView,
+    lti_jwks,
+    lti_login,
+    lti_register,
+)
 
 
 @csrf_exempt
@@ -41,6 +48,9 @@ def embeddable_page(request):
 
 router = DefaultRouter()
 router.register("platforms", LtiPlatformViewSet, basename="lti-platform")
+router.register(
+    "registration-links", LtiRegistrationTokenViewSet, basename="lti-registration-link"
+)
 
 urlpatterns = [
     path("lti/login/", lti_login, name="lti-login"),
