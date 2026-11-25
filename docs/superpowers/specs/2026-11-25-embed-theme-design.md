@@ -142,6 +142,18 @@ Der Auftraggeber möchte zweierlei (2026-11-25):
      - Mit `--theme-primary: notacolor; --theme-radius: banana` bleibt er #ad1034 und eckig.
      - Hinweis: Der Vite-Dev-Server beantwortet eine fehlende `/theme/theme.css` mit 500 statt 404. Das ist harmlos, die Voreinstellung greift. In Produktion liefert Caddy ein echtes 404.
      - Danach wurde der Worktree entfernt; in ticketBAR ist nichts geblieben.
+   - **Ergebnis der Erprobung in orientierBAR (2026-11-25):**
+     - Aufbau: `main` (d00bacd) in einem Wegwerf-Worktree, React 19, Tailwind 4 mit `@config`, Vite 8, Paket als lokales Tarball (Stand dce53af).
+     - Eingebunden: `theme.css` im Embed-Einstieg, `themeColorsV4`/`themeBorderRadius`/`themeFontFamily` in `tailwind.embed.config.js`, Weiter-Knopf auf `bg-theme-primary text-theme-on-primary rounded-theme`, `<link>` auf `/theme/theme.css`, Vorlage nach `public/theme/`.
+     - Prüfungen:
+       - `basicbar-check-theme --strict` auf die Vorlage: ok;
+       - `vite build` grün, Signika im Embed-CSS, Bundle 96 667 B gzip (Budget 153 600);
+       - vitest 553/553.
+     - Im Dev-Server:
+       - Mit `--theme-primary: #005f87` hat „Weiter“ rgb(0, 95, 135) mit weißer Schrift und Rundung 0; ohne Überschreibung rgb(173, 16, 52).
+       - Signika wird vom eigenen Server geladen, sobald die Seite `var(--theme-font)` nutzt; Gewicht 300.
+       - Es gibt keinen Abruf bei Dritten (nur das eigene Backend).
+     - Die eigentliche Umgestaltung folgt in orientierBAR Plan 10. Der Worktree ist entfernt.
 3. **Release:** Merge durch den Auftraggeber, Ruleset um `embed-theme` ergänzen, Tag `embed-theme/v0.1.0`, Release veröffentlichen.
 4. **Konsumenten:** orientierBAR stellt auf die Release-URL um. ticketBAR folgt als eigenes Vorhaben.
 
