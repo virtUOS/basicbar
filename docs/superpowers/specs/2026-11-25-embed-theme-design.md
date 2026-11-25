@@ -69,7 +69,10 @@ Der Auftraggeber möchte zweierlei (2026-11-25):
 ### Inhalt des Pakets (`packages/embed-theme`)
 
 - **`theme.css`**: vom Tool in seinen öffentlichen Einstiegen importiert.
-  - `@property`-Registrierung jeder Farbvariable (`syntax: "<color>"`, `inherits: true`, `initial-value` = Uni-Wert). Ein ungültiger Wert fällt damit auf die Voreinstellung zurück.
+  - `@property`-Registrierung jeder Farbvariable (`syntax: "<color>"`, `inherits: true`, `initial-value` = Uni-Wert), außerdem `--theme-radius` (`<length-percentage>`) und `--theme-font-weight` (`<number>`).
+    - Ein Wert, der schon beim Parsen ungültig ist, wird verworfen; dann greift die geschichtete Voreinstellung.
+    - Ein Wert, der erst zur Berechnungszeit ungültig wird (über `var()`), fällt auf `initial-value`.
+    - `--theme-font` lässt sich nicht typisieren; ein falscher Schriftname fällt auf die übrigen Einträge der Liste bzw. `sans-serif`.
   - Die Uni-Voreinstellung aller Variablen in `:root`, innerhalb `@layer basicbar-theme`. Die Theme-Datei des Betreibers ist ungeschichtet und gewinnt deshalb unabhängig von der Ladereihenfolge.
   - `@font-face` für Signika (variabel, Gewicht 300–700, nur lateinische Teilmenge) mit der mitgelieferten woff2-Datei. `font-display: swap`.
   - Abgeleitete Töne als weitere Variablen mit `color-mix()`, nicht konfigurierbar: getönter Hintergrund gewählter Elemente (etwa 8 % Primär auf Weiß), Hover-Fläche.
@@ -90,7 +93,11 @@ Der Auftraggeber möchte zweierlei (2026-11-25):
   | `--theme-radius` | 0 |
   | `--theme-font` | "Signika Variable", system-ui, sans-serif |
   | `--theme-font-weight` | 300 |
-- **`tailwind.js`**: exportiert `themeColors` (und `themeFontFamily`, `themeBorderRadius`), Tailwind-Farbwerte, die auf die Variablen zeigen. Deckkraft-Modifikatoren (`bg-theme-primary/10`) müssen in Tailwind 3 (Funktion bzw. `<alpha-value>`) und Tailwind 4 funktionieren. Die Werte werden für beide Versionen gleich gebaut, etwa `color-mix(in srgb, var(--theme-primary) calc(<alpha-value> * 100%), transparent)`; das genaue Muster entscheidet der Builder nach einem Test in beiden Versionen. Die Tools hängen diese Farben unter einem eigenen Namen (z. B. `theme`) in die Konfiguration ihrer öffentlichen Seiten. Die Rampen `brand` und `slate` der Pflegeoberfläche bleiben unberührt.
+- **`tailwind.js`**: Tailwind-Werte, die auf die Variablen zeigen, getrennt nach Version *(nach dem Gegenlesen)*.
+  - **`themeColorsV4`:** schlichte `var(--theme-…)`-Werte. Tailwind 4 setzt `<alpha-value>` im JS-Konfigurationsmodus vorab auf 1 und bildet Deckkraft-Modifikatoren selbst mit `color-mix`.
+  - **`themeColorsV3`:** Werte mit `<alpha-value>`, z. B. `color-mix(in srgb, var(--theme-primary) calc(<alpha-value> * 100%), transparent)`, damit `bg-theme-primary/10` in Tailwind 3 funktioniert.
+  - **Dazu** `themeFontFamily` und `themeBorderRadius`, die nur einen Schlüssel `theme` ergänzen (`rounded-theme`, `font-theme`). Die vorhandenen Skalen (`rounded-full` usw.) bleiben, und das Tool entscheidet, welche Elemente `rounded-theme` bekommen (Punkte und Avatare bleiben rund).
+  - **Einbindung im Tool:** unter dem Namen `theme` in die Konfiguration der öffentlichen Seiten. Die Rampen `brand` und `slate` der Pflegeoberfläche bleiben unberührt.
 - **`template/theme.css`**: kommentierte Vorlage für Betreiber. Jede Variable steht dort mit Uni-Wert, Bedeutung und Kontrastregel. Ein Tool kopiert sie in sein `public/theme/`, damit `/theme/theme.css` im Image existiert.
 - **`bin/check-theme.mjs`**: Kommando `basicbar-check-theme [datei]`, Node ohne Abhängigkeiten.
   - Liest `--theme-`-Variablen mit Hex-Werten aus einer Theme-Datei, ergänzt fehlende durch die Voreinstellung und prüft diese Paare:
@@ -98,14 +105,16 @@ Der Auftraggeber möchte zweierlei (2026-11-25):
     - On-Primary auf Primär und auf Primär-Hover: ≥ 4,5:1;
     - Primär auf dem getönten Hintergrund: ≥ 4,5:1;
     - Feldrahmen und Primär (Fokus) auf Weiß: ≥ 3:1.
-  - Meldet jedes Paar unter der Schwelle mit Wert und Soll und endet dann mit Code 1. Nicht lesbare Werte (keine Hex-Farbe) ergeben eine Warnung.
+  - Meldet jedes Paar unter der Schwelle mit Wert und Soll und endet dann mit Code 1.
+  - Nicht lesbare Werte (keine Hex-Farbe) ergeben eine Warnung und das Paar wird übersprungen. Mit `--strict` zählen sie als Fehler; die Tool-CI ruft das Skript mit `--strict` für die Vorlage auf.
   - Ohne Datei prüft es die Voreinstellung.
   - Die Logik liegt in einem Modul mit Tests; das Kommando ist eine dünne Hülle.
 - **`README.md`**:
   - Für Tools: Einbindung, Tailwind 3/4, Caddy-Baustein, `<link>` in den HTML-Einstiegen, Prüfung in der Tool-CI.
   - Für Betreiber (Sie-Form): Variablen, Beispiel mit eigener Farbe und Schrift, Volume, Prüfskript; keine externen Schrift-Adressen (Datenschutz).
 - **Lizenz:** Apache-2.0 für den Paketcode, OFL-1.1 für die Schriftdatei (`fonts/OFL.txt`), SPDX-Header wie üblich.
-- **Abhängigkeiten:** keine zur Laufzeit; Tailwind ist keine Peer-Abhängigkeit.
+- **Abhängigkeiten:** keine zur Laufzeit; Tailwind ist keine Peer-Abhängigkeit. Für die Build-Tests sind Tailwind 3 und 4 Dev-Abhängigkeiten (npm-Aliasse). Dependabot soll ihre Hauptversionen nicht anheben.
+- **`exports`:** `./theme.css`, `./tailwind` und die `template`-Datei; dazu das `bin`-Kommando.
 
 ### Vertrag mit den Tools (im README, nicht im Paket-Code)
 
@@ -117,11 +126,14 @@ Der Auftraggeber möchte zweierlei (2026-11-25):
 ### Ablauf
 
 1. **Paket bauen** auf dem basicbar-Branch `feat/embed-theme`:
-   - CI-Job `embed-theme` (Tests des Prüfskripts, `npm pack`, Prüfung der SPDX-Header);
-   - Publish-Workflow für `embed-theme/v*`;
+   - CI-Job `embed-theme` (Tests des Prüfskripts und der Tailwind-Ausgabe, `npm pack`);
+   - der vorhandene Job `spdx-header` wird um `*.js` und `*.mjs` erweitert;
+   - Publish für `embed-theme/v*`: eigene Workflow-Datei oder parametrisierte `publish.yml`, die heute fest auf `ui` steht;
    - Dependabot-Eintrag;
    - CHANGELOG mit Einbindungsschritten.
-2. **Erprobung in orientierBAR vor dem PR:** Das gepackte Tarball wird lokal in orientierBAR eingebunden (Design `orientierbar/docs/superpowers/specs/2026-11-25-orientierbar-embed-theme-design.md`), Tests und Ansicht werden geprüft. Erst dann geht der PR auf GitHub, nach ausdrücklicher Freigabe durch den Auftraggeber.
+2. **Erprobung in beiden Stacks vor dem PR:**
+   - **Tailwind 3:** Wegwerf-Probe in einem eigenen Worktree von ticketBAR (sauberer Stand, nichts committen). Das gepackte Tarball wird eingebunden, eine Seite nutzt `bg-theme-primary/10`, die Theme-Datei wird überschrieben, der Build wird geprüft.
+   - **orientierBAR (Tailwind 4):** Das gepackte Tarball wird lokal in orientierBAR eingebunden (Design `orientierbar/docs/superpowers/specs/2026-11-25-orientierbar-embed-theme-design.md`), Tests und Ansicht werden geprüft. Erst dann geht der PR auf GitHub, nach ausdrücklicher Freigabe durch den Auftraggeber.
 3. **Release:** Merge durch den Auftraggeber, Ruleset um `embed-theme` ergänzen, Tag `embed-theme/v0.1.0`, Release veröffentlichen.
 4. **Konsumenten:** orientierBAR stellt auf die Release-URL um. ticketBAR folgt als eigenes Vorhaben.
 
