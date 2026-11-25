@@ -1,6 +1,6 @@
 # LTI Dynamic Registration — Design
 
-Stand 2026-11-25. Status: Entwurf zur Abstimmung.
+Stand 2026-11-25. Status: Entwurf zur Abstimmung (Builder-Check eingearbeitet).
 
 ## Absicht
 
@@ -27,8 +27,10 @@ Seiten sollen bewusst beteiligt sein.
   gegenseitig; im Tool entsteht eine aktive `LtiPlatform` mit Issuer,
   Client-ID, Endpunkten und Deployment-ID. In Moodle aktiviert der
   Moodle-Admin das Tool wie gewohnt.
-- Danach funktionieren Launch und (in abstimmbar und ausleihbar) Deep
-  Linking ohne weitere Handarbeit.
+- Danach funktionieren Launch und Deep Linking (beide Tools) mit **einem**
+  dokumentierten Nachschritt in Moodle: Startcontainer auf „Neues
+  Fenster“ stellen (siehe „Startcontainer“). Ziel ist also „fast ohne
+  Handarbeit“, nicht „ohne“.
 - Der Mechanismus liegt in `basicbar-lti`; was ein Tool anmeldet (Name,
   Beschreibung, Nachrichtentypen, Icon), konfiguriert jedes Tool selbst.
 
@@ -41,9 +43,19 @@ Seiten sollen bewusst beteiligt sein.
 - **Copier-Template:** enthält kein LTI; bleibt unverändert.
 - **Ersetzen der manuellen Registrierung:** Sie bleibt vollständig
   erhalten (andere LMS, Sonderfälle, Korrekturen).
-- **Aktualisieren einer bestehenden Registrierung** per Dynamic
-  Registration (z. B. geänderte Tool-URLs nachschieben): nicht in diesem
-  Schritt. Neu registrieren und die alte Plattform deaktivieren genügt.
+- **Umstieg bestehender, von Hand angelegter Plattformen** (User-
+  Entscheidung 2026-11-25): Dynamic Registration ist nur für **neue**
+  Verknüpfungen. An einer `LtiPlatform` hängen `LtiUserLink`
+  (LTI-Nutzer → Konto) und die Kursverknüpfungen der Tools (abstimmbar
+  `LtiContextLink` → Raum, ausleihbar `LtiCourseLink` → Pool); eine
+  Neuregistrierung erzeugt eine neue Plattform mit neuer Client-ID, die
+  alte zu deaktivieren würde diese Verknüpfungen verwaisen lassen und
+  doppelte Konten erzeugen. Kein Datenumzug, kein Update bestehender
+  Registrierungen per Dynamic Registration.
+- **Eingebetteter Start ab Werk:** Den Start im Moodle-iframe ohne
+  Zusatz-Einstellungen am Tool-Server lauffähig zu machen (dynamische
+  `frame-ancestors` für die SPA, `SameSite` der Session-Cookies) ist ein
+  eigenes Vorhaben (User-Entscheidung 2026-11-25).
 - **Ein gemeinsames Admin-UI-Bauteil in `@basicbar/ui`:** Die beiden
   Admin-Seiten (abstimmbar `AdminPage`, ausleihbar `AdminLmsPage`) sind
   verschieden gebaut; jedes Tool bekommt seinen Button selbst.
@@ -95,8 +107,11 @@ schon: ein dynamisch registriertes Tool muss dort aktiviert werden.)
   und Tool-Admin verschiedene Personen sind, und an blockierten
   Third-Party-Cookies im iframe.
 
-Entscheidung des Users (2026-11-25): **A, Einmal-Link**. Referenz-LMS:
-Moodle. Admins auf beiden Seiten beteiligt.
+Entscheidungen des Users (2026-11-25): **A, Einmal-Link**. Referenz-LMS:
+Moodle. Admins auf beiden Seiten beteiligt. Startcontainer: dokumentierter
+Nachschritt „Neues Fenster“ in Moodle statt eingebettetem Start ab Werk.
+Nur neue Verknüpfungen, kein Umstieg bestehender Plattformen (Warnung bei
+bekanntem Issuer).
 
 ## Design
 
@@ -118,6 +133,16 @@ Moodle. Admins auf beiden Seiten beteiligt.
    - nur `https` (Ausnahme: Setting für lokale Entwicklung, s. u.);
    - Timeout, Größenlimit der Antwort, keine Weiterleitung auf einen
      anderen Host;
+   - Zieladresse: Loopback (`127.0.0.0/8`, `::1`), link-lokal
+     (`169.254.0.0/16`, `fe80::/10`, u. a. Cloud-Metadaten) und
+     unspezifizierte Adressen werden abgelehnt; private Netze (`10/8`,
+     `172.16/12`, `192.168/16`) bleiben erlaubt, weil ein Campus-Moodle
+     dort liegen kann. Geprüft wird die per DNS aufgelöste Adresse vor
+     dem Request; kein Festnageln der IP gegen DNS-Rebinding — der Link
+     ist geheim, einmalig und befristet (eigene Entscheidung,
+     Builder-Check). Gilt für alle ausgehenden Requests (Schritte 4 und 5);
+     `LTI_REGISTRATION_ALLOW_HTTP` hebt diese Sperre für lokale
+     Entwicklung mit auf.
    - `issuer` aus der Antwort: Die `openid_configuration`-URL muss mit dem
      Issuer beginnen (Spec-Anforderung); `authorization_endpoint`,
      `token_endpoint`, `jwks_uri`, `registration_endpoint` auf demselben
@@ -142,10 +167,17 @@ Moodle. Admins auf beiden Seiten beteiligt.
    (bleibt bewusste Admin-Entscheidung). Der Token wird **im selben
    Datenbank-Vorgang** als verbraucht markiert und mit der Plattform
    verknüpft.
+   **Issuer schon bekannt:** Gibt es bereits eine aktive `LtiPlatform` mit
+   demselben Issuer, fragt die Seite **vor** Schritt 5 nach: Hinweis, dass
+   eine bestehende Verknüpfung nicht übernommen wird (Kursverknüpfungen
+   und Konten hängen an der alten), mit „Trotzdem neu registrieren“ und
+   „Abbrechen“. Abbrechen verbraucht den Token nicht.
 7. **Abschluss.** Das Tool zeigt eine kurze Erfolgsseite und schickt per
    `postMessage({subject: "org.imsglobal.lti.close"}, "*")` an
    `window.opener || window.parent` das Schließen-Signal. Moodle zeigt
-   das Tool danach als ausstehend; der Moodle-Admin aktiviert es.
+   das Tool danach als ausstehend; der Moodle-Admin aktiviert es. Die
+   Erfolgsseite nennt den Nachschritt „Startcontainer auf Neues Fenster
+   stellen“ ausdrücklich (siehe „Startcontainer“).
 
 Schlägt Schritt 4 oder 5 fehl (Netz, LMS lehnt ab), bleibt der Token
 **unverbraucht** (Wiederholung möglich, solange gültig); die Seite nennt
@@ -217,10 +249,22 @@ Middleware lässt eine von der View gesetzte `frame-ancestors`-Policy
 stehen (statt sie zu überschreiben). Ohne gültigen Token bleibt es bei
 der normalen Policy.
 
+### Startcontainer
+
+Moodle setzt bei jeder dynamischen Registrierung den Startcontainer auf
+„Eingebettet, ohne Blöcke“ (`registration_helper.php`, MOODLE_405_STABLE:
+`lti_launchcontainer = LTI_LAUNCH_CONTAINER_EMBED_NO_BLOCKS`); die
+Tool-Konfiguration kann das nicht ändern. abstimmbar und ausleihbar
+verlangen in ihrer Doku „Neues Fenster“ (eingebettet braucht
+`SESSION_COOKIE_SAMESITE=None`, abstimmbar zusätzlich
+`ABSTIMMBAR_FRAME_ANCESTORS`). Daher: Erfolgsseite, Admin-Dialog im Tool
+und Tool-Doku nennen den Nachschritt in Moodle — Tool bearbeiten →
+Standard-Startcontainer „Neues Fenster“.
+
 ### Lokale Entwicklung
 
 `LTI_REGISTRATION_ALLOW_HTTP` (Default `False`) erlaubt `http://` für
-`openid_configuration` und die Endpunkte — nur für eine lokale
+`openid_configuration` und die Endpunkte sowie Loopback-Ziele — nur für eine lokale
 Moodle-Instanz (Docker). Ein System-Check warnt, wenn es bei
 `DEBUG=False` gesetzt ist.
 
@@ -231,7 +275,8 @@ der Plattformliste:
 
 - Button „Registrierungs-Link erzeugen“ → Dialog mit Notizfeld → zeigt
   die URL einmal mit Kopieren-Knopf und Hinweis „gilt 7 Tage, einmal
-  verwendbar“ plus Kurzanleitung für den Moodle-Admin;
+  verwendbar“ plus Kurzanleitung für den Moodle-Admin (inkl.
+  Nachschritt „Neues Fenster“ und Hinweis: nur für neue Verknüpfungen);
 - Liste offener/verbrauchter Links (Notiz, Ersteller, Ablauf, Status,
   verknüpfte Plattform), Widerrufen für offene.
 
@@ -254,7 +299,8 @@ Paket: Token-Lebenszyklus (gültig/abgelaufen/verbraucht/widerrufen,
 gleichzeitiger Verbrauch), Ablauf mit gemocktem LMS (Konfiguration +
 Registrierung, Felder der entstandenen Plattform, gesendete
 Tool-Konfiguration), alle Ablehnungsfälle ohne ausgehenden Request,
-Issuer-/Host-Prüfungen, `frame-ancestors` mit und ohne gültigen Token,
+Issuer-/Host-/Adressprüfungen, Nachfrage bei bekanntem Issuer,
+`frame-ancestors` mit und ohne gültigen Token,
 Fehler des LMS lassen den Token unverbraucht. Tools: Verdrahtung, Rechte
 der Token-API, Settings.
 
@@ -267,17 +313,26 @@ der Token-API, Settings.
 3. Abnahme gegen eine echte Moodle-Instanz (Test-Moodle; lokal per
    Docker möglich).
 
-## Gegen echtes Moodle zu verifizieren
+## Moodle-Verhalten
 
-Annahmen aus der Spec und Moodle-Kenntnis, die der Test mit Moodle
-bestätigen muss, bevor die Tool-Doku final wird:
+Im Moodle-Code geprüft (`mod/lti/classes/local/ltiopenid/registration_helper.php`,
+MOODLE_405_STABLE):
+
+- `deployment_id` kommt in der Registrierungsantwort (= Tool-Typ-ID);
+- `LtiDeepLinkingRequest` im `messages`-Block schaltet Deep Linking ein
+  (Ziel = dessen `target_link_uri`);
+- `name`/`given_name`/`family_name` bzw. `email` in `claims` setzen
+  Namens- bzw. E-Mail-Weitergabe auf „immer“, sonst „nie“;
+- `token_endpoint_auth_method` muss `private_key_jwt` sein,
+  `response_types` muss `id_token` enthalten;
+- Startcontainer wird fest „Eingebettet, ohne Blöcke“ (s. o.).
+
+Noch gegen ein echtes Moodle zu verifizieren, bevor die Tool-Doku final
+wird:
 
 - Moodle öffnet die URL im iframe (oder neuem Fenster) und reagiert auf
   `org.imsglobal.lti.close`;
-- Moodle schickt `registration_token` und liefert `deployment_id` in der
-  Registrierungsantwort;
-- Moodle verlangt für Deep Linking `LtiDeepLinkingRequest` im
-  `messages`-Block (und welche Placements es auswertet);
+- Moodle schickt `registration_token` mit;
 - welche Moodle-Versionen der Uni im Einsatz sind (Dynamic Registration
   gibt es ab Moodle 3.10; das UI unterscheidet sich zwischen 4.x und 5.x).
 
