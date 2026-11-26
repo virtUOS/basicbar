@@ -7,6 +7,35 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### basicbar-pdf (→ wird `pdf/v0.2.0`)
+
+- Theme: `PdfDocument(..., theme=PdfTheme(...))` setzt Schrift und Farben
+  des Tools. `PdfTheme` hat eine Schriftfamilie (`FontFamily`, zu
+  registrieren mit `register_font_family(name, regular=…, bold=…,
+  italic=…, bold_italic=…)`; fehlende Schnitte nehmen den nächsten) sowie die
+  Farben für Text, gedämpften Text, Überschriften, Zitate, Tabellenlinien,
+  Tabellenkopf, Kasten (Fläche, Rand) und Fußzeile. Ohne Theme bleibt alles
+  wie bisher. `make_styles(theme)` und `html_to_flowables(..., theme=…)`
+  nehmen das Theme ebenfalls an.
+- Ersatzschrift je Absatz: Hat ein Absatz Zeichen, die der Theme-Schrift
+  fehlen, die mitgelieferte Plus Jakarta Sans aber hat (z. B. „Ş“, „Ł“, „→“
+  bei einer Schrift mit Latin-Teilmenge), wird dieser Absatz in der
+  mitgelieferten Schrift gesetzt, im gleichen Schnitt. Nur was keine der
+  beiden Schriften hat, wird zu „?“. Gilt für `heading`, `paragraph`, `rich`,
+  `bullets`, `table` und die Fußzeile; `auto_widths` misst in der Schrift,
+  die die Zelle setzt.
+- Die Fußzeile steht in der Theme-Schrift und -Farbe.
+- Neu `PdfDocument.usable_height`: die Höhe, die ein Flowable auf einer Seite
+  haben darf (Satzspiegel abzüglich des Innenabstands des Rahmens). Eigene
+  Bausteine über `add()` müssen damit nicht mehr selbst rechnen.
+- Fix: `box()` maß die Höhe ohne seinen eigenen Innenabstand und gegen eine zu
+  großzügige Grenze. Ein Kasten knapp unter einer Seitenhöhe wurde gerahmt
+  und brach das Rendern mit `LayoutError` ab; jetzt fällt er wie dokumentiert
+  ungerahmt aus.
+- Migration: keine. Ein Tool mit eigener Schrift kann eigene Unterklassen
+  oder eigene Höhenrechnung durch `theme=` und `usable_height` ersetzen
+  (erprobt für orientierBAR: Signika, Uni-Farben).
+
 ### @basicbar/ui (→ wird `ui/v0.12.0`)
 
 - `RichTextEditor` bekommt die Prop `tools` (Typ `RichTextTool[]`, Standard
