@@ -9,9 +9,8 @@ from xml.sax.saxutils import escape
 
 from reportlab.lib import colors
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.platypus import Paragraph
 
-from .fonts import FONT, FONT_BOLD, safe_text
+from .theme import DEFAULT_THEME, PdfTheme
 
 INLINE_TAGS = {"strong": "b", "b": "b", "em": "i", "i": "i", "u": "u", "s": "strike", "del": "strike",
                "strike": "strike"}
@@ -20,28 +19,33 @@ SKIP_CONTENT = {"script", "style"}
 TABLE_TAGS = {"table", "thead", "tbody", "tfoot", "tr"}
 
 
-def _markup(text: str) -> str:
-    return escape(safe_text(text)).replace("\n", "<br/>")
+def _markup(text: str, theme: PdfTheme = DEFAULT_THEME) -> str:
+    return escape(theme.safe(text)).replace("\n", "<br/>")
 
 
-def make_styles() -> dict:
-    """Paragraph styles in the bundled font: normal, small, bold, muted, h1-h3, quote, cell, cell_head."""
+def make_styles(theme: PdfTheme | None = None) -> dict:
+    """Paragraph styles in the theme's font and colours (default: the bundled font): normal, small,
+    bold, muted, h1-h3, quote, cell, cell_head."""
+    theme = theme or DEFAULT_THEME
+    regular, bold = theme.fonts.normal, theme.fonts.bold
+    heading = colors.HexColor(theme.heading or theme.text)
     base = getSampleStyleSheet()["Normal"]
-    normal = ParagraphStyle("n", parent=base, fontName=FONT, fontSize=10, leading=13.5, spaceAfter=3)
+    normal = ParagraphStyle("n", parent=base, fontName=regular, fontSize=10, leading=13.5, spaceAfter=3,
+                            textColor=colors.HexColor(theme.text))
     styles = {
         "normal": normal,
         "small": ParagraphStyle("s", parent=normal, fontSize=8.5, leading=11),
-        "bold": ParagraphStyle("b", parent=normal, fontName=FONT_BOLD),
-        "muted": ParagraphStyle("m", parent=normal, fontSize=8.5, leading=11, textColor=colors.HexColor("#666666")),
-        "h1": ParagraphStyle("h1", parent=normal, fontName=FONT_BOLD, fontSize=18, leading=22,
-                             spaceBefore=4, spaceAfter=6),
-        "h2": ParagraphStyle("h2", parent=normal, fontName=FONT_BOLD, fontSize=15, leading=18,
-                             spaceBefore=14, spaceAfter=5),
-        "h3": ParagraphStyle("h3", parent=normal, fontName=FONT_BOLD, fontSize=12, leading=15,
-                             spaceBefore=8, spaceAfter=2),
-        "quote": ParagraphStyle("q", parent=normal, leftIndent=10, textColor=colors.HexColor("#444444")),
+        "bold": ParagraphStyle("b", parent=normal, fontName=bold),
+        "muted": ParagraphStyle("m", parent=normal, fontSize=8.5, leading=11, textColor=colors.HexColor(theme.muted)),
+        "h1": ParagraphStyle("h1", parent=normal, fontName=bold, fontSize=18, leading=22,
+                             spaceBefore=4, spaceAfter=6, textColor=heading),
+        "h2": ParagraphStyle("h2", parent=normal, fontName=bold, fontSize=15, leading=18,
+                             spaceBefore=14, spaceAfter=5, textColor=heading),
+        "h3": ParagraphStyle("h3", parent=normal, fontName=bold, fontSize=12, leading=15,
+                             spaceBefore=8, spaceAfter=2, textColor=heading),
+        "quote": ParagraphStyle("q", parent=normal, leftIndent=10, textColor=colors.HexColor(theme.quote)),
         "cell": ParagraphStyle("c", parent=normal, fontSize=9, leading=11.5, spaceAfter=0),
-        "cell_head": ParagraphStyle("ch", parent=normal, fontName=FONT_BOLD, fontSize=9, leading=11.5,
+        "cell_head": ParagraphStyle("ch", parent=normal, fontName=bold, fontSize=9, leading=11.5,
                                     spaceAfter=0),
     }
     return styles
@@ -59,10 +63,11 @@ class _HtmlToFlowables(HTMLParser):
     """Editor HTML (p, br, inline formatting, lists, headings, blockquote) to Paragraphs. Unknown
     tags are dropped, their text kept; the markup passed to reportlab is always balanced."""
 
-    def __init__(self, styles, image_placeholder):
+    def __init__(self, styles, image_placeholder, theme: PdfTheme):
         super().__init__(convert_charrefs=True)
         self.image_placeholder = image_placeholder
-        own = make_styles()
+        self.theme = theme
+        own = make_styles(theme)
         # accept any mapping/stylesheet; keys it lacks fall back to the built-in styles
         self.styles = {key: (styles[key] if _has(styles, key) else own[key]) for key in own}
         self.out = []
@@ -93,10 +98,10 @@ class _HtmlToFlowables(HTMLParser):
         if self.bullet is not None:
             style = ParagraphStyle("li", parent=style, leftIndent=12 * depth + 4, bulletIndent=12 * (depth - 1))
         try:
-            return Paragraph(markup, style, bulletText=self.bullet)
+            return self.theme.paragraph(markup, style, bulletText=self.bullet)
         except Exception:  # never let one broken fragment kill the document
             plain = re.sub(r"<[^>]*>", "", markup.replace("<br/>", " "))  # already escaped
-            return Paragraph(plain, style, bulletText=self.bullet)
+            return self.theme.paragraph(plain, style, bulletText=self.bullet)
 
     def handle_starttag(self, tag, attrs):
         if tag in SKIP_CONTENT:
@@ -112,7 +117,7 @@ class _HtmlToFlowables(HTMLParser):
         elif tag == "br":
             self.buf += "<br/>"
         elif tag == "img":
-            self.buf += escape(safe_text(self.image_placeholder))
+            self.buf += escape(self.theme.safe(self.image_placeholder))
             self.has_text = True
         elif tag in ("td", "th"):
             if self.cells:
@@ -162,7 +167,7 @@ class _HtmlToFlowables(HTMLParser):
             if self.hrefs:
                 href = self.hrefs.pop()
                 if href:
-                    self.buf += escape(safe_text(f" ({href})"))
+                    self.buf += escape(self.theme.safe(f" ({href})"))
         elif tag in ("ul", "ol"):
             self._flush()
             self.bullet = None
@@ -182,13 +187,13 @@ class _HtmlToFlowables(HTMLParser):
         if self.skip:
             return
         if self.pre:
-            self.buf += _markup(data)
+            self.buf += _markup(data, self.theme)
             if data.strip():
                 self.has_text = True
             return
         if not self.open and not self.buf.strip() and not data.strip():
             return
-        self.buf += escape(safe_text(data))
+        self.buf += escape(self.theme.safe(data))
         if data.strip():
             self.has_text = True
 
@@ -198,9 +203,10 @@ class _HtmlToFlowables(HTMLParser):
         return self.out
 
 
-def html_to_flowables(html: str, styles, *, image_placeholder="[Image]") -> list:
+def html_to_flowables(html: str, styles, *, image_placeholder="[Image]", theme: PdfTheme | None = None) -> list:
     """Editor HTML to flowables. ``styles`` is any mapping/stylesheet; keys it lacks fall back to
-    :func:`make_styles`. ``image_placeholder`` (str or lazy translation) stands in for ``<img>``."""
-    parser = _HtmlToFlowables(styles, str(image_placeholder))
+    :func:`make_styles` (of ``theme``). ``image_placeholder`` (str or lazy translation) stands in
+    for ``<img>``. With a ``theme``, a paragraph the theme font cannot set uses the bundled font."""
+    parser = _HtmlToFlowables(styles, str(image_placeholder), theme or DEFAULT_THEME)
     parser.feed(html or "")
     return parser.result()
