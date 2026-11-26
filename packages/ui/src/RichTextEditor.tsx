@@ -86,6 +86,14 @@ function trackPosition(editor: Editor, pos: number) {
   return tracked;
 }
 
+/** A formatting tool of the editor; images are governed by `onUploadImage`. */
+export type RichTextTool = "bold" | "italic" | "heading" | "bulletList" | "orderedList" | "link";
+
+/** Every formatting tool, the default of `tools`. */
+export const RICH_TEXT_TOOLS: readonly RichTextTool[] = [
+  "bold", "italic", "heading", "bulletList", "orderedList", "link",
+];
+
 export interface RichTextEditorProps {
   value: string;
   onChange: (html: string) => void;
@@ -123,6 +131,13 @@ export interface RichTextEditorProps {
    *  saving or for a viewer without edit rights. Default `true`. (Pure
    *  display of stored HTML is `RichText`, which costs no TipTap.) */
   editable?: boolean;
+  /** Formatting this field offers; default all of `RICH_TEXT_TOOLS`. A tool
+   *  left out has no toolbar button, no keyboard shortcut and no input rule,
+   *  and pasted content of that kind arrives without it (e.g. a pasted H2
+   *  becomes a paragraph) — so a field whose backend keeps only bold and
+   *  lists can offer exactly that. Read once when the editor mounts. Images
+   *  stay governed by `onUploadImage`. */
+  tools?: readonly RichTextTool[];
 }
 
 function ToolbarButton({
@@ -172,7 +187,10 @@ export function RichTextEditor({
   describedBy,
   id,
   editable = true,
+  tools = RICH_TEXT_TOOLS,
 }: RichTextEditorProps) {
+  const has = (tool: RichTextTool) => tools.includes(tool);
+  const lists = has("bulletList") || has("orderedList");
   const { t } = useTranslation();
   const { dialog: promptDialog, prompt } = usePromptDialog();
   // Detail of the last failed upload ("" = no message), shown under the
@@ -306,7 +324,12 @@ export function RichTextEditor({
     editable,
     extensions: [
       StarterKit.configure({
-        heading: { levels: [2, 3] },
+        heading: has("heading") ? { levels: [2, 3] } : false,
+        italic: has("italic") ? undefined : false,
+        bulletList: has("bulletList") ? undefined : false,
+        orderedList: has("orderedList") ? undefined : false,
+        listItem: lists ? undefined : false,
+        listKeymap: lists ? undefined : false,
         blockquote: false,
         codeBlock: false,
         code: false,
@@ -319,16 +342,20 @@ export function RichTextEditor({
         underline: false,
         strike: false,
       }),
-      PlainBold,
+      ...(has("bold") ? [PlainBold] : []),
       // Links may point anywhere; the backend forces rel="noopener" itself,
       // so we don't render one here (any value we chose would just be
       // overwritten). We do not open a new tab (target), and we do not
       // auto-link typed URLs (toolbar only).
-      Link.configure({
-        openOnClick: false,
-        autolink: false,
-        HTMLAttributes: { target: null, rel: null },
-      }),
+      ...(has("link")
+        ? [
+            Link.configure({
+              openOnClick: false,
+              autolink: false,
+              HTMLAttributes: { target: null, rel: null },
+            }),
+          ]
+        : []),
       // Kept unconditionally so existing <img> content survives even when
       // this instance has no onUploadImage (view-only fields, other tools'
       // legacy content, …) — only insertion is gated on onUploadImage.
@@ -531,55 +558,69 @@ export function RichTextEditor({
         // Wraps onto further rows on narrow screens instead of a horizontal
         // scroller whose hidden buttons had no affordance.
         <div className="flex flex-wrap gap-1 border-b border-slate-200 dark:border-slate-800 px-2 py-1">
-          <ToolbarButton
-            label={t("Bold")}
-            active={editor.isActive("bold")}
-            onClick={() => editor.chain().focus().toggleBold().run()}
-          >
-            <BoldIcon aria-hidden className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            label={t("Italic")}
-            active={editor.isActive("italic")}
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-          >
-            <ItalicIcon aria-hidden className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            label={t("Heading (large)")}
-            active={editor.isActive("heading", { level: 2 })}
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          >
-            <Heading2 aria-hidden className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            label={t("Heading (small)")}
-            active={editor.isActive("heading", { level: 3 })}
-            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          >
-            <Heading3 aria-hidden className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            label={t("Bulleted list")}
-            active={editor.isActive("bulletList")}
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-          >
-            <List aria-hidden className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            label={t("Numbered list")}
-            active={editor.isActive("orderedList")}
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          >
-            <ListOrdered aria-hidden className="h-4 w-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            label={t("Link")}
-            active={editor.isActive("link")}
-            onClick={() => void setLink()}
-          >
-            <LinkIcon aria-hidden className="h-4 w-4" />
-          </ToolbarButton>
+          {has("bold") && (
+            <ToolbarButton
+              label={t("Bold")}
+              active={editor.isActive("bold")}
+              onClick={() => editor.chain().focus().toggleBold().run()}
+            >
+              <BoldIcon aria-hidden className="h-4 w-4" />
+            </ToolbarButton>
+          )}
+          {has("italic") && (
+            <ToolbarButton
+              label={t("Italic")}
+              active={editor.isActive("italic")}
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+            >
+              <ItalicIcon aria-hidden className="h-4 w-4" />
+            </ToolbarButton>
+          )}
+          {has("heading") && (
+            <ToolbarButton
+              label={t("Heading (large)")}
+              active={editor.isActive("heading", { level: 2 })}
+              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            >
+              <Heading2 aria-hidden className="h-4 w-4" />
+            </ToolbarButton>
+          )}
+          {has("heading") && (
+            <ToolbarButton
+              label={t("Heading (small)")}
+              active={editor.isActive("heading", { level: 3 })}
+              onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            >
+              <Heading3 aria-hidden className="h-4 w-4" />
+            </ToolbarButton>
+          )}
+          {has("bulletList") && (
+            <ToolbarButton
+              label={t("Bulleted list")}
+              active={editor.isActive("bulletList")}
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+            >
+              <List aria-hidden className="h-4 w-4" />
+            </ToolbarButton>
+          )}
+          {has("orderedList") && (
+            <ToolbarButton
+              label={t("Numbered list")}
+              active={editor.isActive("orderedList")}
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            >
+              <ListOrdered aria-hidden className="h-4 w-4" />
+            </ToolbarButton>
+          )}
+          {has("link") && (
+            <ToolbarButton
+              label={t("Link")}
+              active={editor.isActive("link")}
+              onClick={() => void setLink()}
+            >
+              <LinkIcon aria-hidden className="h-4 w-4" />
+            </ToolbarButton>
+          )}
           {onUploadImage && (
             <label
               className="flex cursor-pointer items-center rounded px-2 py-1 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 focus-within:ring-2 focus-within:ring-brand-600 focus-within:ring-offset-1"
