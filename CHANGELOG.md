@@ -7,6 +7,18 @@ Changelog ist die Upgrade-Anleitung für die Tools.
 
 ## [Unreleased]
 
+### @basicbar/ui (→ wird `ui/v0.12.0`)
+
+- `RichTextEditor` bekommt die Prop `tools` (Typ `RichTextTool[]`, Standard
+  `RICH_TEXT_TOOLS`, also alle Werkzeuge wie bisher). Ein weggelassenes
+  Werkzeug hat keinen Knopf, kein Tastenkürzel und keine Eingaberegel;
+  eingefügter Inhalt dieser Art kommt ohne die Formatierung an (eine
+  eingefügte H2 wird zum Absatz). So bietet ein Feld, dessen Backend nur
+  Fett und Listen behält, genau das an, z. B.
+  `tools={["bold", "bulletList", "orderedList"]}`. Bilder bleiben an
+  `onUploadImage` gebunden. Erprobt für orientierBAR (Studienaufbau je Fach).
+- Migration: keine; ohne `tools` verhält sich der Editor wie bisher.
+
 ### Doku für die Tools (kein Release)
 
 - Upgrade-Leitfaden [Vite 8, React 19, Django 6.1 und

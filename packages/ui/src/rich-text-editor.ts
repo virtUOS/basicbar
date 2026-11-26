@@ -5,5 +5,5 @@
  * dependency only lands in bundles that actually render the editor — the main
  * entry stays free of it. `RichText` (the renderer) has no such dependency
  * and lives in the main entry. */
-export { RichTextEditor } from "./RichTextEditor";
-export type { InsertedImage, RichTextEditorProps } from "./RichTextEditor";
+export { RICH_TEXT_TOOLS, RichTextEditor } from "./RichTextEditor";
+export type { InsertedImage, RichTextEditorProps, RichTextTool } from "./RichTextEditor";

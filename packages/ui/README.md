@@ -107,6 +107,16 @@ Unterstreichen/Durchgestrichen sind nicht registriert (TipTap-`underline`/
 erzwingt `rel="noopener"` ohnehin) — eine Formatierung, die der Sanitizer
 später wieder entfernt, soll der Nutzer erst gar nicht setzen können.
 
+**Werkzeuge einschränken:** `tools` legt fest, welche Formatierung ein Feld
+anbietet (Standard: alle aus `RICH_TEXT_TOOLS`). Was fehlt, hat weder Knopf
+noch Tastenkürzel, und eingefügter Inhalt dieser Art verliert die
+Formatierung. Sinnvoll, wenn der Sanitizer eines Felds weniger behält als das
+volle Subset, z. B. nur Fett und Listen:
+
+```tsx
+<RichTextEditor value={v} onChange={setV} tools={["bold", "bulletList", "orderedList"]} />
+```
+
 **Zugänglicher Name:** der Editor braucht immer entweder `ariaLabel` (kein
 sichtbares Label) oder `labelledBy` (Id eines bereits vorhandenen sichtbaren
 `<label>`-Elements, z. B. `TranslatableField`s `labelId` — siehe unten).
